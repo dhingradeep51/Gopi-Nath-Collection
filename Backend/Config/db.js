@@ -11,5 +11,5 @@ export const connectDB = async () => {
     process.exit(1);
     }
 };
-
+//This is monogo code
 export default connectDB;
