@@ -3,7 +3,7 @@ import AdminMenu from "../../components/Menus/AdminMenu";
 import toast from "react-hot-toast";
 import axios from "axios";
 import CategoryForm from "../../components/Form/CreateForm"; 
-import { Modal } from "antd";
+import { Modal, Spin } from "antd"; // Added Spin for a nice loader
 
 const CreateCategory = () => {
   const [categories, setCategories] = useState([]);
@@ -13,9 +13,11 @@ const CreateCategory = () => {
   const [selected, setSelected] = useState(null);
   const [updatedName, setUpdatedName] = useState("");
   const [updatedId, setUpdatedId] = useState("");
+  
+  // New Loading State
+  const [loading, setLoading] = useState(false);
 
   const BASE_URL = import.meta.env.VITE_API_URL;
-
   const gold = "#D4AF37";
   const burgundy = "#2D0A14";
 
@@ -38,6 +40,7 @@ const CreateCategory = () => {
   // 2. Handle Form Submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true); // Start Loading
     try {
       const { data } = await axios.post(`${BASE_URL}api/v1/category/create-category`, { 
         name, 
@@ -55,12 +58,15 @@ const CreateCategory = () => {
     } catch (error) {
       const errorMsg = error.response?.data?.message || "Something went wrong";
       toast.error(errorMsg);
+    } finally {
+      setLoading(false); // Stop Loading
     }
   };
 
   // 3. Update Category
   const handleUpdate = async (e) => {
     e.preventDefault();
+    setLoading(true); // Start Loading
     try {
       const { data } = await axios.put(`${BASE_URL}api/v1/category/update-category/${selected._id}`, { 
         name: updatedName,
@@ -79,11 +85,14 @@ const CreateCategory = () => {
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Update failed");
+    } finally {
+      setLoading(false); // Stop Loading
     }
   };
 
   // 4. Delete Category
   const handleDelete = async (id) => {
+    setLoading(true); // Start Loading
     try {
       const { data } = await axios.delete(`${BASE_URL}api/v1/category/delete-category/${id}`);
       if (data.success) {
@@ -92,6 +101,8 @@ const CreateCategory = () => {
       }
     } catch (error) {
       toast.error("Delete failed");
+    } finally {
+      setLoading(false); // Stop Loading
     }
   };
 
@@ -119,10 +130,11 @@ const CreateCategory = () => {
             border: `1px solid ${gold}22`,
             maxWidth: "600px",
             margin: "0 auto",
-            width: "100%"
+            width: "100%",
+            position: "relative"
           }}>
             <h5 style={{ color: gold, fontSize: "14px", marginBottom: "25px", letterSpacing: "1px", fontWeight: "bold", textAlign: 'center' }}>
-              ADD NEW COLLECTION CATEGORY
+              {loading ? "PROCESSING..." : "ADD NEW COLLECTION CATEGORY"}
             </h5>
             <CategoryForm 
               handleSubmit={handleSubmit} 
@@ -130,16 +142,19 @@ const CreateCategory = () => {
               setValue={setName} 
               idValue={categoryId}
               setIdValue={setCategoryId}
+              loading={loading} // Pass loading prop to form to disable its button
             />
           </div>
 
-          {/* Section 2: Collection Table (Positioned Below the Form) */}
+          {/* Section 2: Collection Table */}
           <div style={{ 
             background: "rgba(0,0,0,0.2)", 
             borderRadius: "4px", 
             overflow: "hidden", 
             border: `1px solid ${gold}11`,
-            padding: "10px"
+            padding: "10px",
+            opacity: loading ? 0.7 : 1, // Visual feedback for table during delete
+            pointerEvents: loading ? "none" : "auto"
           }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
@@ -160,16 +175,18 @@ const CreateCategory = () => {
                     </td>
                     <td style={{ padding: "25px 20px", textAlign: "right" }}>
                       <button 
+                        disabled={loading}
                         onClick={() => { setVisible(true); setUpdatedName(c.name); setUpdatedId(c.categoryId); setSelected(c); }}
-                        style={{ background: "transparent", border: `1px solid ${gold}`, color: gold, padding: "8px 25px", cursor: "pointer", marginRight: "12px", fontSize: "11px", fontWeight: "bold" }}
+                        style={{ background: "transparent", border: `1px solid ${gold}`, color: gold, padding: "8px 25px", cursor: loading ? "not-allowed" : "pointer", marginRight: "12px", fontSize: "11px", fontWeight: "bold" }}
                       >
                         EDIT
                       </button>
                       <button 
+                        disabled={loading}
                         onClick={() => { if(window.confirm("Permanently delete this collection?")) handleDelete(c._id); }}
-                        style={{ background: "transparent", border: "1px solid #ff4d4f", color: "#ff4d4f", padding: "8px 25px", cursor: "pointer", fontSize: "11px" }}
+                        style={{ background: "transparent", border: "1px solid #ff4d4f", color: "#ff4d4f", padding: "8px 25px", cursor: loading ? "not-allowed" : "pointer", fontSize: "11px" }}
                       >
-                        DELETE
+                        {loading ? "..." : "DELETE"}
                       </button>
                     </td>
                   </tr>
@@ -179,17 +196,18 @@ const CreateCategory = () => {
           </div>
         </div>
 
-        {/* Edit Modal (Luxury White Pop-up) */}
+        {/* Edit Modal */}
         <Modal 
-          onCancel={() => setVisible(false)} 
+          onCancel={() => !loading && setVisible(false)} // Prevent closing while updating
           footer={null} 
           open={visible} 
           centered
           width={500}
+          closable={!loading}
         >
           <div style={{ background: "#fff", padding: "40px", borderRadius: "4px" }}>
             <h2 style={{ color: burgundy, fontFamily: "serif", marginBottom: "30px", fontSize: "22px", borderBottom: `1px solid ${burgundy}11`, paddingBottom: "15px" }}>
-              Update Category Details
+              {loading ? "Updating..." : "Update Category Details"}
             </h2>
             <CategoryForm 
               value={updatedName} 
@@ -198,6 +216,7 @@ const CreateCategory = () => {
               setIdValue={setUpdatedId}
               handleSubmit={handleUpdate} 
               isEdit={true}
+              loading={loading}
             />
           </div>
         </Modal>
