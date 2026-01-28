@@ -35,20 +35,27 @@ const ProductDetails = () => {
   const BASE_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
-    if (params?.slug) getProduct();
+    if (params?.slug) {
+      // Immediately trigger loading state when slug changes
+      setLoading(true);
+      getProduct();
+    }
     window.scrollTo(0, 0);
   }, [params?.slug]);
 
   const getProduct = async () => {
     try {
-      setLoading(true);
-      const { data } = await axios.get(`${BASE_URL}api/v1/product/get-product/${params.slug}`);
+      const { data } = await axios.get(
+        `${BASE_URL}api/v1/product/get-product/${params.slug}`
+      );
       if (data?.success) {
         setProduct(data.product);
       }
-      setLoading(false);
     } catch (error) {
       console.log("Error fetching product:", error);
+      message.error("Divine details could not be loaded at this time.");
+    } finally {
+      // Ensures loading ends whether request succeeds or fails
       setLoading(false);
     }
   };
@@ -85,17 +92,41 @@ const ProductDetails = () => {
     }
   };
 
+  // --- LOADING STATE RENDER ---
   if (loading) {
     return (
-      <Layout>
+      <Layout title="Revealing Elegance...">
         <div className="loading-screen">
           <Spin size="large" />
           <h2 className="loading-text">Revealing Elegance...</h2>
         </div>
+        <style>{`
+          .loading-screen {
+            background-color: ${darkBg};
+            min-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.4s ease-in-out;
+          }
+          .loading-text {
+            color: ${gold};
+            margin-top: 20px;
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            letter-spacing: 2px;
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+        `}</style>
       </Layout>
     );
   }
 
+  // --- PRODUCT DETAILS RENDER ---
   return (
     <Layout title={`${product?.name || "Product"} - Gopi Nath Collection`}>
       <div className="product-details-page">
@@ -114,7 +145,7 @@ const ProductDetails = () => {
 
         <div className="product-container">
           <div className="product-main">
-            {/* LEFT: Product Image Gallery */}
+            {/* LEFT: Product Image */}
             <div className="image-section">
               <div className="main-image-wrapper">
                 {product?.quantity < 1 && (
@@ -125,7 +156,7 @@ const ProductDetails = () => {
                   alt={product?.name}
                   className="main-image"
                   onError={(e) => {
-                    e.target.src = "/fallback-image.png";
+                    e.target.src = "/fallback-image.png"; // Ensure this exists in public folder
                   }}
                 />
               </div>
@@ -133,7 +164,6 @@ const ProductDetails = () => {
 
             {/* RIGHT: Product Info */}
             <div className="info-section">
-              {/* Header Meta */}
               <div className="product-meta">
                 <Badge
                   count="EXCLUSIVE"
@@ -148,10 +178,8 @@ const ProductDetails = () => {
                 <span className="sku-code">SKU: {product?.sku || "N/A"}</span>
               </div>
 
-              {/* Product Title */}
               <h1 className="product-title">{product?.name}</h1>
 
-              {/* Rating & Stock */}
               <div className="rating-stock-row">
                 <div className="rating-wrapper">
                   <Rate
@@ -177,7 +205,6 @@ const ProductDetails = () => {
                 </span>
               </div>
 
-              {/* Price */}
               <div className="price-section">
                 <h2 className="product-price">₹{product?.price?.toLocaleString()}</h2>
                 {product?.gstRate && (
@@ -185,10 +212,8 @@ const ProductDetails = () => {
                 )}
               </div>
 
-              {/* Short Description */}
               <p className="short-description">{product?.shortDescription}</p>
 
-              {/* Quantity Selector */}
               {product?.quantity > 0 && (
                 <div className="quantity-selector">
                   <span className="quantity-label">QUANTITY</span>
@@ -215,7 +240,6 @@ const ProductDetails = () => {
                 </div>
               )}
 
-              {/* Action Buttons */}
               <div className="action-buttons">
                 <button
                   onClick={handleAddToCart}
@@ -230,7 +254,6 @@ const ProductDetails = () => {
                 </button>
               </div>
 
-              {/* Trust Badges */}
               <div className="trust-badges">
                 <div className="badge-item">
                   <TruckOutlined className="badge-icon" />
@@ -318,28 +341,15 @@ const ProductDetails = () => {
                         <p>Free shipping on orders above ₹299</p>
                       </div>
                     </div>
-                    <div className="shipping-item">
-                      <SyncOutlined className="shipping-icon" />
-                      <div>
-                        <strong>Return Policy</strong>
-                        <p>7 days return and exchange policy</p>
-                        <p>Product must be in original condition</p>
-                      </div>
-                    </div>
                   </div>
                 </div>
               )}
 
               {activeTab === "reviews" && (
                 <div className="tab-pane">
-                  <h3 className="tab-title">
-                    Customer Reviews ({product?.numReviews || 0})
-                  </h3>
+                  <h3 className="tab-title">Reviews ({product?.numReviews || 0})</h3>
                   {product?.reviews?.length === 0 ? (
-                    <div className="no-reviews">
-                      <p>No reviews yet for this divine piece.</p>
-                      <span>Be the first to share your experience!</span>
-                    </div>
+                    <div className="no-reviews">No reviews yet for this divine piece.</div>
                   ) : (
                     <div className="reviews-list">
                       {product.reviews.map((r) => (
@@ -349,16 +359,10 @@ const ProductDetails = () => {
                               <UserOutlined className="reviewer-icon" />
                               <strong className="reviewer-name">{r.name}</strong>
                             </div>
-                            <Rate
-                              disabled
-                              defaultValue={r.rating}
-                              style={{ fontSize: "12px", color: gold }}
-                            />
+                            <Rate disabled defaultValue={r.rating} style={{ fontSize: "12px", color: gold }} />
                           </div>
                           <p className="review-comment">{r.comment}</p>
-                          <small className="review-date">
-                            {moment(r.createdAt).format("DD MMM YYYY")}
-                          </small>
+                          <small className="review-date">{moment(r.createdAt).format("DD MMM YYYY")}</small>
                         </div>
                       ))}
                     </div>
@@ -371,572 +375,27 @@ const ProductDetails = () => {
       </div>
 
       <style>{`
-        .product-details-page {
-          background-color: ${darkBg};
-          min-height: 100vh;
-          color: white;
-          padding-bottom: 60px;
-        }
-
-        /* Loading Screen */
-        .loading-screen {
-          background-color: ${burgundy};
-          min-height: 80vh;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-        }
-
-        .loading-text {
-          color: ${gold};
-          margin-top: 20px;
-          font-family: serif;
-          font-size: 24px;
-        }
-
-        /* Breadcrumb */
-        .breadcrumb-nav {
-          padding: ${isMobile ? "15px 20px" : "20px 40px"};
-          font-size: 10px;
-          letter-spacing: 1px;
-          border-bottom: 1px solid ${gold}22;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          background-color: ${burgundy};
-          flex-wrap: wrap;
-        }
-
-        .breadcrumb-item {
-          color: ${gold};
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          transition: opacity 0.3s;
-        }
-
-        .breadcrumb-item:hover {
-          opacity: 0.7;
-        }
-
-        .breadcrumb-sep {
-          color: ${gold};
-          opacity: 0.5;
-          font-size: 8px;
-        }
-
-        .breadcrumb-current {
-          color: #fff;
-          opacity: 0.7;
-        }
-
-        /* Container */
-        .product-container {
-          max-width: 1400px;
-          margin: 0 auto;
-          padding: ${isMobile ? "20px 15px" : "50px 40px"};
-        }
-
-        .product-main {
-          display: grid;
-          grid-template-columns: ${isMobile ? "1fr" : "1fr 1fr"};
-          gap: ${isMobile ? "30px" : "60px"};
-          margin-bottom: 60px;
-        }
-
-        /* Image Section */
-        .image-section {
-          position: relative;
-        }
-
-        .main-image-wrapper {
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid ${gold}33;
-          border-radius: 8px;
-          padding: ${isMobile ? "15px" : "30px"};
-          position: relative;
-          overflow: hidden;
-        }
-
-        .main-image {
-          width: 100%;
-          height: auto;
-          max-height: ${isMobile ? "400px" : "600px"};
-          object-fit: contain;
-          display: block;
-        }
-
-        .out-of-stock-badge {
-          position: absolute;
-          top: 20px;
-          right: 20px;
-          background: #f44336;
-          color: white;
-          padding: 8px 20px;
-          font-size: 11px;
-          font-weight: bold;
-          letter-spacing: 1px;
-          border-radius: 4px;
-          z-index: 10;
-        }
-
-        /* Info Section */
-        .info-section {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        .product-meta {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .sku-code {
-          font-size: 10px;
-          opacity: 0.6;
-          letter-spacing: 1px;
-        }
-
-        .product-title {
-          color: ${gold};
-          font-family: "Playfair Display", serif;
-          font-size: ${isMobile ? "32px" : "48px"};
-          margin: 0;
-          line-height: 1.2;
-        }
-
-        .rating-stock-row {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          flex-wrap: wrap;
-        }
-
-        .rating-wrapper {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .review-count {
-          font-size: 12px;
-          opacity: 0.6;
-        }
-
-        .divider-vertical {
-          height: 15px;
-          width: 1px;
-          background: ${gold};
-          opacity: 0.3;
-        }
-
-        .stock-status {
-          font-size: 13px;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .stock-icon-success {
-          color: #4caf50;
-        }
-
-        .stock-icon-error {
-          color: #f44336;
-        }
-
-        .price-section {
-          padding: 20px 0;
-          border-top: 1px solid ${gold}22;
-          border-bottom: 1px solid ${gold}22;
-        }
-
-        .product-price {
-          font-size: ${isMobile ? "32px" : "42px"};
-          color: ${gold};
-          margin: 0 0 5px 0;
-          font-weight: bold;
-        }
-
-        .gst-info {
-          font-size: 11px;
-          opacity: 0.5;
-          letter-spacing: 1px;
-        }
-
-        .short-description {
-          line-height: 1.8;
-          color: #ccc;
-          font-size: 15px;
-          font-style: italic;
-        }
-
-        /* Quantity Selector */
-        .quantity-selector {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-          padding: 20px 0;
-          border-bottom: 1px solid ${gold}22;
-        }
-
-        .quantity-label {
-          font-size: 11px;
-          font-weight: bold;
-          letter-spacing: 1px;
-          color: ${gold};
-        }
-
-        .quantity-controls {
-          display: flex;
-          align-items: center;
-          gap: 0;
-          border: 1px solid ${gold}44;
-          border-radius: 4px;
-          overflow: hidden;
-        }
-
-        .qty-btn {
-          width: 40px;
-          height: 40px;
-          background: rgba(212, 175, 55, 0.1);
-          border: none;
-          color: ${gold};
-          font-size: 18px;
-          cursor: pointer;
-          transition: all 0.3s;
-        }
-
-        .qty-btn:hover {
-          background: ${gold};
-          color: ${burgundy};
-        }
-
-        .qty-value {
-          width: 60px;
-          text-align: center;
-          font-weight: bold;
-          color: white;
-          font-size: 16px;
-        }
-
-        .stock-available {
-          font-size: 11px;
-          opacity: 0.6;
-        }
-
-        /* Action Buttons */
-        .action-buttons {
-          display: flex;
-          gap: 15px;
-          margin-top: 10px;
-        }
-
-        .btn-add-cart {
-          flex: 1;
-          padding: 18px;
-          background-color: ${gold};
-          color: ${burgundy};
-          border: none;
-          font-weight: bold;
-          font-size: 14px;
-          letter-spacing: 1px;
-          cursor: pointer;
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          transition: all 0.3s ease;
-        }
-
-        .btn-add-cart:hover:not(:disabled) {
-          background-color: #e5c158;
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
-        }
-
-        .btn-add-cart:disabled {
-          background-color: #555;
-          cursor: not-allowed;
-          opacity: 0.6;
-        }
-
-        .btn-wishlist {
-          width: 60px;
-          padding: 18px;
-          background: transparent;
-          border: 1px solid ${gold};
-          color: ${gold};
-          cursor: pointer;
-          border-radius: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 18px;
-          transition: all 0.3s ease;
-        }
-
-        .btn-wishlist:hover {
-          background: rgba(212, 175, 55, 0.1);
-        }
-
-        /* Trust Badges */
-        .trust-badges {
-          display: grid;
-          grid-template-columns: ${isMobile ? "1fr" : "repeat(3, 1fr)"};
-          gap: 20px;
-          padding: 30px 0;
-          border-top: 1px solid ${gold}22;
-          margin-top: 20px;
-        }
-
-        .badge-item {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-        }
-
-        .badge-icon {
-          font-size: 24px;
-          color: ${gold};
-        }
-
-        .badge-item strong {
-          display: block;
-          color: ${gold};
-          font-size: 13px;
-          margin-bottom: 4px;
-        }
-
-        .badge-item span {
-          display: block;
-          font-size: 11px;
-          opacity: 0.6;
-        }
-
-        /* Tabs Section */
-        .tabs-section {
-          margin-top: ${isMobile ? "40px" : "80px"};
-        }
-
-        .tabs-header {
-          display: flex;
-          gap: ${isMobile ? "15px" : "40px"};
-          border-bottom: 1px solid ${gold}22;
-          overflow-x: auto;
-          -webkit-overflow-scrolling: touch;
-        }
-
-        .tab-button {
-          padding: 18px 0;
-          background: none;
-          border: none;
-          border-bottom: 2px solid transparent;
-          color: white;
-          cursor: pointer;
-          font-size: 12px;
-          font-weight: bold;
-          letter-spacing: 1px;
-          white-space: nowrap;
-          opacity: 0.5;
-          transition: all 0.3s;
-        }
-
-        .tab-button.active {
-          border-bottom-color: ${gold};
-          color: ${gold};
-          opacity: 1;
-        }
-
-        .tab-button:hover {
-          opacity: 0.8;
-        }
-
-        .tabs-content {
-          padding: ${isMobile ? "30px 0" : "40px 0"};
-          min-height: 200px;
-        }
-
-        .tab-pane {
-          animation: fadeIn 0.5s;
-        }
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .tab-title {
-          color: ${gold};
-          font-family: serif;
-          font-size: 22px;
-          margin-bottom: 20px;
-        }
-
-        .description-text {
-          line-height: 1.8;
-          font-size: 15px;
-          color: #ccc;
-        }
-
-        /* Specifications */
-        .specs-grid {
-          display: grid;
-          grid-template-columns: ${isMobile ? "1fr" : "repeat(2, 1fr)"};
-          gap: 20px;
-        }
-
-        .spec-item {
-          display: flex;
-          justify-content: space-between;
-          padding: 15px;
-          background: rgba(212, 175, 55, 0.05);
-          border: 1px solid ${gold}22;
-          border-radius: 4px;
-        }
-
-        .spec-label {
-          font-size: 13px;
-          opacity: 0.7;
-        }
-
-        .spec-value {
-          font-weight: bold;
-          color: ${gold};
-          font-size: 13px;
-        }
-
-        /* Shipping Info */
-        .shipping-info {
-          display: flex;
-          flex-direction: column;
-          gap: 25px;
-        }
-
-        .shipping-item {
-          display: flex;
-          gap: 20px;
-          align-items: flex-start;
-        }
-
-        .shipping-icon {
-          font-size: 32px;
-          color: ${gold};
-        }
-
-        .shipping-item strong {
-          display: block;
-          color: ${gold};
-          margin-bottom: 8px;
-          font-size: 16px;
-        }
-
-        .shipping-item p {
-          margin: 4px 0;
-          font-size: 14px;
-          opacity: 0.7;
-        }
-
-        /* Reviews */
-        .no-reviews {
-          text-align: center;
-          padding: 60px 20px;
-          opacity: 0.6;
-        }
-
-        .no-reviews p {
-          font-size: 16px;
-          margin-bottom: 10px;
-        }
-
-        .no-reviews span {
-          font-size: 13px;
-          opacity: 0.7;
-        }
-
-        .reviews-list {
-          display: flex;
-          flex-direction: column;
-          gap: 25px;
-        }
-
-        .review-item {
-          padding: 25px;
-          background: rgba(212, 175, 55, 0.03);
-          border: 1px solid ${gold}11;
-          border-radius: 8px;
-        }
-
-        .review-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 15px;
-        }
-
-        .reviewer-info {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .reviewer-icon {
-          color: ${gold};
-          font-size: 16px;
-        }
-
-        .reviewer-name {
-          color: ${gold};
-          font-size: 14px;
-        }
-
-        .review-comment {
-          font-size: 14px;
-          line-height: 1.7;
-          margin: 15px 0;
-          opacity: 0.8;
-        }
-
-        .review-date {
-          font-size: 11px;
-          opacity: 0.4;
-          letter-spacing: 1px;
-        }
-
-        /* Ant Design Overrides */
-        .ant-message-notice-content {
-          background: ${burgundy};
-          color: ${gold};
-          border: 1px solid ${gold};
-        }
-
-        /* Mobile Adjustments */
-        @media (max-width: 768px) {
-          .product-title {
-            font-size: 28px;
-          }
-
-          .tabs-header {
-            gap: 15px;
-            padding-bottom: 0;
-          }
-
-          .tab-button {
-            font-size: 11px;
-            padding: 15px 0;
-          }
-        }
+        .product-details-page { background-color: ${darkBg}; min-height: 100vh; color: white; padding-bottom: 60px; }
+        .breadcrumb-nav { padding: ${isMobile ? "15px 20px" : "20px 40px"}; font-size: 10px; border-bottom: 1px solid ${gold}22; display: flex; align-items: center; gap: 8px; background-color: ${burgundy}; }
+        .breadcrumb-item { color: ${gold}; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .breadcrumb-sep { color: ${gold}; opacity: 0.5; font-size: 8px; }
+        .product-container { max-width: 1400px; margin: 0 auto; padding: ${isMobile ? "20px 15px" : "50px 40px"}; }
+        .product-main { display: grid; grid-template-columns: ${isMobile ? "1fr" : "1fr 1fr"}; gap: ${isMobile ? "30px" : "60px"}; }
+        .main-image-wrapper { background: rgba(255, 255, 255, 0.02); border: 1px solid ${gold}33; border-radius: 8px; padding: 20px; position: relative; }
+        .main-image { width: 100%; height: auto; max-height: 600px; object-fit: contain; }
+        .product-title { color: ${gold}; font-family: 'Playfair Display', serif; font-size: ${isMobile ? "32px" : "48px"}; margin-bottom: 15px; }
+        .price-section { padding: 20px 0; border-top: 1px solid ${gold}22; border-bottom: 1px solid ${gold}22; }
+        .product-price { font-size: 42px; color: ${gold}; margin: 0; }
+        .quantity-selector { display: flex; align-items: center; gap: 20px; padding: 20px 0; border-bottom: 1px solid ${gold}22; }
+        .quantity-controls { display: flex; border: 1px solid ${gold}44; border-radius: 4px; overflow: hidden; }
+        .qty-btn { width: 40px; height: 40px; background: rgba(212, 175, 55, 0.1); border: none; color: ${gold}; cursor: pointer; }
+        .qty-value { width: 60px; text-align: center; line-height: 40px; font-weight: bold; }
+        .btn-add-cart { flex: 1; padding: 18px; background-color: ${gold}; color: ${burgundy}; border: none; font-weight: bold; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .tabs-header { display: flex; gap: 30px; border-bottom: 1px solid ${gold}22; }
+        .tab-button { padding: 18px 0; background: none; border: none; color: white; cursor: pointer; border-bottom: 2px solid transparent; opacity: 0.5; }
+        .tab-button.active { border-bottom-color: ${gold}; color: ${gold}; opacity: 1; }
+        .specs-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .spec-item { display: flex; justify-content: space-between; padding: 15px; background: rgba(212, 175, 55, 0.05); border: 1px solid ${gold}22; }
       `}</style>
     </Layout>
   );
