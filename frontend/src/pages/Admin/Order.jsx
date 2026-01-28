@@ -85,47 +85,49 @@ const AdminOrders = () => {
   };
 
   const handleDownloadPDF = async (type, order) => {
-    if (type !== "BILL") return toast.error("Label generation not implemented");
-    
-    setActionLoading(true);
-    const loadToast = toast.loading("Processing Invoice...");
-    
-    try {
-      // 1. Generate Invoice if not yet generated
-      if (!order.isInvoiced) {
-        const genRes = await axios.post(`${BASE_URL}api/v1/invoice/generate-invoice`, { orderId: order._id });
-        if (!genRes.data.success) throw new Error(genRes.data.message);
-        await getAllOrders(); // Refresh status
-      }
+  if (type !== "BILL") return;
+  
+  setActionLoading(true);
+  const loadToast = toast.loading("Downloading Invoice...");
+  
+  try {
+    // Get the invoice record first to get the ID
+    const { data } = await axios.get(`${BASE_URL}api/v1/invoice/order/${order._id}`);
+    const invoiceId = data?.invoice?._id;
 
-      // 2. Get Invoice Details
-      const { data } = await axios.get(`${BASE_URL}api/v1/invoice/order/${order._id}`);
-      const invoiceId = data?.invoice?._id;
-
-      if (!invoiceId) throw new Error("Invoice record not found");
-
-      // 3. Download the PDF Blob
-      const response = await axios({
-        url: `${BASE_URL}api/v1/invoice/download/${invoiceId}`,
-        method: "GET",
-        responseType: "blob",
-      });
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", `INV-${order.orderNumber}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      
-      toast.success("Download started", { id: loadToast });
-    } catch (error) {
-      const msg = error.response?.data?.message || error.message || "Action failed";
-      toast.error(msg, { id: loadToast });
-    } finally {
-      setActionLoading(false);
+    if (!invoiceId) {
+      toast.error("Please generate the invoice first.");
+      return;
     }
-  };
+
+    // CRITICAL: responseType must be 'blob'
+    const response = await axios({
+      url: `${BASE_URL}api/v1/invoice/download/${invoiceId}`,
+      method: "GET",
+      responseType: "blob", 
+    });
+
+    // Create a URL for the blob and trigger download
+    const blob = new Blob([response.data], { type: "application/pdf" });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `Invoice-${order.orderNumber}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    
+    // Cleanup
+    link.parentNode.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    toast.success("Download started", { id: loadToast });
+  } catch (error) {
+    toast.error("Download failed. Check console for details.", { id: loadToast });
+    console.error("PDF Error:", error);
+  } finally {
+    setActionLoading(false);
+  }
+};
 
   /* ================= UTILS ================= */
   const copyToClipboard = (text) => {
