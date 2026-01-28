@@ -131,7 +131,7 @@ const GlobalSearch = ({
                                     >
                                         <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
                                             <img 
-                                                src={`${BASE_URL}/api/v1/product/product-photo/${p._id}`} 
+                                                src={`${BASE_URL}api/v1/product/product-photo/${p._id}`} 
                                                 className="suggestion-img" 
                                                 alt={p.name} 
                                             />
