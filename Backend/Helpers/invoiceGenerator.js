@@ -1,138 +1,154 @@
-import pdf from "html-pdf-node";
+import PDFDocument from "pdfkit";
 import fs from "fs";
 import path from "path";
 
 export const generateInvoicePDF = async (invoice) => {
-  try {
-    // Ensure uploads/invoices directory exists
-    const dir = path.join(process.cwd(), "uploads", "invoices");
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+  return new Promise((resolve, reject) => {
+    try {
+      // Ensure uploads/invoices directory exists
+      const dir = path.join(process.cwd(), "uploads", "invoices");
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      const filename = `${invoice.invoiceNumber.replace(/\//g, "-")}.pdf`;
+      const filePath = path.join(dir, filename);
+
+      const doc = new PDFDocument({ size: "A4", margin: 40 });
+      const buffers = [];
+
+      doc.on("data", buffers.push.bind(buffers));
+      doc.on("end", () => {
+        const pdfBuffer = Buffer.concat(buffers);
+        fs.writeFileSync(filePath, pdfBuffer); // optional persistence
+        resolve(pdfBuffer);
+      });
+
+      /* ---------- HEADER ---------- */
+      doc
+        .fontSize(20)
+        .fillColor("#2D0A14")
+        .text(invoice.sellerName, { align: "left" });
+
+      doc
+        .fontSize(10)
+        .fillColor("black")
+        .text(`${invoice.sellerAddress}`)
+        .text(`GSTIN: ${invoice.sellerGstin}`)
+        .moveDown();
+
+      doc
+        .fontSize(16)
+        .fillColor("#D4AF37")
+        .text("TAX INVOICE", { align: "right" });
+
+      doc
+        .fontSize(10)
+        .fillColor("black")
+        .text(`Invoice: ${invoice.invoiceNumber}`, { align: "right" })
+        .text(`Order: ${invoice.orderNumber}`, { align: "right" })
+        .moveDown(2);
+
+      /* ---------- BILL TO ---------- */
+      doc.fontSize(12).text("BILL TO", { underline: true });
+      doc.fontSize(10);
+      doc.text(invoice.buyerName);
+      doc.text(invoice.buyerAddress);
+      doc.moveDown();
+
+      /* ---------- PAYMENT ---------- */
+      doc.fontSize(12).text("PAYMENT", { underline: true });
+      doc.fontSize(10);
+      doc.text(`Method: ${invoice.paymentMethod}`);
+      doc.text("Status: SUCCESS");
+      doc.moveDown(2);
+
+      /* ---------- TABLE HEADER ---------- */
+      const tableTop = doc.y;
+      const colX = [40, 200, 240, 300, 370, 450];
+
+      doc.font("Helvetica-Bold").fontSize(10);
+      doc.text("Item", colX[0], tableTop);
+      doc.text("Qty", colX[1], tableTop);
+      doc.text("MRP", colX[2], tableTop);
+      doc.text("Taxable", colX[3], tableTop);
+      doc.text("GST", colX[4], tableTop);
+      doc.text("Total", colX[5], tableTop);
+
+      doc.moveDown(0.5);
+      doc.font("Helvetica");
+
+      /* ---------- TABLE ROWS ---------- */
+      invoice.items.forEach((item) => {
+        const y = doc.y;
+        doc.text(item.productName, colX[0], y, { width: 150 });
+        doc.text(item.qty, colX[1], y);
+        doc.text(`₹${item.unitPrice.toFixed(2)}`, colX[2], y);
+        doc.text(`₹${item.taxableValue.toFixed(2)}`, colX[3], y);
+        doc.text(
+          `₹${(item.cgst + item.sgst + item.igst).toFixed(2)}`,
+          colX[4],
+          y
+        );
+        doc.text(`₹${item.finalPrice.toFixed(2)}`, colX[5], y);
+        doc.moveDown();
+      });
+
+      doc.moveDown(2);
+
+      /* ---------- SUMMARY ---------- */
+      doc.font("Helvetica-Bold");
+      doc.text(`Item Total: ₹${invoice.subtotal.toFixed(2)}`, {
+        align: "right",
+      });
+
+      if (invoice.discount > 0) {
+        doc
+          .fillColor("red")
+          .text(`Discount: -₹${invoice.discount.toFixed(2)}`, {
+            align: "right",
+          })
+          .fillColor("black");
+      }
+
+      doc.text(`Shipping Fee: ₹${invoice.shippingCharges.toFixed(2)}`, {
+        align: "right",
+      });
+
+      doc.text(`Taxable Value: ₹${invoice.taxableValue.toFixed(2)}`, {
+        align: "right",
+      });
+
+      doc.text(
+        `Total GST (${invoice.gstType}): ₹${(
+          invoice.cgst +
+          invoice.sgst +
+          invoice.igst
+        ).toFixed(2)}`,
+        { align: "right" }
+      );
+
+      doc
+        .fontSize(14)
+        .fillColor("#2D0A14")
+        .text(`NET AMOUNT PAYABLE: ₹${invoice.totalPaid.toFixed(2)}`, {
+          align: "right",
+        });
+
+      doc.moveDown(2);
+
+      /* ---------- FOOTER ---------- */
+      doc
+        .fontSize(9)
+        .fillColor("gray")
+        .text(
+          "Digitally generated for Gopi Nath Collection. No signature required.",
+          { align: "center" }
+        );
+
+      doc.end();
+    } catch (err) {
+      reject(err);
     }
-
-    const filename = `${invoice.invoiceNumber.replace(/\//g, "-")}.pdf`;
-    const filePath = path.join(dir, filename);
-
-    // Build HTML template (reuse your invoice fields)
-    const html = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8" />
-      <style>
-        body { font-family: 'Segoe UI', sans-serif; font-size: 12px; color: #333; line-height: 1.6; }
-        .container { padding: 30px; }
-        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #D4AF37; padding-bottom: 10px; margin-bottom: 20px; }
-        .seller-info h1 { color: #2D0A14; margin: 0; font-size: 24px; }
-        .details-row { display: flex; justify-content: space-between; margin-bottom: 20px; }
-        .box { width: 48%; }
-        .box h3 { color: #2D0A14; border-bottom: 1px solid #D4AF37; font-size: 13px; margin-bottom: 8px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th { background: #2D0A14; color: #D4AF37; padding: 8px; text-align: left; }
-        td { padding: 8px; border-bottom: 1px solid #eee; }
-        .math-summary { margin-top: 20px; display: flex; justify-content: flex-end; }
-        .summary-table { width: 320px; background: #fdfaf0; border: 1px solid #D4AF37; }
-        .summary-table td { border: none; padding: 5px 10px; }
-        .total-row { background: #2D0A14; color: #D4AF37; font-weight: bold; font-size: 14px; }
-        .footer { margin-top: 40px; text-align: center; font-size: 10px; color: #777; border-top: 1px solid #eee; padding-top: 10px; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <div class="seller-info">
-            <h1>${invoice.sellerName}</h1>
-            <p>${invoice.sellerAddress}<br><strong>GSTIN:</strong> ${invoice.sellerGstin}</p>
-          </div>
-          <div style="text-align: right;">
-            <h2 style="color: #D4AF37; margin:0;">TAX INVOICE</h2>
-            <p>Inv: ${invoice.invoiceNumber}<br>Order: ${invoice.orderNumber}</p>
-          </div>
-        </div>
-        <div class="details-row">
-          <div class="box">
-            <h3>BILL TO</h3>
-            <p><strong>${invoice.buyerName}</strong><br>${invoice.buyerAddress}</p>
-          </div>
-          <div class="box">
-            <h3>PAYMENT</h3>
-            <p>Method: ${invoice.paymentMethod}<br>Status: SUCCESS</p>
-          </div>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Qty</th>
-              <th>MRP (Inc.)</th>
-              <th>Taxable Val</th>
-              <th>GST</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${invoice.items.map(item => `
-              <tr>
-                <td>${item.productName}</td>
-                <td>${item.qty}</td>
-                <td>₹${item.unitPrice.toFixed(2)}</td>
-                <td>₹${item.taxableValue.toFixed(2)}</td>
-                <td>₹${(item.cgst + item.sgst + item.igst).toFixed(2)}</td>
-                <td>₹${item.finalPrice.toFixed(2)}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-        <div class="math-summary">
-          <table class="summary-table">
-            <tr>
-              <td>Item Total (Incl. GST)</td>
-              <td style="text-align: right;">₹${invoice.subtotal.toFixed(2)}</td>
-            </tr>
-            ${invoice.discount > 0 ? `
-            <tr>
-              <td style="color: #c0392b;">Less: Discount</td>
-              <td style="text-align: right; color: #c0392b;">- ₹${invoice.discount.toFixed(2)}</td>
-            </tr>
-            ` : ''}
-            <tr>
-              <td>Shipping Fee</td>
-              <td style="text-align: right;">₹${invoice.shippingCharges.toFixed(2)}</td>
-            </tr>
-            <tr style="border-top: 1px solid #D4AF37;">
-              <td><strong>Taxable Value (Base)</strong></td>
-              <td style="text-align: right;">₹${invoice.taxableValue.toFixed(2)}</td>
-            </tr>
-            <tr>
-              <td><strong>Total GST (${invoice.gstType})</strong></td>
-              <td style="text-align: right;">₹${(invoice.cgst + invoice.sgst + invoice.igst).toFixed(2)}</td>
-            </tr>
-            <tr class="total-row">
-              <td>NET AMOUNT PAYABLE</td>
-              <td style="text-align: right;">₹${invoice.totalPaid.toFixed(2)}</td>
-            </tr>
-          </table>
-        </div>
-        <div class="footer">
-          <p>Digitally generated for Gopi Nath Collection. No signature required.</p>
-        </div>
-      </div>
-    </body>
-    </html>
-    `;
-
-    const file = { content: html };
-    const options = { format: "A4" };
-
-    // Generate PDF buffer
-    const pdfBuffer = await pdf.generatePdf(file, options);
-
-    // Save to disk (optional, for persistence)
-    fs.writeFileSync(filePath, pdfBuffer);
-
-    return pdfBuffer; // ✅ Always return Buffer for routes
-  } catch (error) {
-    console.error("PDF Generation Error:", error);
-    throw error;
-  }
+  });
 };

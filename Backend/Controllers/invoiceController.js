@@ -5,6 +5,9 @@ import Products from "../Models/productModel.js";
 import { generateInvoiceNumber } from "../Helpers/invoiceNumberHelper.js";
 import { calculateGST } from "../Helpers/gstCalculator.js";
 import { generateInvoicePDF } from "../Helpers/invoiceGenerator.js"
+import fs from "fs";
+import path from "path";
+
 
 
 export const generateInvoice = async (req, res) => {
@@ -230,23 +233,24 @@ export const downloadInvoicePDF = async (req, res) => {
       return res.status(404).json({ message: "Invoice record not found" });
     }
 
-    // Ensure generateInvoicePDF returns a Buffer
-    const pdfBuffer = await generateInvoicePDF(invoice);
+    const filePath = path.join(process.cwd(), invoice.pdfPath);
 
-    // Set headers explicitly for binary PDF content
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: "Invoice PDF file not found" });
+    }
+
     res.set({
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="Invoice-${invoice.invoiceNumber}.pdf"`,
-      "Content-Length": pdfBuffer.length,
+      "Content-Disposition": `attachment; filename="Invoice-${invoice.invoiceNumber}.pdf"`
     });
 
-    return res.status(200).send(pdfBuffer);
+    fs.createReadStream(filePath).pipe(res);
+
   } catch (error) {
-    console.error("CRITICAL PDF ERROR:", error);
-    return res.status(500).json({ 
-      success: false, 
-      message: "PDF generation failed on server", 
-      error: error.message 
+    console.error("PDF DOWNLOAD ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to download invoice PDF"
     });
   }
 };
@@ -261,25 +265,29 @@ export const viewInvoicePDF = async (req, res) => {
       });
     }
 
-    const pdfBuffer = await generateInvoicePDF(invoice);
+    const filePath = path.join(process.cwd(), invoice.pdfPath);
+
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: "Invoice PDF file not found" });
+    }
 
     res.set({
       "Content-Type": "application/pdf",
-      // 👇 INLINE = show in admin panel
-      "Content-Disposition": `inline; filename=${invoice.invoiceNumber}.pdf`,
+      "Content-Disposition": `inline; filename="${invoice.invoiceNumber}.pdf"`,
       "Cache-Control": "no-store"
     });
 
-    res.send(pdfBuffer);
+    fs.createReadStream(filePath).pipe(res);
 
   } catch (error) {
-    console.error("Invoice PDF Error:", error);
+    console.error("VIEW INVOICE ERROR:", error);
     res.status(500).json({
       success: false,
-      message: "Unable to generate invoice PDF"
+      message: "Unable to view invoice PDF"
     });
   }
 };
+
 
 
 export default {
