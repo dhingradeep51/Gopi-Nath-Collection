@@ -20,11 +20,14 @@ const GlobalSearch = ({
     BASE_URL, placeholders, navigate 
 }) => {
     
+    // Function to handle Search when pressing Enter or clicking "View All"
     const handleViewAll = () => {
         if (keyword.trim()) {
             navigate(`/search-results/${keyword.toLowerCase()}`);
             setShowDropdown(false);
             setKeyword("");
+            // Blur the input to hide mobile keyboard after searching
+            searchInputRef.current?.blur();
         }
     };
 
@@ -58,8 +61,11 @@ const GlobalSearch = ({
                         setShowDropdown(true);
                     }}
                     onChange={(e) => setKeyword(e.target.value)}
+                    // --- HANDLE ENTER KEY ---
                     onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleViewAll();
+                        if (e.key === 'Enter') {
+                            handleViewAll();
+                        }
                     }}
                     onClick={(e) => e.stopPropagation()}
                     style={{ 
