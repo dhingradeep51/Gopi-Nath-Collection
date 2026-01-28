@@ -25,7 +25,7 @@ export const generateInvoice = async (req, res) => {
     /* 🔒 2️⃣ Hard Guard: Prevent Duplicate Invoices */
     const existingInvoice = await Invoice.findOne({ orderId: order._id });
     if (existingInvoice) {
-      return res.status(200).json({
+      return res.status(201).json({
         success: true,
         message: "Invoice already exists",
         invoice: existingInvoice,
@@ -126,7 +126,7 @@ export const generateInvoice = async (req, res) => {
     // Even if this has a formatting error, the database is now safe.
     await generateInvoicePDF(invoice);
 
-    return res.status(201).json({
+    return res.status(200).json({
       success: true,
       message: "Invoice generated and Order status updated successfully",
       invoice,
