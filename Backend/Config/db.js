@@ -12,4 +12,5 @@ export const connectDB = async () => {
     }
 };
 //This is monogo code
+//this is used to connect db to backend
 export default connectDB;
