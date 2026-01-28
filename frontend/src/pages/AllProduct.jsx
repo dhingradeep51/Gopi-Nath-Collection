@@ -29,10 +29,13 @@ const AllProducts = () => {
   const burgundy = "#2D0A14";
   const darkBg = "#1a050b";
 
+  const BASE_URL = import.meta.env.VITE_API_URL;
+
+
   // Get all categories
   const getAllCategory = async () => {
     try {
-      const { data } = await axios.get("/api/v1/category/get-category");
+      const { data } = await axios.get(`${BASE_URL}api/v1/category/get-category`);
       if (data?.success) {
         setCategories(data?.category);
       }
@@ -50,7 +53,7 @@ const AllProducts = () => {
   const getAllProducts = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get("/api/v1/product/get-product");
+      const { data } = await axios.get(`${BASE_URL}api/v1/product/get-product`);
       setLoading(false);
       setProducts(data.products || []);
     } catch (error) {
@@ -82,7 +85,7 @@ const AllProducts = () => {
   const filterProduct = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.post("/api/v1/product/product-filters", {
+      const { data } = await axios.post(`${BASE_URL}api/v1/product/product-filters`, {
         checked,
         radio,
       });
