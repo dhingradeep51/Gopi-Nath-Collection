@@ -86,44 +86,37 @@ const AdminOrders = () => {
 
   const handleDownloadPDF = async (type, order) => {
   if (type !== "BILL") return;
-  
   setActionLoading(true);
-  const loadToast = toast.loading("Downloading Invoice...");
   
   try {
-    // Get the invoice record first to get the ID
+    // 1. Fetch the invoice details to get the invoice record ID
     const { data } = await axios.get(`${BASE_URL}api/v1/invoice/order/${order._id}`);
-    const invoiceId = data?.invoice?._id;
-
-    if (!invoiceId) {
-      toast.error("Please generate the invoice first.");
+    
+    if (!data?.invoice?._id) {
+      toast.error("Invoice record not found. Please click Generate first.");
       return;
     }
 
-    // CRITICAL: responseType must be 'blob'
+    // 2. Request the PDF as a Blob
     const response = await axios({
-      url: `${BASE_URL}api/v1/invoice/download/${invoiceId}`,
+      url: `${BASE_URL}api/v1/invoice/download/${data.invoice._id}`,
       method: "GET",
-      responseType: "blob", 
+      responseType: "blob", // Required for binary data like PDFs
     });
 
-    // Create a URL for the blob and trigger download
+    // 3. Create a download link for the browser
     const blob = new Blob([response.data], { type: "application/pdf" });
-    const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", `Invoice-${order.orderNumber}.pdf`);
+    link.href = window.URL.createObjectURL(blob);
+    link.download = `Invoice-${order.orderNumber}.pdf`;
     document.body.appendChild(link);
     link.click();
-    
-    // Cleanup
-    link.parentNode.removeChild(link);
-    window.URL.revokeObjectURL(url);
-    
-    toast.success("Download started", { id: loadToast });
+    document.body.removeChild(link);
+
+    toast.success("Download started");
   } catch (error) {
-    toast.error("Download failed. Check console for details.", { id: loadToast });
-    console.error("PDF Error:", error);
+    console.error("PDF Download Error:", error);
+    toast.error(error.response?.data?.message || "Failed to download invoice");
   } finally {
     setActionLoading(false);
   }
