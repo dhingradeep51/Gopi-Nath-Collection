@@ -202,17 +202,6 @@ const Header = () => {
                             setSearchFocused(true);
                             setShowDropdown(true);
                         }}
-                        onBlur={(e) => {
-                            // Only close if we're not clicking inside the dropdown
-                            const relatedTarget = e.relatedTarget;
-                            if (!dropdownRef.current?.contains(relatedTarget)) {
-                                // Delay to allow click events to fire first
-                                setTimeout(() => {
-                                    setSearchFocused(false);
-                                    setShowDropdown(false);
-                                }, 150);
-                            }
-                        }}
                         onChange={(e) => setKeyword(e.target.value)}
                         style={{ 
                             background: "transparent", 
@@ -255,11 +244,6 @@ const Header = () => {
                     <div 
                         ref={dropdownRef}
                         className="suggestion-list"
-                        onMouseDown={(e) => {
-                            // Prevent ALL mouse events in dropdown from affecting input focus
-                            e.preventDefault();
-                            e.stopPropagation();
-                        }}
                     >
                         {keyword.length === 0 ? (
                             <>
@@ -267,8 +251,9 @@ const Header = () => {
                                 {trendingItems.map((item, idx) => (
                                     <div 
                                         key={idx} 
-                                        className="suggestion-row" 
-                                        onClick={() => {
+                                        className="suggestion-row"
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
                                             handleCategoryNav(item.name);
                                         }}
                                     >
@@ -284,7 +269,8 @@ const Header = () => {
                                         <div 
                                             key={p._id} 
                                             className="suggestion-row product-row"
-                                            onClick={() => {
+                                            onMouseDown={(e) => {
+                                                e.preventDefault();
                                                 handleSelectSuggestion(p);
                                             }}
                                         >
