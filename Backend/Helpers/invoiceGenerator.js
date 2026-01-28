@@ -5,7 +5,7 @@ import path from "path";
 export const generateInvoicePDF = async (invoice) => {
   let browser;
   try {
-    // 1. Setup paths
+    // 1. Setup local storage directory (Note: Render disk is ephemeral)
     const dir = path.join(process.cwd(), "uploads", "invoices");
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -14,8 +14,7 @@ export const generateInvoicePDF = async (invoice) => {
     const filename = `${invoice.invoiceNumber.replace(/\//g, "-")}.pdf`;
     const filePath = path.join(dir, filename);
 
-    // 2. Launch Browser (Only ONCE)
-    // We use an environment variable for the path to keep it flexible
+    // 2. Launch Browser with Render-specific configurations
     browser = await puppeteer.launch({
       headless: "new",
       args: [
@@ -24,13 +23,13 @@ export const generateInvoicePDF = async (invoice) => {
         "--single-process",
         "--no-zygote"
       ],
-      // Use the environment variable if you set it in Render, 
-      // otherwise fallback to your known path
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/opt/render/.cache/puppeteer/chrome/linux-127.0.6533.88/chrome-linux64/chrome',
+      // Priority 1: Render Env Var, Priority 2: Fallback path from your error logs
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null,
     });
 
     const page = await browser.newPage();
 
+    // 3. Define Invoice HTML Template
     const html = `
     <!DOCTYPE html>
     <html>
@@ -140,9 +139,9 @@ export const generateInvoicePDF = async (invoice) => {
 
     await page.setContent(html, { waitUntil: "networkidle0" });
 
-    // 3. Generate PDF Buffer
+    // 4. Generate PDF as Buffer
     const pdfBuffer = await page.pdf({
-      path: filePath, // Saves to disk
+      path: filePath, 
       format: "A4",
       printBackground: true
     });
