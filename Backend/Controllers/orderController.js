@@ -168,18 +168,22 @@ export const getAllOrdersController = async (req, res) => {
       .find({})
       .populate({
         path: "products.product",
-        select: "name slug photo"
+        select: "name slug photo",
       })
-      .populate("buyer", "name phone email state")
+      .populate("buyer", "name phone email state address")
+      // 🔥 IMPORTANT: return invoice-related fields
+      .select(
+        "orderNumber products buyer status payment isInvoiced invoiceNo createdAt"
+      )
       .sort({ createdAt: -1 });
-    
-    res.json(orders);
+
+    res.status(200).json(orders);
   } catch (error) {
     console.error("Get all orders error:", error);
-    res.status(500).send({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: "Error fetching all orders",
-      error: error.message 
+      error: error.message,
     });
   }
 };
