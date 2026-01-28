@@ -25,11 +25,12 @@ const HomePage = () => {
   const HOMEPAGE_PRODUCT_LIMIT = 8;
   const displayedProducts = products.slice(0, HOMEPAGE_PRODUCT_LIMIT);
   const hasMoreProducts = products.length > HOMEPAGE_PRODUCT_LIMIT;
+  const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
   // 1. Get Categories
   const getAllCategory = async () => {
     try {
-      const { data } = await axios.get("/api/v1/category/get-category");
+      const { data } = await axios.get("${BASE_URL}/api/v1/category/get-category");
       if (data?.success) setCategories(data?.category);
     } catch (error) {
       console.log(error);
@@ -40,7 +41,7 @@ const HomePage = () => {
   const getAllProducts = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get("/api/v1/product/get-product");
+      const { data } = await axios.get("${BASE_URL}/api/v1/product/get-product");
       setLoading(false);
       if (data?.success) {
         setProducts(data?.products || data?.product || []);
@@ -55,7 +56,7 @@ const HomePage = () => {
   const filterProduct = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.post("/api/v1/product/product-filters", {
+      const { data } = await axios.post("${BASE_URL}/api/v1/product/product-filters", {
         checked,
         radio,
       });
