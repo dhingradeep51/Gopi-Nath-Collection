@@ -227,19 +227,27 @@ export const downloadInvoicePDF = async (req, res) => {
     const invoice = await Invoice.findById(req.params.id);
 
     if (!invoice) {
-      return res.status(404).json({ message: "Invoice not found" });
+      return res.status(404).json({ message: "Invoice record not found" });
     }
 
-    const pdf = await generateInvoicePDF(invoice);
+    // Ensure generateInvoicePDF returns a Buffer
+    const pdfBuffer = await generateInvoicePDF(invoice);
 
+    // Set headers explicitly for binary PDF content
     res.set({
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename=${invoice.invoiceNumber}.pdf`
+      "Content-Disposition": `attachment; filename="Invoice-${invoice.invoiceNumber}.pdf"`,
+      "Content-Length": pdfBuffer.length,
     });
 
-    res.send(pdf);
+    return res.status(200).send(pdfBuffer);
   } catch (error) {
-    res.status(500).json({ message: "PDF generation failed" });
+    console.error("CRITICAL PDF ERROR:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "PDF generation failed on server", 
+      error: error.message 
+    });
   }
 };
 export const viewInvoicePDF = async (req, res) => {
