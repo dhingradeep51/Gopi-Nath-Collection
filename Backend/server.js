@@ -57,6 +57,8 @@ app.use((req, res) => {
 // Port configuration for Render
 const PORT = process.env.PORT || 8080;
 
+app.set('trust proxy', 1);
+
 app.listen(PORT, () => {
   console.log(`Server running in ${process.env.DEV_MODE} mode on port ${PORT}`.bgCyan.white);
 });
