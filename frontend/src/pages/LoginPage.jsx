@@ -72,7 +72,7 @@ const LoginPage = () => {
     setErrorMsg("");
     try {
       setLoading(true);
-      const { data } = await axios.post(`${BASE_URL}/api/v1/auth/verify-otp`, { email, otp });
+      const { data } = await axios.post(`${BASE_URL}api/v1/auth/verify-otp`, { email, otp });
       if (data.success) {
         setIsVerified(true);
         setTimer(0);
@@ -95,7 +95,7 @@ const LoginPage = () => {
     
     try {
       setLoading(true);
-      const { data } = await axios.post(`${BASE_URL}/api/v1/auth/login`, { email, password });
+      const { data } = await axios.post(`${BASE_URL}api/v1/auth/login`, { email, password });
       if (data?.success) {
         setAuth({ ...auth, user: data.user, token: data.token });
         localStorage.setItem("auth", JSON.stringify(data));
