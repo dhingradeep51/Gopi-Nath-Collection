@@ -268,7 +268,7 @@ const HomePage = () => {
                             }}
                           >
                             <img
-                              src={`/api/v1/product/product-photo/${p._id}`}
+                              src={`${BASE_URL}/api/v1/product/product-photo/${p._id}`}
                               alt={p.name}
                               style={{
                                 width: "100%",
