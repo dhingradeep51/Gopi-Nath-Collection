@@ -30,7 +30,8 @@ const app = express();
 const corsOptions = {
   origin: [
     "https://gopinathcollection.co.in", // replace with your actual Vercel domain
-    "http://localhost:3000"             // keep this for local testing
+    "http://localhost:3000"   
+    methods: ["GET", "POST", "PUT", "DELETE"]          // keep this for local testing
   ],
   credentials: true,
 };
