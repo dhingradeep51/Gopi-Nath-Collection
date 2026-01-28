@@ -30,6 +30,7 @@ const Header = () => {
     const headerRef = useRef(null);
     const searchInputRef = useRef(null);
     const dropdownRef = useRef(null);
+    const searchContainerRef = useRef(null);
     const goldColor = "#D4AF37";
     const burgundyColor = "#2D0A14";
     const topBarColor = "#1a060c";
@@ -83,14 +84,16 @@ const Header = () => {
         };
 
         const handleClickOutside = (event) => {
-            // Only close dropdown if clicking outside both header and dropdown
+            // Close search dropdown if clicking outside search container
             if (
-                headerRef.current && 
-                !headerRef.current.contains(event.target) &&
-                dropdownRef.current &&
-                !dropdownRef.current.contains(event.target)
+                searchContainerRef.current && 
+                !searchContainerRef.current.contains(event.target)
             ) {
                 setShowDropdown(false);
+            }
+            
+            // Close other dropdowns if clicking outside header
+            if (headerRef.current && !headerRef.current.contains(event.target)) {
                 setIsCategoryOpen(false);
                 setIsLoginDropdownOpen(false);
             }
@@ -163,132 +166,134 @@ const Header = () => {
     };
 
     // Flipkart-style Search Component
-    const GlobalSearch = () => (
-        <div style={{ position: "relative", flex: 1, maxWidth: "500px" }}>
-            <div style={{ 
-                display: "flex", 
-                background: "white",
-                borderRadius: "2px", 
-                padding: "0 16px", 
-                height: "36px", 
-                alignItems: "center",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.08)",
-                border: showDropdown ? "1px solid #2874f0" : "1px solid transparent"
-            }}>
-                <img 
-                    src={magnifying} 
-                    height="18" 
-                    alt="search" 
-                    style={{ opacity: 0.5, flexShrink: 0 }}
-                    onMouseDown={(e) => e.preventDefault()}
-                />
-                <input 
-                    ref={searchInputRef}
-                    type="text" 
-                    placeholder={`Search for ${placeholders[0]}, ${placeholders[1]}...`} 
-                    value={keyword}
-                    onFocus={() => setShowDropdown(true)}
-                    onChange={(e) => setKeyword(e.target.value)}
-                    style={{ 
-                        background: "transparent", 
-                        border: "none", 
-                        outline: "none", 
-                        width: "100%", 
-                        padding: "0 12px", 
-                        color: "#212121", 
-                        fontSize: "14px",
-                        fontFamily: "inherit"
-                    }} 
-                />
-                {keyword && (
-                    <button
-                        onMouseDown={(e) => {
-                            e.preventDefault();
-                            setKeyword("");
-                            // Keep focus on input
-                            requestAnimationFrame(() => {
-                                searchInputRef.current?.focus();
-                            });
-                        }}
-                        style={{
-                            background: "none",
-                            border: "none",
-                            color: "#878787",
-                            fontSize: "20px",
-                            cursor: "pointer",
-                            padding: "0 4px",
-                            lineHeight: 1,
-                            flexShrink: 0
-                        }}
-                    >
-                        ✕
-                    </button>
-                )}
-            </div>
-            
-            {showDropdown && (
-                <div 
-                    ref={dropdownRef}
-                    className="suggestion-list"
-                    onMouseDown={(e) => {
-                        // Prevent ALL mouse events in dropdown from affecting input focus
-                        e.preventDefault();
-                        e.stopPropagation();
-                    }}
-                >
-                    {keyword.length === 0 ? (
-                        <>
-                            <div className="trending-header">Popular Suggestions</div>
-                            {trendingItems.map((item, idx) => (
-                                <div 
-                                    key={idx} 
-                                    className="suggestion-row" 
-                                    onClick={() => {
-                                        handleCategoryNav(item.name);
-                                    }}
-                                >
-                                    <img src={magnifying} height="16" style={{opacity: 0.4}} alt="trend" />
-                                    <span>{item.name}</span>
-                                </div>
-                            ))}
-                        </>
-                    ) : (
-                        <>
-                            {suggestions.length > 0 ? (
-                                suggestions.map((p) => (
-                                    <div 
-                                        key={p._id} 
-                                        className="suggestion-row product-row"
-                                        onClick={() => {
-                                            handleSelectSuggestion(p);
-                                        }}
-                                    >
-                                        <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
-                                            <img 
-                                                src={`${BASE_URL}/api/v1/product/product-photo/${p._id}`} 
-                                                className="suggestion-img" 
-                                                alt={p.name} 
-                                            />
-                                            <div>
-                                                <div style={{ fontSize: "14px", color: "#212121", fontWeight: "500" }}>{p.name}</div>
-                                                {p.category && (
-                                                    <div style={{ fontSize: "12px", color: "#878787", marginTop: "2px" }}>
-                                                        in {p.category.name}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="no-results">No results found for "{keyword}"</div>
-                            )}
-                        </>
+    const GlobalSearch = () => {
+        return (
+            <div ref={searchContainerRef} style={{ position: "relative", flex: 1, maxWidth: "500px" }}>
+                <div style={{ 
+                    display: "flex", 
+                    background: "white",
+                    borderRadius: "2px", 
+                    padding: "0 16px", 
+                    height: "36px", 
+                    alignItems: "center",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.08)",
+                    border: showDropdown ? "1px solid #2874f0" : "1px solid transparent"
+                }}>
+                    <img 
+                        src={magnifying} 
+                        height="18" 
+                        alt="search" 
+                        style={{ opacity: 0.5, flexShrink: 0 }}
+                        onMouseDown={(e) => e.preventDefault()}
+                    />
+                    <input 
+                        ref={searchInputRef}
+                        type="text" 
+                        placeholder={`Search for ${placeholders[0]}, ${placeholders[1]}...`} 
+                        value={keyword}
+                        onFocus={() => setShowDropdown(true)}
+                        onChange={(e) => setKeyword(e.target.value)}
+                        style={{ 
+                            background: "transparent", 
+                            border: "none", 
+                            outline: "none", 
+                            width: "100%", 
+                            padding: "0 12px", 
+                            color: "#212121", 
+                            fontSize: "14px",
+                            fontFamily: "inherit"
+                        }} 
+                    />
+                    {keyword && (
+                        <button
+                            onMouseDown={(e) => {
+                                e.preventDefault();
+                                setKeyword("");
+                                // Keep focus on input
+                                requestAnimationFrame(() => {
+                                    searchInputRef.current?.focus();
+                                });
+                            }}
+                            style={{
+                                background: "none",
+                                border: "none",
+                                color: "#878787",
+                                fontSize: "20px",
+                                cursor: "pointer",
+                                padding: "0 4px",
+                                lineHeight: 1,
+                                flexShrink: 0
+                            }}
+                        >
+                            ✕
+                        </button>
                     )}
                 </div>
-            )}
-        </div>
-    );
+                
+                {showDropdown && (
+                    <div 
+                        ref={dropdownRef}
+                        className="suggestion-list"
+                        onMouseDown={(e) => {
+                            // Prevent ALL mouse events in dropdown from affecting input focus
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }}
+                    >
+                        {keyword.length === 0 ? (
+                            <>
+                                <div className="trending-header">Popular Suggestions</div>
+                                {trendingItems.map((item, idx) => (
+                                    <div 
+                                        key={idx} 
+                                        className="suggestion-row" 
+                                        onClick={() => {
+                                            handleCategoryNav(item.name);
+                                        }}
+                                    >
+                                        <img src={magnifying} height="16" style={{opacity: 0.4}} alt="trend" />
+                                        <span>{item.name}</span>
+                                    </div>
+                                ))}
+                            </>
+                        ) : (
+                            <>
+                                {suggestions.length > 0 ? (
+                                    suggestions.map((p) => (
+                                        <div 
+                                            key={p._id} 
+                                            className="suggestion-row product-row"
+                                            onClick={() => {
+                                                handleSelectSuggestion(p);
+                                            }}
+                                        >
+                                            <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
+                                                <img 
+                                                    src={`${BASE_URL}/api/v1/product/product-photo/${p._id}`} 
+                                                    className="suggestion-img" 
+                                                    alt={p.name} 
+                                                />
+                                                <div>
+                                                    <div style={{ fontSize: "14px", color: "#212121", fontWeight: "500" }}>{p.name}</div>
+                                                    {p.category && (
+                                                        <div style={{ fontSize: "12px", color: "#878787", marginTop: "2px" }}>
+                                                            in {p.category.name}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="no-results">No results found for "{keyword}"</div>
+                                )}
+                            </>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     return (
         <header ref={headerRef} style={{ width: "100%", position: "sticky", top: 0, zIndex: 1000 }}>
