@@ -117,7 +117,7 @@ useEffect(() => {
   const handleUpdateAddress = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.put(`${BASE_URL}/api/v1/auth/update-address`, formData);
+      const { data } = await axios.put(`${BASE_URL}api/v1/auth/update-address`, formData);
       if (data?.success) {
         setAuth({ ...auth, user: data.updatedUser });
         localStorage.setItem("auth", JSON.stringify({ ...auth, user: data.updatedUser }));
@@ -160,7 +160,7 @@ useEffect(() => {
         highestGstRate: totals.highestGst 
       };
 
-      const { data } = await axios.post(`${BASE_URL}/api/v1/order/place-order`, orderData);
+      const { data } = await axios.post(`${BASE_URL}api/v1/order/place-order`, orderData);
 
       if (data?.success) {
         setFinalOrderId(data.order.orderNumber);
