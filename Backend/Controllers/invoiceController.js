@@ -9,15 +9,11 @@ import fs from "fs";
 import path from "path";
 
 
-/**
- * @desc Generate Tax Invoice and Update Order Status
- * @route POST /api/v1/invoice/generate
- */
 export const generateInvoice = async (req, res) => {
   try {
     const { orderId } = req.body;
 
-    /* 1️⃣ Fetch order with population */
+    /* 1️⃣ Fetch order with deep population */
     const order = await Order.findById(orderId)
       .populate("buyer")
       .populate("products.product");
@@ -26,7 +22,7 @@ export const generateInvoice = async (req, res) => {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    /* 🔒 2️⃣ Hard Guard: Prevent duplicates */
+    /* 🔒 2️⃣ Hard Guard: Prevent Duplicate Invoices */
     const existingInvoice = await Invoice.findOne({ orderId: order._id });
     if (existingInvoice) {
       return res.status(200).json({
@@ -36,14 +32,14 @@ export const generateInvoice = async (req, res) => {
       });
     }
 
-    /* 🚦 3️⃣ Permissions */
+    /* 🚦 3️⃣ Logic: COD vs Prepaid Permissions */
     const isPrepaid = order.payment?.method === "online";
     const isDelivered = order.status === "Delivered";
 
     if (!isPrepaid && !isDelivered) {
       return res.status(403).json({
         success: false,
-        message: "COD orders must be 'Delivered' before invoicing.",
+        message: "COD orders must be marked 'Delivered' before invoicing.",
       });
     }
 
@@ -58,7 +54,7 @@ export const generateInvoice = async (req, res) => {
     const buyerState = order.buyer?.state || "Haryana";
     const finalAmount = order.subtotal - (order.discount || 0) + (order.shippingFee || 0);
 
-    /* 5️⃣ Item Mapping */
+    /* 5️⃣ Item & GST Mapping */
     const items = order.products.map((item) => {
       const lineTotal = item.price * (item.qty || 1);
       const itemGST = calculateGST({
@@ -81,8 +77,10 @@ export const generateInvoice = async (req, res) => {
       };
     });
 
-    /* 6️⃣ Create Invoice Number & Document */
+    /* 6️⃣ Create Unique Identity */
     const invNo = await generateInvoiceNumber();
+
+    /* 7️⃣ Create Invoice Document in Database */
     const invoice = await Invoice.create({
       orderId: order._id,
       orderNumber: order.orderNumber,
@@ -103,35 +101,44 @@ export const generateInvoice = async (req, res) => {
       pdfPath: `/uploads/invoices/${invNo.replace(/\//g, "-")}.pdf`,
     });
 
-    /* ✅ 7️⃣ PERSIST TO DB FIRST (The Fix) */
-    // We save to the Order model before generating the PDF. 
-    // This ensures the Download button enables even if the PDF has a small error.
+    /* ✅ 🔟 DATABASE PERSISTENCE (THE FIX) */
+    // We update the Order flags IMMEDIATELY. If PDF generation crashes, 
+    // the status is already 'true' in MongoDB.
     try {
       order.isInvoiced = true;
       order.invoiceNo = invoice.invoiceNumber;
       order.invoiceDate = invoice.createdAt;
-      await order.save(); // Crucial for refresh persistence
+      
+      // Use await to ensure the save completes
+      await order.save(); 
+      console.log("DB Update Success: Order marked as Invoiced");
     } catch (dbError) {
-      console.error("DB Save Error:", dbError.message);
+      console.error("Database Save Error:", dbError.message);
+      // If save fails here, usually due to duplicate key index issues
       return res.status(500).json({
         success: false,
-        message: "Could not update order status. Check for duplicate invoice numbers.",
+        message: "Failed to update Order status. Ensure sparse: true is in model.",
+        error: dbError.message,
       });
     }
 
-    /* 📄 8️⃣ Generate PDF */
-    // Ensure your helper uses (val || 0).toFixed(2) to prevent crashes!
+    /* 📄 11️⃣ Physical PDF Generation */
+    // Even if this has a formatting error, the database is now safe.
     await generateInvoicePDF(invoice);
 
     return res.status(201).json({
       success: true,
-      message: "Invoice generated and order updated successfully",
+      message: "Invoice generated and Order status updated successfully",
       invoice,
     });
 
   } catch (error) {
     console.error("Generate Invoice Controller Error:", error);
-    return res.status(500).json({ success: false, message: "Internal Error", error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error during generation",
+      error: error.message,
+    });
   }
 };
 
