@@ -27,6 +27,14 @@ connectDB();
 const app = express();
 
 // middlewares
+const corsOptions = {
+  origin: [
+    "https://gopinathcollection.co.in", // replace with your actual Vercel domain
+    "http://localhost:3000"             // keep this for local testing
+  ],
+  credentials: true,
+};
+
 app.use(cors()); 
 app.use(express.json());
 app.use(morgan('dev'));
