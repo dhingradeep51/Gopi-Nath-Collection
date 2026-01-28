@@ -9,8 +9,6 @@ import {
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 
-
-
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]); 
   const [auth] = useAuth();
@@ -18,6 +16,7 @@ const AdminOrders = () => {
   const [searchText, setSearchText] = useState("");
   const [logisticData, setLogisticData] = useState({}); 
   const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -30,9 +29,7 @@ const AdminOrders = () => {
   const getAllOrders = useCallback(async () => {
     try {
       setLoading(true);
-      // ✅ Updated to the new dedicated Order Controller route
       const { data } = await axios.get(`${BASE_URL}api/v1/order/all-orders`);
-
       const ordersArray = Array.isArray(data) ? data : [];
       setOrders(ordersArray);
       
@@ -51,7 +48,7 @@ const AdminOrders = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [BASE_URL]);
 
   useEffect(() => { 
     if (auth?.token) getAllOrders(); 
@@ -59,35 +56,77 @@ const AdminOrders = () => {
 
   /* ================= HANDLERS ================= */
   const handleStatusChange = async (orderId, value) => {
+    setActionLoading(true);
     const loadToast = toast.loading(`Updating status...`);
     try {
-      // ✅ Updated route to match orderRoutes.js
       await axios.put(`${BASE_URL}api/v1/order/order-status/${orderId}`, { status: value });
-      toast.dismiss(loadToast);
-      toast.success(`Marked as ${value}`);
+      toast.success(`Marked as ${value}`, { id: loadToast });
       getAllOrders(); 
     } catch (error) {
-      toast.dismiss(loadToast);
-      toast.error("Status update failed");
+      toast.error("Status update failed", { id: loadToast });
+    } finally {
+      setActionLoading(false);
     }
   };
 
   const handleLogisticsUpdate = async (orderId) => {
+    setActionLoading(true);
     const loadToast = toast.loading("Updating tracking info...");
     try {
       const { awb, link } = logisticData[orderId] || { awb: "", link: "" };
-      // ✅ Updated route to match orderRoutes.js
-      await axios.put(`${BASE_URL}/api/v1/order/order-logistic-update/${orderId}`, { awbNumber: awb, trackingLink: link });
-      toast.dismiss(loadToast);
-      toast.success("Logistics updated successfully");
+      await axios.put(`${BASE_URL}api/v1/order/order-logistic-update/${orderId}`, { awbNumber: awb, trackingLink: link });
+      toast.success("Logistics updated successfully", { id: loadToast });
       getAllOrders();
     } catch (error) { 
-      toast.dismiss(loadToast);
-      toast.error("Update failed"); 
+      toast.error("Update failed", { id: loadToast }); 
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  
+  const handleDownloadPDF = async (type, order) => {
+    if (type !== "BILL") return toast.error("Label generation not implemented");
+    
+    setActionLoading(true);
+    const loadToast = toast.loading("Processing Invoice...");
+    
+    try {
+      // 1. Generate Invoice if not yet generated
+      if (!order.isInvoiced) {
+        const genRes = await axios.post(`${BASE_URL}api/v1/invoice/generate-invoice`, { orderId: order._id });
+        if (!genRes.data.success) throw new Error(genRes.data.message);
+        await getAllOrders(); // Refresh status
+      }
+
+      // 2. Get Invoice Details
+      const { data } = await axios.get(`${BASE_URL}api/v1/invoice/order/${order._id}`);
+      const invoiceId = data?.invoice?._id;
+
+      if (!invoiceId) throw new Error("Invoice record not found");
+
+      // 3. Download the PDF Blob
+      const response = await axios({
+        url: `${BASE_URL}api/v1/invoice/download/${invoiceId}`,
+        method: "GET",
+        responseType: "blob",
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `INV-${order.orderNumber}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      
+      toast.success("Download started", { id: loadToast });
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || "Action failed";
+      toast.error(msg, { id: loadToast });
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   /* ================= UTILS ================= */
   const copyToClipboard = (text) => {
     if (!text) return;
@@ -96,11 +135,10 @@ const AdminOrders = () => {
 
   const filteredOrders = orders.filter(o => {
     const search = searchText.toLowerCase();
-    const invNo = o.invoiceNo ? o.invoiceNo.toLowerCase() : "";
     return (
       (o?.orderNumber || "").toLowerCase().includes(search) || 
       (o?.buyer?.name || "").toLowerCase().includes(search) ||
-      invNo.includes(search) // ✅ Added Search by GN-INV Number
+      (o?.invoiceNo || "").toLowerCase().includes(search)
     );
   });
 
@@ -120,18 +158,19 @@ const AdminOrders = () => {
           />
         </header>
 
-        {loading && orders.length === 0 ? (
+        {loading ? (
           <div style={{ textAlign: 'center', marginTop: '100px' }}><Spin size="large" tip="Loading Registry..." /></div>
         ) : (
           filteredOrders.map((o) => {
             const isOpen = expandedOrder === o._id;
-            const subtotal = o.products?.reduce((acc, curr) => acc + curr.price, 0) || 0;
+            const subtotal = o.products?.reduce((acc, curr) => acc + (curr.price * (curr.qty || 1)), 0) || 0;
             const currentLogistics = logisticData[o._id] || { awb: "", link: "" };
             const payMethod = o.payment?.method?.toUpperCase() || "COD";
 
             return (
               <div key={o._id} style={{ marginBottom: "20px", border: `1px solid ${isOpen ? gold : gold + "44"}`, borderRadius: "12px", background: 'rgba(255,255,255,0.03)', overflow: 'hidden' }}>
                 
+                {/* Accordion Header */}
                 <div 
                   style={{ padding: "20px 30px", display: "flex", justifyContent: "space-between", alignItems: 'center', cursor: "pointer", background: isOpen ? 'rgba(212, 175, 55, 0.05)' : 'transparent' }}
                   onClick={() => setExpandedOrder(isOpen ? null : o._id)}
@@ -142,7 +181,7 @@ const AdminOrders = () => {
                         {o.invoiceNo && <span style={{ fontSize: '11px', color: gold, opacity: 0.7 }}>INV: {o.invoiceNo}</span>}
                     </div>
                     <span style={{ fontSize: '16px', color: '#fff' }}>{o.buyer?.name}</span>
-                    <Tag color={payMethod === "COD" ? "orange" : "blue"} style={{ fontWeight: 'bold' }}>{payMethod}</Tag>
+                    <Tag color={payMethod === "COD" ? "orange" : "blue"}>{payMethod}</Tag>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '25px' }}>
                     <Tag color={o.isInvoiced ? "cyan" : "default"}>{o.isInvoiced ? "INVOICED" : "UNBILLED"}</Tag>
@@ -170,7 +209,7 @@ const AdminOrders = () => {
                       {/* Management Panel */}
                       <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '10px' }}>
                         <h6 style={{ color: gold, marginBottom: "20px" }}><FaEdit /> MANAGEMENT</h6>
-                        <Dropdown menu={{ items: statusList.map(s => ({ key: s, label: s.toUpperCase(), disabled: o.status === s })), onClick: ({ key }) => handleStatusChange(o._id, key) }}>
+                        <Dropdown disabled={actionLoading} menu={{ items: statusList.map(s => ({ key: s, label: s.toUpperCase(), disabled: o.status === s })), onClick: ({ key }) => handleStatusChange(o._id, key) }}>
                           <Button block style={{ background: 'transparent', color: gold, borderColor: gold, marginBottom: '20px', height: '45px' }}>
                             STATUS: {o.status?.toUpperCase()} <FaChevronDown size={14} />
                           </Button>
@@ -190,15 +229,23 @@ const AdminOrders = () => {
                           onChange={(e) => setLogisticData({...logisticData, [o._id]: {...currentLogistics, link: e.target.value}})} 
                           style={{ marginBottom: "15px", background: 'rgba(255,255,255,0.05)', color: '#fff', borderColor: `${gold}44` }} 
                         />
-                        <Button onClick={() => handleLogisticsUpdate(o._id)} block style={{ background: gold, color: burgundy, fontWeight: 'bold', marginBottom: '20px' }}>UPDATE TRACKING</Button>
+                        <Button loading={actionLoading} onClick={() => handleLogisticsUpdate(o._id)} block style={{ background: gold, color: burgundy, fontWeight: 'bold', marginBottom: '20px' }}>UPDATE TRACKING</Button>
                         
                         <div style={{ display: 'flex', gap: '15px' }}>
-                          <Button onClick={() => handleDownloadPDF("LABEL", o)} ghost style={{ flex: 1, color: gold, borderColor: gold }} icon={<FaBarcode />}>LABEL</Button>
-                          <Button onClick={() => handleDownloadPDF("BILL", o)} ghost style={{ flex: 1, color: gold, borderColor: gold }} icon={<FaFileInvoice />}>INVOICE</Button>
+                          <Button ghost style={{ flex: 1, color: gold, borderColor: gold }} icon={<FaBarcode />}>LABEL</Button>
+                          <Button 
+                            loading={actionLoading} 
+                            onClick={() => handleDownloadPDF("BILL", o)} 
+                            ghost 
+                            style={{ flex: 1, color: gold, borderColor: gold }} 
+                            icon={<FaFileInvoice />}
+                          >
+                            {o.isInvoiced ? "DOWNLOAD" : "GENERATE"}
+                          </Button>
                         </div>
                       </div>
 
-                      {/* ✅ Financial Summary */}
+                      {/* Financial Summary */}
                       <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '10px', border: `1px solid ${gold}22` }}>
                         <h6 style={{ color: gold, marginBottom: "20px" }}><FaInfoCircle /> FINANCIAL SUMMARY</h6>
                         <div style={{ fontSize: '14px' }}>

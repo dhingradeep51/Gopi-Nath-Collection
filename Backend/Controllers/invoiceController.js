@@ -38,7 +38,7 @@ export const generateInvoice = async (req, res) => {
     /* 3️⃣ Business & Buyer Information */
     const sellerDetails = {
       name: "Gopi Nath Collection",
-      gstin: "YOUR_GSTIN_NUMBER_HERE", 
+      gstin: "GST", 
       address: "56 Krishna Nagar New Model Town, Panipat, Haryana - 132103",
       state: "Haryana"
     };
