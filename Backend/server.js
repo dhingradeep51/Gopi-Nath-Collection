@@ -12,31 +12,26 @@ import couponRoutes from './Routes/couponRoute.js';
 import orderRoute from './Routes/orderRoute.js';
 import invoiceRoutes from './Routes/invoiceRoute.js';
 import path from 'path';
-import { fileURLToPath } from 'url'; // Required for ES Modules
 
 // config dotenv
 dotenv.config();
-
-// Fix for __dirname in ES Modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // database connection
 connectDB();
 
 const app = express();
 
-// middlewares
-const corsOptions = {
+// --- MIDDLEWARES ---
+app.use(cors({
   origin: [
-    "https://gopinathcollection.co.in", // replace with your actual Vercel domain
-    "http://localhost:3000"   
-    methods: ["GET", "POST", "PUT", "DELETE"]          // keep this for local testing
+    "https://gopinathcollection.co.in", 
+    "http://localhost:5173", // Default Vite port
+    "http://localhost:3000"
   ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
-};
+}));
 
-app.use(cors()); 
 app.use(express.json());
 app.use(morgan('dev'));
 
@@ -48,26 +43,18 @@ app.use("/api/v1/category", categoryRoutes);
 app.use("/api/v1/coupon", couponRoutes);
 app.use("/api/v1/order", orderRoute);
 app.use("/api/v1/invoice", invoiceRoutes);
+
+// Home Route for API verification
 app.get('/', (req, res) => {
-  res.send('Welcome to Gopi Nath Collection API!');
+  res.send('<h1>Welcome to Gopi Nath Collection API</h1>');
 });
 
+// Corrected: Only use 404 AFTER all routes are checked
 app.use((req, res) => {
-  res.status(404).json({ message: "Route not found" });
+  res.status(404).json({ message: "API Route not found" });
 });
 
-
-// ✅ NEW: SERVE REACT FRONTEND
-// This assumes your React app is in a folder named 'client'
-app.use(express.static(path.join(__dirname, './frontend/dist')));
-
-
-// ✅ NEW: Handle React Routing
-// Redirects any unknown requests to index.html so React Router works
-// SPA fallback for Vite + React (SAFE)
-
-
-// port
+// Port configuration for Render
 const PORT = process.env.PORT || 8080;
 
 app.listen(PORT, () => {
