@@ -84,7 +84,7 @@ const Header = () => {
         };
 
         const handleClickOutside = (event) => {
-            // Close search dropdown if clicking outside search container
+            // Don't close if clicking on the search input or inside the search container
             if (
                 searchContainerRef.current && 
                 !searchContainerRef.current.contains(event.target)
@@ -100,6 +100,7 @@ const Header = () => {
         };
 
         window.addEventListener("resize", handleResize);
+        // Use 'mousedown' instead of 'click' to catch the event before blur
         document.addEventListener("mousedown", handleClickOutside);
 
         return () => {
@@ -192,6 +193,16 @@ const Header = () => {
                         placeholder={`Search for ${placeholders[0]}, ${placeholders[1]}...`} 
                         value={keyword}
                         onFocus={() => setShowDropdown(true)}
+                        onBlur={(e) => {
+                            // Only close if we're not clicking inside the dropdown
+                            const relatedTarget = e.relatedTarget;
+                            if (!dropdownRef.current?.contains(relatedTarget)) {
+                                // Delay to allow click events to fire first
+                                setTimeout(() => {
+                                    setShowDropdown(false);
+                                }, 150);
+                            }
+                        }}
                         onChange={(e) => setKeyword(e.target.value)}
                         style={{ 
                             background: "transparent", 
