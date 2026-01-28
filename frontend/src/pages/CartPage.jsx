@@ -9,6 +9,7 @@ import { Button, Empty, message } from "antd";
 // ✅ CONSTANTS
 const FREE_SHIPPING_THRESHOLD = 299;
 const STANDARD_SHIPPING_FEE = 60;
+const BASE_URL = import.meta.env.VITE_API_URL;
 const COLORS = {
   gold: "#D4AF37",
   burgundy: "#2D0A14",
@@ -111,7 +112,7 @@ const CartPage = () => {
                   <div key={p._id} className="cart-item">
                     <div className="item-image-wrapper">
                       <img
-                        src={`/api/v1/product/product-photo/${p._id}`}
+                        src={`${BASE_URL}api/v1/product/product-photo/${p._id}`}
                         alt={p.name}
                         className="item-image"
                       />

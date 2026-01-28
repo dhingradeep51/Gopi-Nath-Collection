@@ -34,7 +34,8 @@ const Header = () => {
     const topBarColor = "#1a060c";
 
     const placeholders = ["Kangan", "Laddo Gopal Dress", "Kesh", "Nam Jap Counter"];
-    
+    const BASE_URL = import.meta.env.VITE_API_URL;
+
     const trendingItems = [
         { name: "Kangan", slug: "kangan" },
         { name: "Laddo Gopal Dress", slug: "laddo-gopal-dress" },
@@ -76,7 +77,7 @@ const Header = () => {
     // ✅ OPTIMIZED FETCH WITH RELATIVE PATH FOR RENDER
     const fetchSuggestions = useCallback(async () => {
         try {
-            const { data } = await axios.get(`/api/v1/product/search-suggest/${keyword}`);
+            const { data } = await axios.get(`${BASE_URL}api/v1/product/search-suggest/${keyword}`);
             if (data?.success) {
                 setSuggestions(data.results);
                 setShowDropdown(true);
@@ -184,7 +185,7 @@ const Header = () => {
                                         <img src={magnifying} height="12" style={{opacity: 0.4}} alt="search-sub" />
                                         <span>{p.name}</span>
                                     </div>
-                                    <img src={`/api/v1/product/product-photo/${p._id}`} className="suggestion-img" alt={p.name} />
+                                    <img src={`${BASE_URL}/api/v1/product/product-photo/${p._id}`} className="suggestion-img" alt={p.name} />
                                 </li>
                             ))}
                             <li className="view-all-link" onClick={() => { navigate(`/search-results/${keyword}`); closeAllMenus(); }}>
