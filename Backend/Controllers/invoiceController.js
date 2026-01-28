@@ -14,67 +14,81 @@ export const generateInvoice = async (req, res) => {
   try {
     const { orderId } = req.body;
 
-    /* 1️⃣ Fetch order with buyer details */
+    /* 1️⃣ Fetch order with buyer + products */
     const order = await Order.findById(orderId)
       .populate("buyer")
       .populate("products.product");
 
     if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
     }
 
-    if (order.isInvoiced) {
-      return res.status(400).json({ success: false, message: "Invoice already generated" });
+    /* 🔒 2️⃣ HARD GUARD: Check invoice collection FIRST */
+    const existingInvoice = await Invoice.findOne({ orderId: order._id });
+
+    if (existingInvoice) {
+      return res.status(200).json({
+        success: true,
+        message: "Invoice already exists",
+        invoice: existingInvoice,
+      });
     }
 
-    /* 🚀 2️⃣ Invoice Generation Permission */
+    /* 🚦 3️⃣ Invoice generation permission */
     const isPrepaid = order.payment?.method === "online";
     const isDelivered = order.status === "Delivered";
 
     if (!isPrepaid && !isDelivered) {
       return res.status(403).json({
         success: false,
-        message: "Invoice cannot be generated for COD orders until they are marked as 'Delivered'."
+        message:
+          "Invoice cannot be generated for COD orders until marked as Delivered",
       });
     }
 
-    /* 3️⃣ Business & Buyer Information */
+    /* 4️⃣ Seller details */
     const sellerDetails = {
       name: "Gopi Nath Collection",
-      gstin: "GST", 
+      gstin: "GST",
       address: "56 Krishna Nagar New Model Town, Panipat, Haryana - 132103",
-      state: "Haryana"
+      state: "Haryana",
     };
 
+    /* 5️⃣ Buyer details */
     const buyerInfo = order.buyer;
     const buyerAddress = buyerInfo?.address;
-    
-    const formattedBuyerAddress = buyerAddress 
+
+    const formattedBuyerAddress = buyerAddress
       ? `${buyerAddress.fullAddress}, ${buyerAddress.city}, ${buyerAddress.state} - ${buyerAddress.pincode}`
       : "Address Not Provided";
 
     const buyerState = buyerAddress?.state || "Haryana";
 
-    /* 4️⃣ Final amount calculation */
-    const finalAmount = order.subtotal - (order.discount || 0) + (order.shippingFee || 0);
+    /* 6️⃣ Final amount calculation */
+    const finalAmount =
+      order.subtotal - (order.discount || 0) + (order.shippingFee || 0);
 
-    /* 5️⃣ Invoice-level GST */
+    /* 7️⃣ Invoice-level GST */
     const invoiceGST = calculateGST({
       totalPaid: finalAmount,
       sellerState: sellerDetails.state,
-      buyerState: buyerState,
-      gstRate: order.highestGstRate || 0
+      buyerState,
+      gstRate: order.highestGstRate || 0,
     });
 
-    /* 6️⃣ Item-wise GST calculation */
+    /* 8️⃣ Item-wise GST */
     const items = order.products.map((item) => {
       const qty = item.qty || 1;
       const lineTotal = item.price * qty;
+
       const itemGST = calculateGST({
         totalPaid: lineTotal,
         sellerState: sellerDetails.state,
-        buyerState: buyerState,
-        gstRate: item.gstRate || 0
+        buyerState,
+        gstRate: item.gstRate || 0,
       });
 
       return {
@@ -86,66 +100,74 @@ export const generateInvoice = async (req, res) => {
         taxableValue: itemGST.taxableValue,
         cgst: itemGST.cgst,
         sgst: itemGST.sgst,
-        igst: itemGST.igst
+        igst: itemGST.igst,
       };
     });
 
-    /* 7️⃣ Prepare unique filename and path */
+    /* 9️⃣ Invoice number + PDF path */
     const invNo = await generateInvoiceNumber();
     const filename = `${invNo.replace(/\//g, "-")}.pdf`;
     const relativePath = `/uploads/invoices/${filename}`;
 
-    /* 8️⃣ Create Invoice Record in MongoDB */
+    /* 🔟 Create invoice document */
     const invoice = await Invoice.create({
       orderId: order._id,
       orderNumber: order.orderNumber,
       invoiceNumber: invNo,
+
       sellerName: sellerDetails.name,
       sellerGstin: sellerDetails.gstin,
       sellerAddress: sellerDetails.address,
       sellerState: sellerDetails.state,
+
       buyerName: buyerInfo?.name || "Guest",
       buyerAddress: formattedBuyerAddress,
-      buyerState: buyerState,
+      buyerState,
       placeOfSupply: buyerState,
+
       paymentMethod: order.payment?.method?.toUpperCase() || "COD",
+
       subtotal: order.subtotal,
       discount: order.discount || 0,
       shippingCharges: order.shippingFee || 0,
+
       taxableValue: invoiceGST.taxableValue,
       cgst: invoiceGST.cgst,
       sgst: invoiceGST.sgst,
       igst: invoiceGST.igst,
+
       totalPaid: finalAmount,
       gstType: invoiceGST.gstType,
+
       items,
-      pdfPath: relativePath // ✅ Link to the physical file
+      pdfPath: relativePath,
     });
 
-    /* 9️⃣ Generate and Save the actual PDF file to the server */
+    /* 1️⃣1️⃣ Generate PDF ONCE (PDFKit) */
     await generateInvoicePDF(invoice);
 
-    /* 🔟 Update order status */
+    /* 1️⃣2️⃣ Update order flags */
     order.isInvoiced = true;
     order.invoiceNo = invoice.invoiceNumber;
     order.invoiceDate = invoice.createdAt;
     await order.save();
 
+    /* ✅ SUCCESS */
     return res.status(201).json({
       success: true,
-      message: "Invoice generated and saved successfully",
-      invoice
+      message: "Invoice generated successfully",
+      invoice,
     });
-
   } catch (error) {
     console.error("Invoice Error:", error);
     return res.status(500).json({
       success: false,
       message: "Invoice generation failed",
-      error: error.message
+      error: error.message,
     });
   }
 };
+
 // Get invoice by orderId
 export const getInvoiceByOrderId = async (req, res) => {
   try {
