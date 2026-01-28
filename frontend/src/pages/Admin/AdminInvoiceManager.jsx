@@ -99,7 +99,7 @@ const AdminInvoiceManager = () => {
       toast.loading("Downloading...");
       const { data: invData } = await axios.get(`${BASE_URL}api/v1/invoice/order/${orderId}`);
       if (invData.success && invData.invoice) {
-        const response = await axios.get(`${BASE_URL}api/v1/download/${invData.invoice._id}`, {
+        const response = await axios.get(`${BASE_URL}api/v1/invoice/download/${invData.invoice._id}`, {
           responseType: 'blob',
         });
         const url = window.URL.createObjectURL(new Blob([response.data]));
