@@ -17,60 +17,50 @@ export const generateInvoice = async (req, res) => {
   try {
     const { orderId } = req.body;
 
-    /* 1️⃣ Fetch order with deep population */
+    /* 1️⃣ Fetch order with population */
     const order = await Order.findById(orderId)
       .populate("buyer")
       .populate("products.product");
 
     if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
+      return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    /* 🔒 2️⃣ Hard Guard: Check if invoice already exists */
+    /* 🔒 2️⃣ Hard Guard: Prevent duplicates */
     const existingInvoice = await Invoice.findOne({ orderId: order._id });
-
     if (existingInvoice) {
       return res.status(200).json({
         success: true,
-        message: "Invoice already exists in registry",
+        message: "Invoice already exists",
         invoice: existingInvoice,
       });
     }
 
-    /* 🚦 3️⃣ Business Logic: Generation Permissions */
+    /* 🚦 3️⃣ Permissions */
     const isPrepaid = order.payment?.method === "online";
     const isDelivered = order.status === "Delivered";
 
     if (!isPrepaid && !isDelivered) {
       return res.status(403).json({
         success: false,
-        message: "Invoice restricted: COD orders must be 'Delivered' first.",
+        message: "COD orders must be 'Delivered' before invoicing.",
       });
     }
 
-    /* 4️⃣ Seller Information */
+    /* 4️⃣ Financial Setup */
     const sellerDetails = {
       name: "Gopi Nath Collection",
-      gstin: "GST-PENDING", // Replace with actual GSTIN
+      gstin: "GST-PENDING",
       address: "56 Krishna Nagar New Model Town, Panipat, Haryana - 132103",
       state: "Haryana",
     };
 
-    /* 5️⃣ Buyer Information Parsing */
-    const buyerInfo = order.buyer;
-    const buyerState = order.buyer?.state || "Haryana"; 
-
-    /* 6️⃣ Financial Calculations */
+    const buyerState = order.buyer?.state || "Haryana";
     const finalAmount = order.subtotal - (order.discount || 0) + (order.shippingFee || 0);
 
-    /* 7️⃣ Item-wise GST Breakdown */
+    /* 5️⃣ Item Mapping */
     const items = order.products.map((item) => {
-      const qty = item.qty || 1;
-      const lineTotal = item.price * qty;
-
+      const lineTotal = item.price * (item.qty || 1);
       const itemGST = calculateGST({
         totalPaid: lineTotal,
         sellerState: sellerDetails.state,
@@ -81,7 +71,7 @@ export const generateInvoice = async (req, res) => {
       return {
         productId: item.product?._id,
         productName: item.name,
-        qty,
+        qty: item.qty || 1,
         unitPrice: item.price,
         finalPrice: lineTotal,
         taxableValue: itemGST.taxableValue,
@@ -91,12 +81,8 @@ export const generateInvoice = async (req, res) => {
       };
     });
 
-    /* 8️⃣ Generate Unique Invoice Identity */
+    /* 6️⃣ Create Invoice Number & Document */
     const invNo = await generateInvoiceNumber();
-    const filename = `${invNo.replace(/\//g, "-")}.pdf`;
-    const relativePath = `/uploads/invoices/${filename}`;
-
-    /* 9️⃣ Create Invoice Record */
     const invoice = await Invoice.create({
       orderId: order._id,
       orderNumber: order.orderNumber,
@@ -105,7 +91,7 @@ export const generateInvoice = async (req, res) => {
       sellerGstin: sellerDetails.gstin,
       sellerAddress: sellerDetails.address,
       sellerState: sellerDetails.state,
-      buyerName: buyerInfo?.name || "Guest",
+      buyerName: order.buyer?.name || "Guest",
       buyerAddress: order.address,
       buyerState,
       paymentMethod: order.payment?.method?.toUpperCase() || "COD",
@@ -114,44 +100,38 @@ export const generateInvoice = async (req, res) => {
       shippingCharges: order.shippingFee || 0,
       totalPaid: finalAmount,
       items,
-      pdfPath: relativePath,
+      pdfPath: `/uploads/invoices/${invNo.replace(/\//g, "-")}.pdf`,
     });
 
-    /* 🔟 Render Physical PDF (Puppeteer/PDFKit) */
-    await generateInvoicePDF(invoice);
-
-    /* 🔄 11️⃣ Persistence: Update Order Flags */
-    // Using a try-catch specifically for the save to catch unique index conflicts
+    /* ✅ 7️⃣ PERSIST TO DB FIRST (The Fix) */
+    // We save to the Order model before generating the PDF. 
+    // This ensures the Download button enables even if the PDF has a small error.
     try {
       order.isInvoiced = true;
       order.invoiceNo = invoice.invoiceNumber;
       order.invoiceDate = invoice.createdAt;
-      
-      // We MUST await the save to ensure it reaches MongoDB
-      await order.save();
+      await order.save(); // Crucial for refresh persistence
     } catch (dbError) {
-      console.error("Critical Persistence Error:", dbError.message);
+      console.error("DB Save Error:", dbError.message);
       return res.status(500).json({
         success: false,
-        message: "Invoice file created, but status failed to save in Database.",
-        error: dbError.message,
+        message: "Could not update order status. Check for duplicate invoice numbers.",
       });
     }
 
-    /* ✅ Final Success */
+    /* 📄 8️⃣ Generate PDF */
+    // Ensure your helper uses (val || 0).toFixed(2) to prevent crashes!
+    await generateInvoicePDF(invoice);
+
     return res.status(201).json({
       success: true,
-      message: "Invoice generated and Order status updated successfully",
+      message: "Invoice generated and order updated successfully",
       invoice,
     });
 
   } catch (error) {
     console.error("Generate Invoice Controller Error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "An internal error occurred during invoice generation",
-      error: error.message,
-    });
+    return res.status(500).json({ success: false, message: "Internal Error", error: error.message });
   }
 };
 
