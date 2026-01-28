@@ -39,6 +39,9 @@ app.use("/api/v1/category", categoryRoutes);
 app.use("/api/v1/coupon", couponRoutes);
 app.use("/api/v1/order", orderRoute);
 app.use("/api/v1/invoice", invoiceRoutes);
+app.get('/', (req, res) => {
+  res.send('Welcome to Gopi Nath Collection API!');
+});
 
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
