@@ -223,7 +223,7 @@ const Header = () => {
                         <Link to="/about" style={{color: goldColor, textDecoration: "none", fontSize: "12px", fontWeight: "600"}}>ABOUT</Link>
                         <Link to="/contact" style={{color: goldColor, textDecoration: "none", fontSize: "12px", fontWeight: "600"}}>CONTACT US</Link>
                     </div>
-                    <span style={{ color: "white", fontSize: "12px", fontStyle: "italic", opacity: 0.9 }}>{auth?.user ? `Welcome back, ${auth.user.name}` : "Free delivery on orders above ₹499"}</span>
+                    <span style={{ color: "white", fontSize: "12px", fontStyle: "italic", opacity: 0.9 }}>{auth?.user ? `Welcome back, ${auth.user.name}` : "Free delivery on orders above ₹299"}</span>
                     <div onMouseEnter={() => setIsLoginDropdownOpen(true)} onMouseLeave={() => setIsLoginDropdownOpen(false)} style={{ position: "relative", height: "100%", display: "flex", alignItems: "center", padding: "0 10px" }}>
                         <span style={{color: goldColor, fontSize: "12px", fontWeight: "600", cursor: "pointer"}}>{auth?.user ? `HI, ${auth.user.name.toUpperCase()}` : "MY ACCOUNT"} ▾</span>
                         {isLoginDropdownOpen && (
