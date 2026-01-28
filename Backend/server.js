@@ -40,8 +40,10 @@ app.use("/api/v1/coupon", couponRoutes);
 app.use("/api/v1/order", orderRoute);
 app.use("/api/v1/invoice", invoiceRoutes);
 
-// Corrected static folder for uploads
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found" });
+});
+
 
 // ✅ NEW: SERVE REACT FRONTEND
 // This assumes your React app is in a folder named 'client'
@@ -51,9 +53,6 @@ app.use(express.static(path.join(__dirname, './frontend/dist')));
 // ✅ NEW: Handle React Routing
 // Redirects any unknown requests to index.html so React Router works
 // SPA fallback for Vite + React (SAFE)
-app.use((req, res) => {
-  res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
-});
 
 
 // port
