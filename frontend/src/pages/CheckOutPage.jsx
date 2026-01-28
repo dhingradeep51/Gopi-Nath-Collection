@@ -16,6 +16,8 @@ const COLORS = {
   darkBg: "#1a050b"
 };
 
+const BASE_URL = import.meta.env.VITE_API_URL;
+
 // --- SUCCESS ANIMATION COMPONENT ---
 const SuccessOverlay = ({ orderId, navigate }) => {
   return (
@@ -108,7 +110,7 @@ const CheckOutPage = () => {
     if (!couponCode) return toast.error("Enter a coupon code");
     setLoading(true);
     try {
-      const { data } = await axios.get(`/api/v1/coupon/get-coupon/${couponCode}`);
+      const { data } = await axios.get(`${BASE_URL}api/v1/coupon/get-coupon/${couponCode}`);
       if (data?.success) {
         setAppliedCoupon(data.coupon);
         toast.success(`Discount of ₹${data.coupon.discount} Applied!`);
@@ -124,7 +126,7 @@ const CheckOutPage = () => {
   const handleUpdateAddress = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.put("/api/v1/auth/update-address", formData);
+      const { data } = await axios.put(`${BASE_URL}/api/v1/auth/update-address`, formData);
       if (data?.success) {
         setAuth({ ...auth, user: data.updatedUser });
         localStorage.setItem("auth", JSON.stringify({ ...auth, user: data.updatedUser }));
@@ -141,7 +143,7 @@ const CheckOutPage = () => {
   /* ================= RAZORPAY PAYMENT HANDLER ================= */
   const handleOnlinePayment = async (orderData) => {
     try {
-      const { data } = await axios.post("/api/v1/payment/create-order", {
+      const { data } = await axios.post(`${BASE_URL}/api/v1/payment/create-order`, {
         amount: totals.total
       });
 
@@ -158,7 +160,7 @@ const CheckOutPage = () => {
         order_id: data.order.id,
         handler: async function (response) {
           try {
-            const verifyData = await axios.post("/api/v1/payment/verify-payment", {
+            const verifyData = await axios.post(`${BASE_URL}/api/v1/payment/verify-payment`, {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
@@ -230,7 +232,7 @@ const CheckOutPage = () => {
       if (paymentMethod === "online") {
         await handleOnlinePayment(orderData);
       } else {
-        const { data } = await axios.post("/api/v1/order/place-order", orderData);
+        const { data } = await axios.post(`${BASE_URL}/api/v1/order/place-order`, orderData);
 
         if (data?.success) {
           setFinalOrderId(data.order.orderNumber);
