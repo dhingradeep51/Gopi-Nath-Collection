@@ -175,7 +175,13 @@ const Header = () => {
                 boxShadow: "0 2px 4px rgba(0,0,0,0.08)",
                 border: showDropdown ? "1px solid #2874f0" : "1px solid transparent"
             }}>
-                <img src={magnifying} height="18" alt="search" style={{ opacity: 0.5, flexShrink: 0 }} />
+                <img 
+                    src={magnifying} 
+                    height="18" 
+                    alt="search" 
+                    style={{ opacity: 0.5, flexShrink: 0 }}
+                    onMouseDown={(e) => e.preventDefault()}
+                />
                 <input 
                     ref={searchInputRef}
                     type="text" 
@@ -225,10 +231,9 @@ const Header = () => {
                     ref={dropdownRef}
                     className="suggestion-list"
                     onMouseDown={(e) => {
-                        // Prevent input blur when clicking in dropdown
-                        if (e.target.closest('.suggestion-row')) {
-                            e.preventDefault();
-                        }
+                        // Prevent ALL mouse events in dropdown from affecting input focus
+                        e.preventDefault();
+                        e.stopPropagation();
                     }}
                 >
                     {keyword.length === 0 ? (
@@ -238,7 +243,6 @@ const Header = () => {
                                 <div 
                                     key={idx} 
                                     className="suggestion-row" 
-                                    onMouseDown={(e) => e.preventDefault()}
                                     onClick={() => {
                                         handleCategoryNav(item.name);
                                     }}
@@ -255,7 +259,6 @@ const Header = () => {
                                     <div 
                                         key={p._id} 
                                         className="suggestion-row product-row"
-                                        onMouseDown={(e) => e.preventDefault()}
                                         onClick={() => {
                                             handleSelectSuggestion(p);
                                         }}
@@ -338,6 +341,11 @@ const Header = () => {
                         max-height: 500px;
                         overflow-y: auto;
                         border-radius: 0 0 2px 2px;
+                        user-select: none;
+                    }
+                    
+                    .suggestion-list * {
+                        user-select: none;
                     }
                     
                     .trending-header { 
