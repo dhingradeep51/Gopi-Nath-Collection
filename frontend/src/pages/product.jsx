@@ -121,7 +121,7 @@ const ProductDetails = () => {
                   <div className="out-of-stock-badge">OUT OF STOCK</div>
                 )}
                 <img
-                  src={`${BASE_URL}/api/v1/product/product-photo/${product?._id}`}
+                  src={`${BASE_URL}api/v1/product/product-photo/${product?._id}`}
                   alt={product?.name}
                   className="main-image"
                   onError={(e) => {
