@@ -3,9 +3,9 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom"; // Added for navigation
 import AdminMenu from "../../components/Menus/AdminMenu";
 import { Table, Button, Input, Tag, Tooltip, Row, Col, Statistic } from "antd";
-import { 
-  FaFileDownload, FaSearch, FaFileInvoice, FaCheckCircle, 
-  FaRegClock, FaSync, FaEye, FaHashtag, FaPlus, FaArrowRight 
+import {
+  FaFileDownload, FaSearch, FaFileInvoice, FaCheckCircle,
+  FaRegClock, FaSync, FaEye, FaHashtag, FaPlus, FaArrowRight
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 
@@ -37,7 +37,7 @@ const AdminInvoiceManager = () => {
   }, []);
 
   /* ================= BACKEND PDF LOGIC ================= */
-  
+
   const handleGenerateInvoice = async (order) => {
     const isPrepaid = order.payment?.method === "online";
     const isDelivered = order.status === "Delivered";
@@ -51,36 +51,48 @@ const AdminInvoiceManager = () => {
       const { data } = await axios.post(`${BASE_URL}api/v1/invoice/generate`, { orderId: order._id });
       if (data.success) {
         toast.success("Invoice Generated", { id: loadingToast });
-        getOrders(); 
+
+        setOrders((prev) =>
+          prev.map((o) =>
+            o._id === order._id
+              ? {
+                ...o,
+                isInvoiced: true,
+                invoiceNo: data.invoice.invoiceNumber,
+              }
+              : o
+          )
+        );
       }
+
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed", { id: loadingToast });
     }
   };
 
   const handleViewPDF = async (orderId) => {
-  try {
-    const { data: invData } = await axios.get(`${BASE_URL}api/v1/invoice/order/${orderId}`);
-    
-    if (invData.success && invData.invoice) {
-      // 1. Fetch the PDF as a blob using axios (this includes your token)
-      const response = await axios.get(`${BASE_URL}api/v1/invoice/view/${invData.invoice._id}`, {
-        responseType: 'blob',
-      });
-      
-      // 2. Create a temporary URL for the PDF data
-      const file = new Blob([response.data], { type: 'application/pdf' });
-      const fileURL = URL.createObjectURL(file);
-      
-      // 3. Open that temporary URL in a new tab
-      window.open(fileURL, "_blank");
-    } else {
-      toast.error("Invoice record not found.");
+    try {
+      const { data: invData } = await axios.get(`${BASE_URL}api/v1/invoice/order/${orderId}`);
+
+      if (invData.success && invData.invoice) {
+        // 1. Fetch the PDF as a blob using axios (this includes your token)
+        const response = await axios.get(`${BASE_URL}api/v1/invoice/view/${invData.invoice._id}`, {
+          responseType: 'blob',
+        });
+
+        // 2. Create a temporary URL for the PDF data
+        const file = new Blob([response.data], { type: 'application/pdf' });
+        const fileURL = URL.createObjectURL(file);
+
+        // 3. Open that temporary URL in a new tab
+        window.open(fileURL, "_blank");
+      } else {
+        toast.error("Invoice record not found.");
+      }
+    } catch (error) {
+      toast.error("Could not open PDF viewer. Ensure the invoice was generated.");
     }
-  } catch (error) {
-    toast.error("Could not open PDF viewer. Ensure the invoice was generated.");
-  }
-};
+  };
 
   const handleDownloadPDF = async (orderId, invoiceNumber) => {
     try {
@@ -138,8 +150,8 @@ const AdminInvoiceManager = () => {
       title: "ISSUED STATUS",
       key: "isInvoiced",
       render: (o) => (
-        <Tag 
-          icon={o.isInvoiced ? <FaCheckCircle /> : <FaRegClock />} 
+        <Tag
+          icon={o.isInvoiced ? <FaCheckCircle /> : <FaRegClock />}
           color={o.isInvoiced ? "#2e7d32" : "#555"}
           style={{ borderRadius: '4px', border: 'none', color: '#fff', fontWeight: '600' }}
         >
@@ -155,8 +167,8 @@ const AdminInvoiceManager = () => {
         // 1. If already invoiced
         if (o.isInvoiced) {
           return (
-            <Button 
-              icon={<FaFileDownload />} 
+            <Button
+              icon={<FaFileDownload />}
               size="small"
               style={{ background: 'transparent', color: gold, borderColor: gold }}
               onClick={() => handleDownloadPDF(o._id, o.invoiceNo)}
@@ -172,12 +184,12 @@ const AdminInvoiceManager = () => {
 
         if (isPrepaid || isDelivered) {
           return (
-            <Button 
-              type="primary" 
+            <Button
+              type="primary"
               size="small"
               icon={<FaPlus />}
               style={{ background: gold, borderColor: gold, color: burgundy, fontWeight: "bold" }}
-              onClick={() => handleGenerateInvoice(o)} 
+              onClick={() => handleGenerateInvoice(o)}
             >
               GENERATE
             </Button>
@@ -190,9 +202,9 @@ const AdminInvoiceManager = () => {
             <Tag color="orange" style={{ margin: 0, fontSize: '10px' }}>
               {o.status.toUpperCase()}
             </Tag>
-            <Button 
-              type="link" 
-              size="small" 
+            <Button
+              type="link"
+              size="small"
               style={{ color: gold, fontSize: '11px', padding: 0, marginTop: '4px' }}
               onClick={() => navigate("/dashboard/admin/orders")} // Change path to match your actual orders route
             >
@@ -208,9 +220,9 @@ const AdminInvoiceManager = () => {
       align: "center",
       render: (o) => (
         <Tooltip title={o.isInvoiced ? "View PDF" : "Generate invoice first"}>
-          <Button 
+          <Button
             type="text"
-            icon={<FaEye />} 
+            icon={<FaEye />}
             disabled={!o.isInvoiced}
             style={{ color: o.isInvoiced ? gold : "rgba(255,255,255,0.2)", fontSize: '18px' }}
             onClick={() => handleViewPDF(o._id)}
@@ -242,7 +254,7 @@ const AdminInvoiceManager = () => {
       <div style={{ background: "#1a050b", minHeight: "100vh", color: "#fff" }}>
         <AdminMenu />
         <div style={{ padding: "40px", maxWidth: "1400px", margin: "0 auto" }}>
-          
+
           <Row gutter={[24, 24]} align="middle" style={{ marginBottom: "30px" }}>
             <Col xs={24} lg={10}>
               <h1 style={{ color: gold, fontFamily: "serif", margin: 0, letterSpacing: "2px", fontSize: '28px' }}>
@@ -251,16 +263,16 @@ const AdminInvoiceManager = () => {
               </h1>
               <p style={{ color: gold, opacity: 0.6 }}>Audit and Issue Tax Invoices</p>
             </Col>
-            
+
             <Col xs={24} lg={14}>
               <div style={{ display: 'flex', gap: '20px', justifyContent: 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
-                 <div className="stat-card">
-                    <Statistic title="PENDING" value={stats.pending} valueStyle={{ color: '#cf1322' }} prefix={<FaRegClock size={14} style={{marginRight:'8px'}}/>} />
-                 </div>
-                 <div className="stat-card">
-                    <Statistic title="ISSUED" value={stats.issued} valueStyle={{ color: '#2e7d32' }} prefix={<FaCheckCircle size={14} style={{marginRight:'8px'}}/>} />
-                 </div>
-                 <Input
+                <div className="stat-card">
+                  <Statistic title="PENDING" value={stats.pending} valueStyle={{ color: '#cf1322' }} prefix={<FaRegClock size={14} style={{ marginRight: '8px' }} />} />
+                </div>
+                <div className="stat-card">
+                  <Statistic title="ISSUED" value={stats.issued} valueStyle={{ color: '#2e7d32' }} prefix={<FaCheckCircle size={14} style={{ marginRight: '8px' }} />} />
+                </div>
+                <Input
                   placeholder="Search Registry..."
                   prefix={<FaSearch style={{ color: gold }} />}
                   style={{ width: "300px", height: "45px", background: "rgba(255,255,255,0.05)", border: `1px solid ${gold}44`, color: "#fff" }}
@@ -274,9 +286,9 @@ const AdminInvoiceManager = () => {
           </Row>
 
           <div style={{ background: "rgba(255,255,255,0.02)", borderRadius: "15px", padding: "20px", border: `1px solid ${gold}22` }}>
-            <Table 
-              columns={columns} 
-              dataSource={filteredData} 
+            <Table
+              columns={columns}
+              dataSource={filteredData}
               rowKey="_id"
               loading={loading}
               pagination={{ pageSize: 10 }}
