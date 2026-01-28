@@ -39,36 +39,21 @@ const AdminInvoiceManager = () => {
   /* ================= BACKEND PDF LOGIC ================= */
 
   const handleGenerateInvoice = async (order) => {
-    const isPrepaid = order.payment?.method === "online";
-    const isDelivered = order.status === "Delivered";
+  // ... eligibility checks ...
+  const loadingToast = toast.loading("Generating PDF...");
+  try {
+    const { data } = await axios.post(`${BASE_URL}api/v1/invoice/generate`, { orderId: order._id });
+    if (data.success) {
+      toast.success("Invoice Generated", { id: loadingToast });
 
-    if (!isPrepaid && !isDelivered) {
-      return toast.error("Invoice restricted: COD orders must be 'Delivered' first.");
+      // ✅ FIX: Instead of manual mapping, re-fetch all orders to get the 
+      // most accurate state from the database. This ensures a refresh won't change the UI.
+      await getOrders(); 
     }
-
-    const loadingToast = toast.loading("Generating PDF...");
-    try {
-      const { data } = await axios.post(`${BASE_URL}api/v1/invoice/generate`, { orderId: order._id });
-      if (data.success) {
-        toast.success("Invoice Generated", { id: loadingToast });
-
-        setOrders((prev) =>
-          prev.map((o) =>
-            o._id === order._id
-              ? {
-                ...o,
-                isInvoiced: true,
-                invoiceNo: data.invoice.invoiceNumber,
-              }
-              : o
-          )
-        );
-      }
-
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed", { id: loadingToast });
-    }
-  };
+  } catch (error) {
+    toast.error(error.response?.data?.message || "Failed", { id: loadingToast });
+  }
+};
 
   const handleViewPDF = async (orderId) => {
     try {
