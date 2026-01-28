@@ -26,6 +26,7 @@ const Header = () => {
     const [keyword, setKeyword] = useState("");
     const [suggestions, setSuggestions] = useState([]);
     const [showDropdown, setShowDropdown] = useState(false);
+    const [searchFocused, setSearchFocused] = useState(false);
 
     const headerRef = useRef(null);
     const searchInputRef = useRef(null);
@@ -50,6 +51,7 @@ const Header = () => {
         navigate(`/category/${formattedName}`); 
         setKeyword("");
         setShowDropdown(false);
+        setSearchFocused(false);
         closeAllMenus();
     };
 
@@ -61,6 +63,7 @@ const Header = () => {
         }
         setKeyword("");
         setShowDropdown(false);
+        setSearchFocused(false);
         closeAllMenus();
     };
 
@@ -90,6 +93,7 @@ const Header = () => {
                 !searchContainerRef.current.contains(event.target)
             ) {
                 setShowDropdown(false);
+                setSearchFocused(false);
             }
             
             // Close other dropdowns if clicking outside header
@@ -113,16 +117,18 @@ const Header = () => {
         const timer = setTimeout(() => {
             if (keyword.trim().length > 1) {
                 fetchSuggestions();
-            } else if (keyword.trim().length === 0) {
+            } else if (keyword.trim().length === 0 && searchFocused) {
                 setSuggestions([]);
-                setShowDropdown(true);
+                setShowDropdown(true); // Show trending only when focused and empty
             } else {
                 setSuggestions([]);
-                setShowDropdown(false);
+                if (!searchFocused) {
+                    setShowDropdown(false);
+                }
             }
         }, 300);
         return () => clearTimeout(timer);
-    }, [keyword, fetchSuggestions]);
+    }, [keyword, searchFocused, fetchSuggestions]);
 
     const handleLogout = () => {
         setAuth({ ...auth, user: null, token: "" });
@@ -192,13 +198,17 @@ const Header = () => {
                         type="text" 
                         placeholder={`Search for ${placeholders[0]}, ${placeholders[1]}...`} 
                         value={keyword}
-                        onFocus={() => setShowDropdown(true)}
+                        onFocus={() => {
+                            setSearchFocused(true);
+                            setShowDropdown(true);
+                        }}
                         onBlur={(e) => {
                             // Only close if we're not clicking inside the dropdown
                             const relatedTarget = e.relatedTarget;
                             if (!dropdownRef.current?.contains(relatedTarget)) {
                                 // Delay to allow click events to fire first
                                 setTimeout(() => {
+                                    setSearchFocused(false);
                                     setShowDropdown(false);
                                 }, 150);
                             }
