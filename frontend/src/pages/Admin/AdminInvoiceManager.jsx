@@ -60,7 +60,7 @@ const AdminInvoiceManager = () => {
 
   const handleViewPDF = async (orderId) => {
   try {
-    const { data: invData } = await axios.get(`${BASE_URL}/api/v1/invoice/order/${orderId}`);
+    const { data: invData } = await axios.get(`${BASE_URL}api/v1/invoice/order/${orderId}`);
     
     if (invData.success && invData.invoice) {
       // 1. Fetch the PDF as a blob using axios (this includes your token)
