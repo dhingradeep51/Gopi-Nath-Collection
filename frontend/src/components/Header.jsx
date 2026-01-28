@@ -82,16 +82,17 @@ const Header = () => {
             if (!mobileView) setIsMobileMenuOpen(false);
         };
 
-        // ✅ FIXED: Proper click outside handling
         const handleClickOutside = (event) => {
+            // Only close dropdown if clicking outside both header and dropdown
             if (
                 headerRef.current && 
                 !headerRef.current.contains(event.target) &&
                 dropdownRef.current &&
                 !dropdownRef.current.contains(event.target)
             ) {
-                closeAllMenus();
                 setShowDropdown(false);
+                setIsCategoryOpen(false);
+                setIsLoginDropdownOpen(false);
             }
         };
 
@@ -110,7 +111,7 @@ const Header = () => {
                 fetchSuggestions();
             } else if (keyword.trim().length === 0) {
                 setSuggestions([]);
-                setShowDropdown(true); // Show trending when empty
+                setShowDropdown(true);
             } else {
                 setSuggestions([]);
                 setShowDropdown(false);
@@ -134,34 +135,51 @@ const Header = () => {
     };
 
     const iconGroupStyle = {
-        display: "flex", alignItems: "center", gap: "10px", cursor: "pointer",
-        color: goldColor, textDecoration: "none", fontSize: isMobile ? "16px" : "14px",
-        fontWeight: "600", textTransform: "uppercase"
+        display: "flex", 
+        alignItems: "center", 
+        gap: "8px", 
+        cursor: "pointer",
+        color: goldColor, 
+        textDecoration: "none", 
+        fontSize: "14px",
+        fontWeight: "600", 
+        textTransform: "uppercase",
+        padding: "8px 12px",
+        borderRadius: "2px",
+        transition: "background 0.2s ease"
     };
 
     const dropdownBoxStyle = {
-        position: "absolute", top: "100%", left: 0, width: isMobile ? "260px" : "220px",
-        background: "white", boxShadow: "0 8px 16px rgba(0,0,0,0.2)",
-        borderRadius: "4px", marginTop: "10px", zIndex: 5000, overflow: "hidden"
+        position: "absolute", 
+        top: "100%", 
+        left: 0, 
+        width: isMobile ? "260px" : "220px",
+        background: "white", 
+        boxShadow: "0 8px 16px rgba(0,0,0,0.2)",
+        borderRadius: "2px", 
+        marginTop: "8px", 
+        zIndex: 5000, 
+        overflow: "hidden"
     };
 
     // Flipkart-style Search Component
     const GlobalSearch = () => (
-        <div style={{ position: "relative", flex: 1, width: "100%" }}>
+        <div style={{ position: "relative", flex: 1, maxWidth: "500px" }}>
             <div style={{ 
                 display: "flex", 
                 background: "white",
                 borderRadius: "2px", 
                 padding: "0 16px", 
-                height: "40px", 
+                height: "36px", 
                 alignItems: "center",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.08)"
+                boxShadow: "0 2px 4px rgba(0,0,0,0.08)",
+                border: showDropdown ? "1px solid #2874f0" : "1px solid transparent"
             }}>
-                <img src={magnifying} height="20" alt="search" style={{ opacity: 0.5 }} />
+                <img src={magnifying} height="18" alt="search" style={{ opacity: 0.5, flexShrink: 0 }} />
                 <input 
                     ref={searchInputRef}
                     type="text" 
-                    placeholder={isMobile ? "Search..." : `Search for ${placeholders[0]}, ${placeholders[1]}...`} 
+                    placeholder={`Search for ${placeholders[0]}, ${placeholders[1]}...`} 
                     value={keyword}
                     onFocus={() => setShowDropdown(true)}
                     onChange={(e) => setKeyword(e.target.value)}
@@ -181,19 +199,23 @@ const Header = () => {
                         onMouseDown={(e) => {
                             e.preventDefault();
                             setKeyword("");
-                            setTimeout(() => searchInputRef.current?.focus(), 0);
+                            // Keep focus on input
+                            requestAnimationFrame(() => {
+                                searchInputRef.current?.focus();
+                            });
                         }}
                         style={{
                             background: "none",
                             border: "none",
                             color: "#878787",
-                            fontSize: "24px",
+                            fontSize: "20px",
                             cursor: "pointer",
-                            padding: "0 5px",
-                            lineHeight: 1
+                            padding: "0 4px",
+                            lineHeight: 1,
+                            flexShrink: 0
                         }}
                     >
-                        ×
+                        ✕
                     </button>
                 )}
             </div>
@@ -203,8 +225,8 @@ const Header = () => {
                     ref={dropdownRef}
                     className="suggestion-list"
                     onMouseDown={(e) => {
-                        // Prevent input from losing focus when clicking dropdown
-                        if (e.target.tagName !== 'INPUT') {
+                        // Prevent input blur when clicking in dropdown
+                        if (e.target.closest('.suggestion-row')) {
                             e.preventDefault();
                         }
                     }}
@@ -216,9 +238,9 @@ const Header = () => {
                                 <div 
                                     key={idx} 
                                     className="suggestion-row" 
+                                    onMouseDown={(e) => e.preventDefault()}
                                     onClick={() => {
                                         handleCategoryNav(item.name);
-                                        setTimeout(() => searchInputRef.current?.blur(), 0);
                                     }}
                                 >
                                     <img src={magnifying} height="16" style={{opacity: 0.4}} alt="trend" />
@@ -232,10 +254,10 @@ const Header = () => {
                                 suggestions.map((p) => (
                                     <div 
                                         key={p._id} 
-                                        className="suggestion-row product-row" 
+                                        className="suggestion-row product-row"
+                                        onMouseDown={(e) => e.preventDefault()}
                                         onClick={() => {
                                             handleSelectSuggestion(p);
-                                            setTimeout(() => searchInputRef.current?.blur(), 0);
                                         }}
                                     >
                                         <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
@@ -245,7 +267,7 @@ const Header = () => {
                                                 alt={p.name} 
                                             />
                                             <div>
-                                                <div style={{ fontSize: "14px", color: "#212121" }}>{p.name}</div>
+                                                <div style={{ fontSize: "14px", color: "#212121", fontWeight: "500" }}>{p.name}</div>
                                                 {p.category && (
                                                     <div style={{ fontSize: "12px", color: "#878787", marginTop: "2px" }}>
                                                         in {p.category.name}
@@ -266,7 +288,7 @@ const Header = () => {
     );
 
     return (
-        <header ref={headerRef} style={{ width: "100%", position: "relative", zIndex: 1000, display: "block" }}>
+        <header ref={headerRef} style={{ width: "100%", position: "sticky", top: 0, zIndex: 1000 }}>
             <style>
                 {`
                     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -285,10 +307,12 @@ const Header = () => {
                         background: none; 
                         border: none; 
                         cursor: pointer;
+                        transition: all 0.2s ease;
                     }
                     .dropdown-item:hover { 
                         background-color: ${burgundyColor}; 
                         color: ${goldColor} !important;
+                        padding-left: 24px;
                     }
                     
                     .nav-icon-gold { 
@@ -305,7 +329,7 @@ const Header = () => {
                     /* Flipkart-style dropdown */
                     .suggestion-list { 
                         position: absolute; 
-                        top: calc(100% + 1px);
+                        top: calc(100% + 2px);
                         left: 0; 
                         width: 100%; 
                         background: white; 
@@ -313,14 +337,15 @@ const Header = () => {
                         z-index: 6000; 
                         max-height: 500px;
                         overflow-y: auto;
+                        border-radius: 0 0 2px 2px;
                     }
                     
                     .trending-header { 
-                        padding: 14px 16px; 
+                        padding: 14px 16px 10px; 
                         font-size: 11px; 
                         text-transform: uppercase; 
                         color: #878787; 
-                        font-weight: 500; 
+                        font-weight: 600; 
                         background: #fff;
                         border-bottom: 1px solid #f0f0f0;
                         letter-spacing: 0.5px;
@@ -336,10 +361,15 @@ const Header = () => {
                         gap: 12px;
                         border-bottom: 1px solid #f0f0f0;
                         background: white;
+                        transition: background 0.15s ease;
                     }
                     
                     .suggestion-row:hover { 
-                        background: #f0f0f0;
+                        background: #f5f5f5;
+                    }
+                    
+                    .suggestion-row:last-child {
+                        border-bottom: none;
                     }
                     
                     .product-row {
@@ -350,9 +380,10 @@ const Header = () => {
                         width: 50px; 
                         height: 50px; 
                         object-fit: contain; 
-                        background: #f5f5f5;
+                        background: #fafafa;
                         border-radius: 2px;
                         padding: 4px;
+                        border: 1px solid #f0f0f0;
                     }
 
                     .no-results {
@@ -378,14 +409,32 @@ const Header = () => {
                     .suggestion-list::-webkit-scrollbar-thumb:hover {
                         background: #ccc;
                     }
+
+                    @media (max-width: 1024px) {
+                        .suggestion-list {
+                            max-height: 400px;
+                        }
+                    }
                 `}
             </style>
 
+            {/* Top Bar - Desktop Only */}
             {!isMobile && (
-                <div style={{ display: "flex", justifyContent: "space-between", height: "35px", background: topBarColor, padding: "0 60px", alignItems: "center" }}>
+                <div style={{ 
+                    display: "flex", 
+                    justifyContent: "space-between", 
+                    height: "35px", 
+                    background: topBarColor, 
+                    padding: "0 60px", 
+                    alignItems: "center" 
+                }}>
                     <div style={{ display: "flex", gap: "30px" }}>
-                        <Link to="/about" style={{color: goldColor, textDecoration: "none", fontSize: "12px", fontWeight: "600"}}>ABOUT</Link>
-                        <Link to="/contact" style={{color: goldColor, textDecoration: "none", fontSize: "12px", fontWeight: "600"}}>CONTACT US</Link>
+                        <Link to="/about" style={{color: goldColor, textDecoration: "none", fontSize: "12px", fontWeight: "600"}}>
+                            ABOUT
+                        </Link>
+                        <Link to="/contact" style={{color: goldColor, textDecoration: "none", fontSize: "12px", fontWeight: "600"}}>
+                            CONTACT US
+                        </Link>
                     </div>
                     <span style={{ color: "white", fontSize: "12px", fontStyle: "italic", opacity: 0.9 }}>
                         {auth?.user ? `Welcome back, ${auth.user.name}` : "Free delivery on orders above ₹299"}
@@ -402,8 +451,12 @@ const Header = () => {
                             <div style={{ ...dropdownBoxStyle, left: "auto", right: 0 }}>
                                 {auth?.user ? (
                                     <>
-                                        <Link to={`/dashboard/${auth?.user?.role === 1 ? 'admin' : 'user/profile'}`} className="dropdown-item" onClick={closeAllMenus}>My Profile</Link>
-                                        <Link to={`/dashboard/${auth?.user?.role === 1 ? 'admin/orders' : 'user/orders'}`} className="dropdown-item" onClick={closeAllMenus}>My Orders</Link>
+                                        <Link to={`/dashboard/${auth?.user?.role === 1 ? 'admin' : 'user/profile'}`} className="dropdown-item" onClick={closeAllMenus}>
+                                            My Profile
+                                        </Link>
+                                        <Link to={`/dashboard/${auth?.user?.role === 1 ? 'admin/orders' : 'user/orders'}`} className="dropdown-item" onClick={closeAllMenus}>
+                                            My Orders
+                                        </Link>
                                         <button onClick={handleLogout} className="dropdown-item">LOGOUT</button>
                                     </>
                                 ) : ( 
@@ -415,111 +468,157 @@ const Header = () => {
                 </div>
             )}
 
-            <div style={{ background: burgundyColor, padding: isMobile ? "15px 20px" : "15px 60px", display: "flex", flexDirection: "column", gap: "15px" }}>
-                <div style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center" }}>
-                    <Link to="/" onClick={closeAllMenus} style={{ textDecoration: "none" }}>
-                        <h1 style={{ 
-                            color: goldColor, 
-                            margin: 0, 
-                            fontSize: isMobile ? "24px" : "32px", 
-                            fontFamily: "'Playfair Display', serif", 
-                            fontStyle: "italic" 
-                        }}>
-                            Gopi Nath Collection
-                        </h1>
-                    </Link>
-                    <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
-                        {isMobile && (
-                            <Link to="/cart" onClick={closeAllMenus}>
-                                <Badge count={cartItems?.length} showZero size="small">
-                                    <img src={cart} className="nav-icon-gold" height="22" alt="cart" />
-                                </Badge>
-                            </Link>
-                        )}
-                        {isMobile && (
-                            <button 
-                                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
-                                style={{ 
-                                    background: "none", 
-                                    border: "none", 
+            {/* Main Header - Flipkart Style */}
+            <div style={{ 
+                background: burgundyColor, 
+                padding: isMobile ? "15px 20px" : "12px 60px", 
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+            }}>
+                {isMobile ? (
+                    // Mobile Layout
+                    <>
+                        <div style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+                            <Link to="/" onClick={closeAllMenus} style={{ textDecoration: "none" }}>
+                                <h1 style={{ 
                                     color: goldColor, 
-                                    fontSize: "28px", 
-                                    cursor: "pointer" 
-                                }}
-                            >
-                                {isMobileMenuOpen ? "✕" : "☰"}
-                            </button>
-                        )}
-                    </div>
-                </div>
-
-                {!isMobile && (
-                    <div style={{ width: "100%", display: "flex", maxWidth: "600px" }}>
-                        <GlobalSearch />
-                    </div>
-                )}
-
-                {(isMobileMenuOpen || !isMobile) && (
-                    <nav style={{ 
-                        display: "flex", 
-                        flexDirection: isMobile ? "column" : "row", 
-                        gap: isMobile ? "20px" : "30px", 
-                        width: isMobile ? "100%" : "auto", 
-                        alignItems: isMobile ? "flex-start" : "center", 
-                        position: "relative" 
-                    }}>
-                        <div 
-                            style={{ position: "relative" }} 
-                            onMouseEnter={() => !isMobile && setIsCategoryOpen(true)} 
-                            onMouseLeave={() => !isMobile && setIsCategoryOpen(false)}
-                        >
-                            <div onClick={() => isMobile && setIsCategoryOpen(!isCategoryOpen)} style={iconGroupStyle}>
-                                <img src={categoryIcon} className="nav-icon-gold" height="20" alt="cat" />
-                                <span>SHOP ▾</span>
-                            </div>
-                            {isCategoryOpen && (
-                                <div style={dropdownBoxStyle}>
-                                    <li className="dropdown-item" onClick={() => handleCategoryNav("LADDO GOPAL DRESSES")}>Ladoo Gopal Dress</li>
-                                    <li className="dropdown-item" onClick={() => handleCategoryNav("FULL SRINGAR")}>Full Shringar</li>
-                                    <li className="dropdown-item" onClick={() => handleCategoryNav("COUNTER")}>Counter</li>
-                                    <li className="dropdown-item" onClick={() => handleCategoryNav("HAIRS")}>Accessories</li>
-                                </div>
-                            )}
-                        </div>
-                        {!isMobile && (
-                            <Link to="/cart" style={iconGroupStyle} onClick={closeAllMenus}>
-                                <Badge count={cartItems?.length} showZero offset={[10, -5]}>
-                                    <img src={cart} className="nav-icon-gold" height="20" alt="cart" /> 
-                                    <span style={{ marginLeft: "5px", color: goldColor }}>CART</span>
-                                </Badge>
+                                    margin: 0, 
+                                    fontSize: "22px", 
+                                    fontFamily: "'Playfair Display', serif", 
+                                    fontStyle: "italic" 
+                                }}>
+                                    Gopi Nath Collection
+                                </h1>
                             </Link>
-                        )}
-                        <Link to={`/dashboard/${auth?.user?.role === 1 ? 'admin/orders' : 'user/orders'}`} style={iconGroupStyle} onClick={closeAllMenus}>
-                            <img src={myorder} className="nav-icon-gold" height="20" alt="orders" /> 
-                            <span>ORDERS</span>
-                        </Link>
-                        {isMobile && (
-                            <div style={{ width: "100%", position: "relative" }}>
-                                <div onClick={() => setIsLoginDropdownOpen(!isLoginDropdownOpen)} style={iconGroupStyle}>
-                                    <img src={usericon} className="nav-icon-gold" height="20" alt="user" />
-                                    <span>{auth?.user ? `HI, ${auth.user.name.toUpperCase()}` : "MY ACCOUNT"} ▾</span>
+                            <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
+                                <Link to="/cart" onClick={closeAllMenus}>
+                                    <Badge count={cartItems?.length} showZero size="small">
+                                        <img src={cart} className="nav-icon-gold" height="22" alt="cart" />
+                                    </Badge>
+                                </Link>
+                                <button 
+                                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} 
+                                    style={{ 
+                                        background: "none", 
+                                        border: "none", 
+                                        color: goldColor, 
+                                        fontSize: "28px", 
+                                        cursor: "pointer",
+                                        padding: 0,
+                                        lineHeight: 1
+                                    }}
+                                >
+                                    {isMobileMenuOpen ? "✕" : "☰"}
+                                </button>
+                            </div>
+                        </div>
+                        <GlobalSearch />
+                        {isMobileMenuOpen && (
+                            <nav style={{ 
+                                display: "flex", 
+                                flexDirection: "column", 
+                                gap: "15px", 
+                                marginTop: "20px", 
+                                paddingTop: "20px",
+                                borderTop: `1px solid ${goldColor}40`
+                            }}>
+                                <div style={{ position: "relative" }}>
+                                    <div onClick={() => setIsCategoryOpen(!isCategoryOpen)} style={iconGroupStyle}>
+                                        <img src={categoryIcon} className="nav-icon-gold" height="20" alt="cat" />
+                                        <span>SHOP ▾</span>
+                                    </div>
+                                    {isCategoryOpen && (
+                                        <div style={dropdownBoxStyle}>
+                                            <li className="dropdown-item" onClick={() => handleCategoryNav("LADDO GOPAL DRESSES")}>Ladoo Gopal Dress</li>
+                                            <li className="dropdown-item" onClick={() => handleCategoryNav("FULL SRINGAR")}>Full Shringar</li>
+                                            <li className="dropdown-item" onClick={() => handleCategoryNav("COUNTER")}>Counter</li>
+                                            <li className="dropdown-item" onClick={() => handleCategoryNav("HAIRS")}>Accessories</li>
+                                        </div>
+                                    )}
                                 </div>
-                                {isLoginDropdownOpen && (
-                                    <div style={{ ...dropdownBoxStyle, left: "0", top: "100%" }}>
-                                        {auth?.user ? (
-                                            <>
-                                                <Link to={`/dashboard/${auth?.user?.role === 1 ? 'admin' : 'user/profile'}`} className="dropdown-item" onClick={closeAllMenus}>My Profile</Link>
-                                                <Link to={`/dashboard/${auth?.user?.role === 1 ? 'admin/orders' : 'user/orders'}`} className="dropdown-item" onClick={closeAllMenus}>My Orders</Link>
-                                                <button onClick={handleLogout} className="dropdown-item">LOGOUT</button>
-                                            </>
-                                        ) : ( 
-                                            <Link to="/login" className="dropdown-item" onClick={closeAllMenus}>LOGIN / SIGNUP</Link> 
-                                        )}
+                                <Link to={`/dashboard/${auth?.user?.role === 1 ? 'admin/orders' : 'user/orders'}`} style={iconGroupStyle} onClick={closeAllMenus}>
+                                    <img src={myorder} className="nav-icon-gold" height="20" alt="orders" /> 
+                                    <span>ORDERS</span>
+                                </Link>
+                                <div style={{ position: "relative" }}>
+                                    <div onClick={() => setIsLoginDropdownOpen(!isLoginDropdownOpen)} style={iconGroupStyle}>
+                                        <img src={usericon} className="nav-icon-gold" height="20" alt="user" />
+                                        <span>{auth?.user ? `HI, ${auth.user.name.toUpperCase()}` : "MY ACCOUNT"} ▾</span>
+                                    </div>
+                                    {isLoginDropdownOpen && (
+                                        <div style={dropdownBoxStyle}>
+                                            {auth?.user ? (
+                                                <>
+                                                    <Link to={`/dashboard/${auth?.user?.role === 1 ? 'admin' : 'user/profile'}`} className="dropdown-item" onClick={closeAllMenus}>
+                                                        My Profile
+                                                    </Link>
+                                                    <Link to={`/dashboard/${auth?.user?.role === 1 ? 'admin/orders' : 'user/orders'}`} className="dropdown-item" onClick={closeAllMenus}>
+                                                        My Orders
+                                                    </Link>
+                                                    <button onClick={handleLogout} className="dropdown-item">LOGOUT</button>
+                                                </>
+                                            ) : ( 
+                                                <Link to="/login" className="dropdown-item" onClick={closeAllMenus}>LOGIN / SIGNUP</Link> 
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </nav>
+                        )}
+                    </>
+                ) : (
+                    // Desktop Layout - Flipkart Style
+                    <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+                        {/* Logo */}
+                        <Link to="/" onClick={closeAllMenus} style={{ textDecoration: "none", flexShrink: 0 }}>
+                            <h1 style={{ 
+                                color: goldColor, 
+                                margin: 0, 
+                                fontSize: "28px", 
+                                fontFamily: "'Playfair Display', serif", 
+                                fontStyle: "italic",
+                                whiteSpace: "nowrap"
+                            }}>
+                                Gopi Nath Collection
+                            </h1>
+                        </Link>
+
+                        {/* Search Bar - Center */}
+                        <GlobalSearch />
+
+                        {/* Navigation Icons */}
+                        <nav style={{ display: "flex", gap: "8px", alignItems: "center", flexShrink: 0 }}>
+                            <div 
+                                style={{ position: "relative" }} 
+                                onMouseEnter={() => setIsCategoryOpen(true)} 
+                                onMouseLeave={() => setIsCategoryOpen(false)}
+                            >
+                                <div style={{...iconGroupStyle, minWidth: "80px"}}>
+                                    <img src={categoryIcon} className="nav-icon-gold" height="20" alt="cat" />
+                                    <span>SHOP</span>
+                                </div>
+                                {isCategoryOpen && (
+                                    <div style={dropdownBoxStyle}>
+                                        <li className="dropdown-item" onClick={() => handleCategoryNav("LADDO GOPAL DRESSES")}>Ladoo Gopal Dress</li>
+                                        <li className="dropdown-item" onClick={() => handleCategoryNav("FULL SRINGAR")}>Full Shringar</li>
+                                        <li className="dropdown-item" onClick={() => handleCategoryNav("COUNTER")}>Counter</li>
+                                        <li className="dropdown-item" onClick={() => handleCategoryNav("HAIRS")}>Accessories</li>
                                     </div>
                                 )}
                             </div>
-                        )}
-                    </nav>
+
+                            <Link to="/cart" style={iconGroupStyle} onClick={closeAllMenus}>
+                                <Badge count={cartItems?.length} showZero offset={[0, 0]} size="small">
+                                    <img src={cart} className="nav-icon-gold" height="20" alt="cart" /> 
+                                </Badge>
+                                <span style={{ marginLeft: "0px" }}>CART</span>
+                            </Link>
+
+                            <Link to={`/dashboard/${auth?.user?.role === 1 ? 'admin/orders' : 'user/orders'}`} style={iconGroupStyle} onClick={closeAllMenus}>
+                                <img src={myorder} className="nav-icon-gold" height="20" alt="orders" /> 
+                                <span>ORDERS</span>
+                            </Link>
+                        </nav>
+                    </div>
                 )}
             </div>
         </header>
