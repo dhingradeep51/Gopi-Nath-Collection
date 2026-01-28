@@ -39,21 +39,14 @@ const AdminInvoiceManager = () => {
   /* ================= INVOICE ACTIONS ================= */
 
 const handleGenerateInvoice = async (order) => {
-  const isPrepaid = order.payment?.method === "online";
-  const isDelivered = order.status === "Delivered";
-
-  if (!isPrepaid && !isDelivered) {
-    return toast.error("COD orders must be 'Delivered' before invoicing.");
-  }
-
-  const loadingToast = toast.loading("Generating Secure PDF...");
+  const loadingToast = toast.loading("Finalizing Registry...");
   try {
     const { data } = await axios.post(`${BASE_URL}api/v1/invoice/generate`, { orderId: order._id });
     
     if (data.success) {
-      toast.success("Invoice Generated successfully", { id: loadingToast });
+      toast.success(data.message, { id: loadingToast });
 
-      // ✅ STEP 1: Manually update local state for instant UI feedback
+      // ✅ STEP 1: Manually update local state for instant UI change
       setOrders((prevOrders) =>
         prevOrders.map((o) =>
           o._id === order._id 
@@ -62,11 +55,11 @@ const handleGenerateInvoice = async (order) => {
         )
       );
 
-      // ✅ STEP 2: Background re-fetch to ensure data is perfectly synced with DB
+      // ✅ STEP 2: Background re-fetch to stay synced with DB
       await getOrders(); 
     }
   } catch (error) {
-    toast.error(error.response?.data?.message || "Generation failed", { id: loadingToast });
+    toast.error("Generation failed", { id: loadingToast });
   }
 };
   const handleViewPDF = async (orderId) => {
