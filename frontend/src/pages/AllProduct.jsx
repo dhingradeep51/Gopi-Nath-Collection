@@ -249,7 +249,7 @@ const AllProducts = () => {
                           onClick={() => navigate(`/product/${p.slug}`)}
                         >
                           <img
-                            src={`/api/v1/product/product-photo/${p._id}`}
+                            src={`${BASE_URL}api/v1/product/product-photo/${p._id}`}
                             alt={p.name}
                             className="product-image"
                           />
