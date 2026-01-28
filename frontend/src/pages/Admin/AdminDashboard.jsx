@@ -75,7 +75,7 @@ const AdminDashboard = () => {
               <p className="small text-uppercase mb-1" style={{ color: gold, fontSize: "10px", letterSpacing: "1px" }}>Invoicing</p>
               <h3>Registry</h3>
               <button 
-                onClick={() => navigate("/dashboard/admin/invoices")} 
+                onClick={() => navigate("/dashboard/admin/invoice")} 
                 style={navButtonStyle}
                 onMouseOver={(e) => e.target.style.opacity = "0.8"}
                 onMouseOut={(e) => e.target.style.opacity = "1"}
