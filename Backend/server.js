@@ -45,12 +45,13 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // ✅ NEW: SERVE REACT FRONTEND
 // This assumes your React app is in a folder named 'client'
-app.use(express.static(path.join(__dirname, './client/build')));
+app.use(express.static(path.join(__dirname, './frontend/dist')));
+
 
 // ✅ NEW: Handle React Routing
 // Redirects any unknown requests to index.html so React Router works
 app.get('/*', (req, res) => {
-  res.sendFile(path.join(__dirname, './client/build/index.html'));
+  res.sendFile(path.join(__dirname, './frontend/dist/index.html'));
 });
 
 // port
