@@ -62,7 +62,7 @@ const CreateCategory = () => {
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      const { data } = await axios.put(`${BASE_URL}/api/v1/category/update-category/${selected._id}`, { 
+      const { data } = await axios.put(`${BASE_URL}api/v1/category/update-category/${selected._id}`, { 
         name: updatedName,
         categoryId: updatedId 
       });
@@ -85,7 +85,7 @@ const CreateCategory = () => {
   // 4. Delete Category
   const handleDelete = async (id) => {
     try {
-      const { data } = await axios.delete(`${BASE_URL}/api/v1/category/delete-category/${id}`);
+      const { data } = await axios.delete(`${BASE_URL}api/v1/category/delete-category/${id}`);
       if (data.success) {
         toast.success(`Category deleted successfully`);
         getAllCategory();
