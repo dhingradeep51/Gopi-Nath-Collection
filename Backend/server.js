@@ -50,9 +50,11 @@ app.use(express.static(path.join(__dirname, './frontend/dist')));
 
 // ✅ NEW: Handle React Routing
 // Redirects any unknown requests to index.html so React Router works
-app.get('/*', (req, res) => {
-  res.sendFile(path.join(__dirname, './frontend/dist/index.html'));
+// SPA fallback for Vite + React (SAFE)
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/dist/index.html"));
 });
+
 
 // port
 const PORT = process.env.PORT || 8080;
