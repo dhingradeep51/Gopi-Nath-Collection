@@ -120,6 +120,10 @@ const Header = () => {
             } else if (keyword.trim().length === 0 && searchFocused) {
                 setSuggestions([]);
                 setShowDropdown(true); // Show trending only when focused and empty
+            } else if (keyword.trim().length === 1 && searchFocused) {
+                // Keep dropdown open but clear suggestions when typing first character
+                setSuggestions([]);
+                setShowDropdown(true);
             } else {
                 setSuggestions([]);
                 if (!searchFocused) {
@@ -184,14 +188,15 @@ const Header = () => {
                     height: "36px", 
                     alignItems: "center",
                     boxShadow: "0 2px 4px rgba(0,0,0,0.08)",
-                    border: showDropdown ? "1px solid #2874f0" : "1px solid transparent"
+                    border: showDropdown ? "1px solid #2874f0" : "1px solid transparent",
+                    position: "relative",
+                    zIndex: 6001
                 }}>
                     <img 
                         src={magnifying} 
                         height="18" 
                         alt="search" 
-                        style={{ opacity: 0.5, flexShrink: 0 }}
-                        onMouseDown={(e) => e.preventDefault()}
+                        style={{ opacity: 0.5, flexShrink: 0, pointerEvents: "none" }}
                     />
                     <input 
                         ref={searchInputRef}
@@ -202,7 +207,12 @@ const Header = () => {
                             setSearchFocused(true);
                             setShowDropdown(true);
                         }}
-                        onChange={(e) => setKeyword(e.target.value)}
+                        onChange={(e) => {
+                            setKeyword(e.target.value);
+                        }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                        }}
                         style={{ 
                             background: "transparent", 
                             border: "none", 
@@ -211,18 +221,19 @@ const Header = () => {
                             padding: "0 12px", 
                             color: "#212121", 
                             fontSize: "14px",
-                            fontFamily: "inherit"
+                            fontFamily: "inherit",
+                            position: "relative",
+                            zIndex: 6002
                         }} 
                     />
                     {keyword && (
                         <button
-                            onMouseDown={(e) => {
-                                e.preventDefault();
+                            onClick={(e) => {
+                                e.stopPropagation();
                                 setKeyword("");
-                                // Keep focus on input
-                                requestAnimationFrame(() => {
+                                setTimeout(() => {
                                     searchInputRef.current?.focus();
-                                });
+                                }, 0);
                             }}
                             style={{
                                 background: "none",
@@ -232,7 +243,8 @@ const Header = () => {
                                 cursor: "pointer",
                                 padding: "0 4px",
                                 lineHeight: 1,
-                                flexShrink: 0
+                                flexShrink: 0,
+                                zIndex: 6002
                             }}
                         >
                             ✕
@@ -252,8 +264,8 @@ const Header = () => {
                                     <div 
                                         key={idx} 
                                         className="suggestion-row"
-                                        onMouseDown={(e) => {
-                                            e.preventDefault();
+                                        onClick={(e) => {
+                                            e.stopPropagation();
                                             handleCategoryNav(item.name);
                                         }}
                                     >
@@ -262,6 +274,8 @@ const Header = () => {
                                     </div>
                                 ))}
                             </>
+                        ) : keyword.length === 1 ? (
+                            <div className="no-results">Keep typing to search...</div>
                         ) : (
                             <>
                                 {suggestions.length > 0 ? (
@@ -269,8 +283,8 @@ const Header = () => {
                                         <div 
                                             key={p._id} 
                                             className="suggestion-row product-row"
-                                            onMouseDown={(e) => {
-                                                e.preventDefault();
+                                            onClick={(e) => {
+                                                e.stopPropagation();
                                                 handleSelectSuggestion(p);
                                             }}
                                         >
