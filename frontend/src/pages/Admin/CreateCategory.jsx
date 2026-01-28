@@ -14,13 +14,15 @@ const CreateCategory = () => {
   const [updatedName, setUpdatedName] = useState("");
   const [updatedId, setUpdatedId] = useState("");
 
+  const BASE_URL = import.meta.env.VITE_API_URL;
+
   const gold = "#D4AF37";
   const burgundy = "#2D0A14";
 
   // 1. Get All Categories
   const getAllCategory = async () => {
     try {
-      const { data } = await axios.get("/api/v1/category/get-category");
+      const { data } = await axios.get(`${BASE_URL}api/v1/category/get-category`);
       if (data?.success) {
         setCategories(data?.category);
       }
@@ -37,7 +39,7 @@ const CreateCategory = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const { data } = await axios.post("/api/v1/category/create-category", { 
+      const { data } = await axios.post(`${BASE_URL}api/v1/category/create-category`, { 
         name, 
         categoryId 
       });
@@ -60,7 +62,7 @@ const CreateCategory = () => {
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      const { data } = await axios.put(`/api/v1/category/update-category/${selected._id}`, { 
+      const { data } = await axios.put(`${BASE_URL}/api/v1/category/update-category/${selected._id}`, { 
         name: updatedName,
         categoryId: updatedId 
       });
@@ -83,7 +85,7 @@ const CreateCategory = () => {
   // 4. Delete Category
   const handleDelete = async (id) => {
     try {
-      const { data } = await axios.delete(`/api/v1/category/delete-category/${id}`);
+      const { data } = await axios.delete(`${BASE_URL}/api/v1/category/delete-category/${id}`);
       if (data.success) {
         toast.success(`Category deleted successfully`);
         getAllCategory();

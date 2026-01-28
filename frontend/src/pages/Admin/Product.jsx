@@ -7,14 +7,16 @@ import { FaTrash, FaEdit } from "react-icons/fa";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
-  
+
+  const BASE_URL = import.meta.env.VITE_API_URL;
+
   const gold = "#D4AF37";
   const deepBurgundy = "#2D0A14";
   const softCream = "#FDF5E6";
 
   const getAllProducts = async () => {
     try {
-      const { data } = await axios.get("/api/v1/product/get-product");
+      const { data } = await axios.get(`${BASE_URL}api/v1/product/get-product`);
       if (data?.success) setProducts(data.products);
     } catch (error) {
       toast.error("Error fetching inventory");
@@ -25,7 +27,7 @@ const Products = () => {
     try {
       const confirmDelete = window.confirm("Are you sure you want to remove this item from the collection?");
       if (!confirmDelete) return;
-      const { data } = await axios.delete(`/api/v1/product/delete-product/${pid}`);
+      const { data } = await axios.delete(`${BASE_URL}api/v1/product/delete-product/${pid}`);
       if (data.success) {
         toast.success("Item removed successfully");
         getAllProducts();
@@ -118,7 +120,7 @@ const Products = () => {
                 justifyContent: "center"
               }}>
                 <img
-                  src={`/api/v1/product/product-photo/${p._id}`}
+                  src={`${BASE_URL}api/v1/product/product-photo/${p._id}`}
                   alt={p.name}
                   style={{ 
                     maxWidth: "100%", 

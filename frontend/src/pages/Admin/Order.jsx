@@ -19,6 +19,8 @@ const AdminOrders = () => {
   const [logisticData, setLogisticData] = useState({}); 
   const [loading, setLoading] = useState(false);
 
+  const BASE_URL = import.meta.env.VITE_API_URL;
+
   const statusList = ["Not Processed", "Processing", "Shipped", "Delivered", "Cancel", "Return"];
   const burgundy = "#2D0A14";
   const darkBurgundy = "#1a050b";
@@ -29,7 +31,7 @@ const AdminOrders = () => {
     try {
       setLoading(true);
       // ✅ Updated to the new dedicated Order Controller route
-      const { data } = await axios.get("/api/v1/order/all-orders");
+      const { data } = await axios.get(`${BASE_URL}api/v1/order/all-orders`);
 
       const ordersArray = Array.isArray(data) ? data : [];
       setOrders(ordersArray);
@@ -60,7 +62,7 @@ const AdminOrders = () => {
     const loadToast = toast.loading(`Updating status...`);
     try {
       // ✅ Updated route to match orderRoutes.js
-      await axios.put(`/api/v1/order/order-status/${orderId}`, { status: value });
+      await axios.put(`${BASE_URL}api/v1/order/order-status/${orderId}`, { status: value });
       toast.dismiss(loadToast);
       toast.success(`Marked as ${value}`);
       getAllOrders(); 
@@ -75,7 +77,7 @@ const AdminOrders = () => {
     try {
       const { awb, link } = logisticData[orderId] || { awb: "", link: "" };
       // ✅ Updated route to match orderRoutes.js
-      await axios.put(`/api/v1/order/order-logistic-update/${orderId}`, { awbNumber: awb, trackingLink: link });
+      await axios.put(`${BASE_URL}/api/v1/order/order-logistic-update/${orderId}`, { awbNumber: awb, trackingLink: link });
       toast.dismiss(loadToast);
       toast.success("Logistics updated successfully");
       getAllOrders();

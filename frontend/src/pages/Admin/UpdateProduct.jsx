@@ -25,6 +25,8 @@ const UpdateProduct = () => {
   const [photo, setPhoto] = useState("");
   const [id, setId] = useState("");
 
+  const BASE_URL = import.meta.env.VITE_API_URL;
+
   const gold = "#D4AF37";
   const softCream = "#FDF5E6";
   const deepBurgundy = "#2D0A14";
@@ -71,7 +73,7 @@ const UpdateProduct = () => {
   // Get all categories
   const getAllCategory = async () => {
     try {
-      const { data } = await axios.get("/api/v1/category/get-category");
+      const { data } = await axios.get(`${BASE_URL}api/v1/category/get-category`);
       if (data?.success) setCategories(data?.category);
     } catch (error) {
       toast.error("Error loading categories");
@@ -86,7 +88,7 @@ const UpdateProduct = () => {
   const getSingleProduct = async () => {
     try {
       const { data } = await axios.get(
-        `/api/v1/product/get-product/${params.slug}`
+        `${BASE_URL}api/v1/product/get-product/${params.slug}`
       );
       if (data?.success) {
         setName(data.product.name);
@@ -132,7 +134,7 @@ const UpdateProduct = () => {
       productData.append("shipping", shipping);
 
       const { data } = await axios.put(
-        `/api/v1/product/update-product/${id}`,
+        `${BASE_URL}api/v1/product/update-product/${id}`,
         productData
       );
 
@@ -159,7 +161,7 @@ const UpdateProduct = () => {
       if (!answer) return;
       
       const { data } = await axios.delete(
-        `/api/v1/product/delete-product/${id}`
+        `${BASE_URL}/api/v1/product/delete-product/${id}`
       );
       if (data?.success) {
         toast.success("Product Deleted Successfully");
@@ -215,7 +217,7 @@ const UpdateProduct = () => {
                 />
               ) : (
                 <img
-                  src={`/api/v1/product/product-photo/${id}`}
+                  src={`${BASE_URL}/api/v1/product/product-photo/${id}`}
                   alt={name}
                   style={{ width: "100%", height: "100%", objectFit: "contain", padding: "10px" }}
                 />

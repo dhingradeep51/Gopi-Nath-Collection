@@ -9,12 +9,13 @@ const PrivateRoute = () => {
   const [ok, setOk] = useState(false);
   const [loading, setLoading] = useState(true);
   const [auth, setAuth] = useAuth();
+  const BASE_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const authCheck = async () => {
       try {
         // ✅ UPDATED: Include Bearer prefix in headers
-        const res = await axios.get("/api/v1/auth/user-auth", {
+        const res = await axios.get(`${BASE_URL}api/v1/auth/user-auth`, {
           headers: {
             Authorization: `Bearer ${auth?.token}`, //
           },

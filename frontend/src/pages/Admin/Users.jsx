@@ -19,6 +19,8 @@ const Users = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
+  const BASE_URL = import.meta.env.VITE_API_URL;
+
   const gold = "#D4AF37";
   const darkBurgundy = "#120307"; 
   const glassWhite = "rgba(255, 255, 255, 0.05)";
@@ -26,7 +28,7 @@ const Users = () => {
   const getUsers = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get("/api/v1/auth/all-users");
+      const { data } = await axios.get(`${BASE_URL}api/v1/auth/all-users`);
       if (data?.success) setUsers(data.users);
     } catch (error) { 
       toast.error("Failed to fetch registry data"); 
@@ -40,7 +42,7 @@ const Users = () => {
   const handleUpdate = async () => {
     try {
       const { data } = await axios.put(
-        `/api/v1/auth/update-user-admin/${selectedUser._id}`, 
+        `${BASE_URL}api/v1/auth/update-user-admin/${selectedUser._id}`, 
         selectedUser
       );
 
@@ -57,7 +59,7 @@ const Users = () => {
   // Logic to handle user deletion
   const handleDelete = async (id) => {
     try {
-      const { data } = await axios.delete(`/api/v1/auth/delete-user/${id}`);
+      const { data } = await axios.delete(`${BASE_URL}api/v1/auth/delete-user/${id}`);
       if (data.success) {
         toast.success("User deleted successfully");
         getUsers();

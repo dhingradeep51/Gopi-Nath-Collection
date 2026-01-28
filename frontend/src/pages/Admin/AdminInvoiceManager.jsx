@@ -15,13 +15,15 @@ const AdminInvoiceManager = () => {
   const [searchText, setSearchText] = useState("");
   const navigate = useNavigate(); // Initialize navigation
 
+  const BASE_URL = import.meta.env.VITE_API_URL;
+
   const gold = "#D4AF37";
   const burgundy = "#2D0A14";
 
   const getOrders = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get("/api/v1/order/all-orders");
+      const { data } = await axios.get(`${BASE_URL}api/v1/order/all-orders`);
       setOrders(Array.isArray(data) ? data : []);
     } catch (error) {
       toast.error("Failed to load registry");
@@ -46,7 +48,7 @@ const AdminInvoiceManager = () => {
 
     const loadingToast = toast.loading("Generating PDF...");
     try {
-      const { data } = await axios.post("/api/v1/invoice/generate", { orderId: order._id });
+      const { data } = await axios.post(`${BASE_URL}api/v1/invoice/generate`, { orderId: order._id });
       if (data.success) {
         toast.success("Invoice Generated", { id: loadingToast });
         getOrders(); 
@@ -58,11 +60,11 @@ const AdminInvoiceManager = () => {
 
   const handleViewPDF = async (orderId) => {
   try {
-    const { data: invData } = await axios.get(`/api/v1/invoice/order/${orderId}`);
+    const { data: invData } = await axios.get(`${BASE_URL}/api/v1/invoice/order/${orderId}`);
     
     if (invData.success && invData.invoice) {
       // 1. Fetch the PDF as a blob using axios (this includes your token)
-      const response = await axios.get(`/api/v1/invoice/view/${invData.invoice._id}`, {
+      const response = await axios.get(`${BASE_URL}api/v1/invoice/view/${invData.invoice._id}`, {
         responseType: 'blob',
       });
       
@@ -83,9 +85,9 @@ const AdminInvoiceManager = () => {
   const handleDownloadPDF = async (orderId, invoiceNumber) => {
     try {
       toast.loading("Downloading...");
-      const { data: invData } = await axios.get(`/api/v1/invoice/order/${orderId}`);
+      const { data: invData } = await axios.get(`${BASE_URL}api/v1/invoice/order/${orderId}`);
       if (invData.success && invData.invoice) {
-        const response = await axios.get(`/api/v1/invoice/download/${invData.invoice._id}`, {
+        const response = await axios.get(`${BASE_URL}api/v1/invoice/download/${invData.invoice._id}`, {
           responseType: 'blob',
         });
         const url = window.URL.createObjectURL(new Blob([response.data]));

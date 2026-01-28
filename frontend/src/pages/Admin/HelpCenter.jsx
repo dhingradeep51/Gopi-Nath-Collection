@@ -24,15 +24,15 @@ const HelpCenter = () => {
 
   const gold = "#D4AF37";
   const darkBurgundy = "#120307";
-  const BACKEND_URL = "http://localhost:8080"; 
+  const BASE_URL = import.meta.env.VITE_API_URL;
 
   // ✅ Stable fetch function to prevent re-render loops
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const [ticketRes, statsRes] = await Promise.all([
-        axios.get("/api/v1/contact/all-tickets"),
-        axios.get("/api/v1/contact/ticket-stats")
+        axios.get(`${BASE_URL}api/v1/contact/all-tickets`),
+        axios.get(`${BASE_URL}api/v1/contact/ticket-stats`)
       ]);
       
       if (ticketRes.data?.success) {
@@ -80,7 +80,7 @@ const HelpCenter = () => {
       }
 
       const { data } = await axios.post(
-        `/api/v1/contact/reply-ticket/${selectedTicket._id}`, 
+        `${BASE_URL}api/v1/contact/reply-ticket/${selectedTicket._id}`, 
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
@@ -118,7 +118,7 @@ const HelpCenter = () => {
       dataIndex: "attachment", 
       render: (url) => url ? (
         <a 
-          href={`${BACKEND_URL}/${url}`} 
+          href={`${BASE_URL}/${url}`} 
           target="_blank" 
           rel="noreferrer" 
           style={{color: gold, fontWeight: "bold"}}
@@ -138,7 +138,7 @@ const HelpCenter = () => {
           style={{ color: gold, borderColor: gold }} 
         />
         <Popconfirm title="Delete?" onConfirm={async () => {
-             await axios.delete(`/api/v1/contact/delete-ticket/${record._id}`);
+             await axios.delete(`${BASE_URL}api/v1/contact/delete-ticket/${record._id}`);
              fetchData();
         }}><Button icon={<FaTrash />} danger ghost /></Popconfirm>
       </div>

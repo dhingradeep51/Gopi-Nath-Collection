@@ -11,13 +11,15 @@ const AdminCoupons = () => {
   const [discount, setDiscount] = useState("");
   const [coupons, setCoupons] = useState([]);
 
+  const BASE_URL = import.meta.env.VITE_API_URL;
+
   const gold = "#D4AF37";
   const burgundy = "#2D0A14";
   const softGold = "#F9F1D7";
 
   const getAllCoupons = async () => {
     try {
-      const { data } = await axios.get("/api/v1/coupon/get-coupons");
+      const { data } = await axios.get(`${BASE_URL}api/v1/coupon/get-coupons`);
       setCoupons(data);
     } catch (error) { 
       console.log("Fetch Error:", error); 
@@ -31,7 +33,7 @@ const AdminCoupons = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const { data } = await axios.post("/api/v1/coupon/create-coupon", { name, expiry, discount });
+      const { data } = await axios.post(`${BASE_URL}api/v1/coupon/create-coupon`, { name, expiry, discount });
       if (data.success) {
         toast.success("Divine Coupon Added!");
         setName(""); setExpiry(""); setDiscount("");
@@ -45,7 +47,7 @@ const AdminCoupons = () => {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to remove this coupon from the registry?")) return;
     try {
-      const { data } = await axios.delete(`/api/v1/coupon/delete-coupon/${id}`);
+      const { data } = await axios.delete(`${BASE_URL}api/v1/coupon/delete-coupon/${id}`);
       if (data.success) { 
         toast.success("Coupon Removed"); 
         getAllCoupons(); 

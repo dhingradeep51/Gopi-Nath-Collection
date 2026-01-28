@@ -24,6 +24,8 @@ const CreateProduct = () => {
   const [photo, setPhoto] = useState("");
   const [productID, setProductID] = useState("");
 
+  const BASE_URL = import.meta.env.VITE_API_URL;
+
   const gold = "#D4AF37";
   const softCream = "#FDF5E6"; 
   const deepBurgundy = "#2D0A14";
@@ -69,7 +71,7 @@ const CreateProduct = () => {
 
   const getAllCategory = async () => {
     try {
-      const { data } = await axios.get("/api/v1/category/get-category");
+      const { data } = await axios.get(`${BASE_URL}api/v1/category/get-category`);
       if (data?.success) setCategories(data?.category);
     } catch (error) {
       toast.error("Error loading categories");
@@ -106,7 +108,7 @@ const CreateProduct = () => {
       productData.append("shipping", shipping);
       productData.append("productID", productID);
 
-      const { data } = await axios.post("/api/v1/product/create-product", productData);
+      const { data } = await axios.post(`${BASE_URL}api/v1/product/create-product`, productData);
       
       if (data?.success) {
         toast.success("Product Created Successfully");
