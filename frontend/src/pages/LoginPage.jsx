@@ -22,6 +22,9 @@ const LoginPage = () => {
   const [timer, setTimer] = useState(0); 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
+  const BASE_URL = import.meta.env.VITE_API_URL;
+
+
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
@@ -44,7 +47,7 @@ const LoginPage = () => {
     setErrorMsg(""); 
     try {
       setLoading(true);
-      const { data } = await axios.post("/api/v1/auth/send-otp", { 
+      const { data } = await axios.post(`${BASE_URL}api/v1/auth/send-otp`, { 
         email, 
         purpose: "login" 
       });
@@ -69,7 +72,7 @@ const LoginPage = () => {
     setErrorMsg("");
     try {
       setLoading(true);
-      const { data } = await axios.post("/api/v1/auth/verify-otp", { email, otp });
+      const { data } = await axios.post(`${BASE_URL}/api/v1/auth/verify-otp`, { email, otp });
       if (data.success) {
         setIsVerified(true);
         setTimer(0);
@@ -92,7 +95,7 @@ const LoginPage = () => {
     
     try {
       setLoading(true);
-      const { data } = await axios.post("/api/v1/auth/login", { email, password });
+      const { data } = await axios.post(`${BASE_URL}/api/v1/auth/login`, { email, password });
       if (data?.success) {
         setAuth({ ...auth, user: data.user, token: data.token });
         localStorage.setItem("auth", JSON.stringify(data));
