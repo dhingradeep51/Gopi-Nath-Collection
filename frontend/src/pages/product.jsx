@@ -32,6 +32,8 @@ const ProductDetails = () => {
   const burgundy = "#2D0A14";
   const darkBg = "#1a050b";
 
+  const BASE_URL = import.meta.env.VITE_API_URL;
+
   useEffect(() => {
     if (params?.slug) getProduct();
     window.scrollTo(0, 0);
@@ -40,7 +42,7 @@ const ProductDetails = () => {
   const getProduct = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`/api/v1/product/get-product/${params.slug}`);
+      const { data } = await axios.get(`${BASE_URL}api/v1/product/get-product/${params.slug}`);
       if (data?.success) {
         setProduct(data.product);
       }
@@ -119,7 +121,7 @@ const ProductDetails = () => {
                   <div className="out-of-stock-badge">OUT OF STOCK</div>
                 )}
                 <img
-                  src={`/api/v1/product/product-photo/${product?._id}`}
+                  src={`${BASE_URL}/api/v1/product/product-photo/${product?._id}`}
                   alt={product?.name}
                   className="main-image"
                   onError={(e) => {
