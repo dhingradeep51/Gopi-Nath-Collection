@@ -30,7 +30,7 @@ const HomePage = () => {
   // 1. Get Categories
   const getAllCategory = async () => {
     try {
-      const { data } = await axios.get("${BASE_URL}/api/v1/category/get-category");
+      const { data } = await axios.get(`${BASE_URL}/api/v1/category/get-category`);
       if (data?.success) setCategories(data?.category);
     } catch (error) {
       console.log(error);
@@ -41,7 +41,7 @@ const HomePage = () => {
   const getAllProducts = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get("${BASE_URL}/api/v1/product/get-product");
+      const { data } = await axios.get(`${BASE_URL}/api/v1/product/get-product`);
       setLoading(false);
       if (data?.success) {
         setProducts(data?.products || data?.product || []);
@@ -56,7 +56,7 @@ const HomePage = () => {
   const filterProduct = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.post("${BASE_URL}/api/v1/product/product-filters", {
+      const { data } = await axios.post(`${BASE_URL}/api/v1/product/product-filters`, {
         checked,
         radio,
       });
