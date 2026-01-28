@@ -1,11 +1,10 @@
-import puppeteer from "puppeteer";
+import pdf from "html-pdf-node";
 import fs from "fs";
 import path from "path";
 
 export const generateInvoicePDF = async (invoice) => {
-  let browser;
   try {
-    // 1. Setup local storage directory (Render disk is ephemeral, but works for temp files)
+    // Ensure uploads/invoices directory exists
     const dir = path.join(process.cwd(), "uploads", "invoices");
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -14,20 +13,7 @@ export const generateInvoicePDF = async (invoice) => {
     const filename = `${invoice.invoiceNumber.replace(/\//g, "-")}.pdf`;
     const filePath = path.join(dir, filename);
 
-    // 2. Launch Puppeteer (no executablePath needed with full puppeteer)
-    browser = await puppeteer.launch({
-      headless: "new",
-      args: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--single-process",
-        "--no-zygote"
-      ],
-    });
-
-    const page = await browser.newPage();
-
-    // 3. Define Invoice HTML Template
+    // Build HTML template (reuse your invoice fields)
     const html = `
     <!DOCTYPE html>
     <html>
@@ -135,21 +121,18 @@ export const generateInvoicePDF = async (invoice) => {
     </html>
     `;
 
-    await page.setContent(html, { waitUntil: "networkidle0" });
+    const file = { content: html };
+    const options = { format: "A4" };
 
-    // 4. Generate PDF
-    const pdfBuffer = await page.pdf({
-      path: filePath,
-      format: "A4",
-      printBackground: true
-    });
+    // Generate PDF buffer
+    const pdfBuffer = await pdf.generatePdf(file, options);
 
-    return pdfBuffer;
+    // Save to disk (optional, for persistence)
+    fs.writeFileSync(filePath, pdfBuffer);
 
+    return pdfBuffer; // ✅ Always return Buffer for routes
   } catch (error) {
     console.error("PDF Generation Error:", error);
     throw error;
-  } finally {
-    if (browser) await browser.close();
   }
 };

@@ -24,6 +24,7 @@
     "express-formidable": "^1.2.0",
     "express-rate-limit": "^8.2.1",
     "fs": "^0.0.1-security",
+    "html-pdf-node": "^1.0.8",
     "html2pdf.js": "^0.14.0",
     "jsonwebtoken": "^9.0.3",
     "moment": "^2.30.1",
