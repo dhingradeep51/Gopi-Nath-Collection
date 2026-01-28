@@ -70,18 +70,18 @@ const CheckOutPage = () => {
     }
   }, [cart, isSuccess, navigate]);
 
-  useEffect(() => {
-    if (auth?.user) {
-      setFormData({
-        name: auth.user.name || "",
-        phone: auth.user.phone || "",
-        address: auth.user.address || "",
-        city: auth.user.city || "",
-        pincode: auth.user.pincode || "",
-        state: auth.user.state || ""
-      });
-    }
-  }, [auth?.user]);
+useEffect(() => {
+  if (auth?.user) {
+    setFormData({
+      name: auth.user.name || "",
+      phone: auth.user.phone || "",
+      address: auth.user.address?.fullAddress || "",
+      city: auth.user.address?.city || "",
+      state: auth.user.address?.state || "",
+      pincode: auth.user.address?.pincode || ""
+    });
+  }
+}, [auth?.user]);
 
   const totals = useMemo(() => {
     const sub = cart?.reduce((acc, item) => acc + (item.price * (item.cartQuantity || 1)), 0) || 0;
