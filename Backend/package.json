@@ -4,12 +4,12 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-  "start": "node server.js",
-  "server": "nodemon server.js",
-  "client": "npm start --prefix client",
-  "dev": "concurrently \"npm run server\" \"npm run client\"",
-  "build": "npm install && npm install --prefix client && npm run build --prefix client"
-},
+    "start": "node server.js",
+    "server": "nodemon server.js",
+    "client": "npm start --prefix client",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "build": "npm install && npm install --prefix client && npm run build --prefix client"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -34,7 +34,7 @@
     "nodemon": "^3.1.11",
     "path": "^0.12.7",
     "pdfkit": "^0.17.2",
-    "puppeteer": "^24.36.0",
+    "puppeteer": "^24.36.1",
     "slugify": "^1.6.6"
   }
 }

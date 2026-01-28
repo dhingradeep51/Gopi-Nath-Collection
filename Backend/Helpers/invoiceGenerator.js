@@ -5,7 +5,7 @@ import path from "path";
 export const generateInvoicePDF = async (invoice) => {
   let browser;
   try {
-    // 1. Setup local storage directory (Note: Render disk is ephemeral)
+    // 1. Setup local storage directory (Render disk is ephemeral, but works for temp files)
     const dir = path.join(process.cwd(), "uploads", "invoices");
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -14,7 +14,7 @@ export const generateInvoicePDF = async (invoice) => {
     const filename = `${invoice.invoiceNumber.replace(/\//g, "-")}.pdf`;
     const filePath = path.join(dir, filename);
 
-    // 2. Launch Browser with Render-specific configurations
+    // 2. Launch Puppeteer (no executablePath needed with full puppeteer)
     browser = await puppeteer.launch({
       headless: "new",
       args: [
@@ -23,8 +23,6 @@ export const generateInvoicePDF = async (invoice) => {
         "--single-process",
         "--no-zygote"
       ],
-      // Priority 1: Render Env Var, Priority 2: Fallback path from your error logs
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null,
     });
 
     const page = await browser.newPage();
@@ -139,9 +137,9 @@ export const generateInvoicePDF = async (invoice) => {
 
     await page.setContent(html, { waitUntil: "networkidle0" });
 
-    // 4. Generate PDF as Buffer
+    // 4. Generate PDF
     const pdfBuffer = await page.pdf({
-      path: filePath, 
+      path: filePath,
       format: "A4",
       printBackground: true
     });
