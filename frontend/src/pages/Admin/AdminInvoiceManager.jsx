@@ -38,29 +38,37 @@ const AdminInvoiceManager = () => {
 
   /* ================= INVOICE ACTIONS ================= */
 
-  const handleGenerateInvoice = async (order) => {
-    const isPrepaid = order.payment?.method === "online";
-    const isDelivered = order.status === "Delivered";
+const handleGenerateInvoice = async (order) => {
+  const isPrepaid = order.payment?.method === "online";
+  const isDelivered = order.status === "Delivered";
 
-    // Enforcement of business rules
-    if (!isPrepaid && !isDelivered) {
-      return toast.error("COD orders must be 'Delivered' before invoicing.");
+  if (!isPrepaid && !isDelivered) {
+    return toast.error("COD orders must be 'Delivered' before invoicing.");
+  }
+
+  const loadingToast = toast.loading("Generating Secure PDF...");
+  try {
+    const { data } = await axios.post(`${BASE_URL}api/v1/invoice/generate`, { orderId: order._id });
+    
+    if (data.success) {
+      toast.success("Invoice Generated successfully", { id: loadingToast });
+
+      // ✅ STEP 1: Manually update local state for instant UI feedback
+      setOrders((prevOrders) =>
+        prevOrders.map((o) =>
+          o._id === order._id 
+            ? { ...o, isInvoiced: true, invoiceNo: data.invoice.invoiceNumber } 
+            : o
+        )
+      );
+
+      // ✅ STEP 2: Background re-fetch to ensure data is perfectly synced with DB
+      await getOrders(); 
     }
-
-    const loadingToast = toast.loading("Generating Secure PDF...");
-    try {
-      const { data } = await axios.post(`${BASE_URL}api/v1/invoice/generate`, { orderId: order._id });
-      
-      if (data.success) {
-        toast.success("Invoice Generated successfully", { id: loadingToast });
-        // RE-FETCH ensures o.isInvoiced is true in the UI immediately
-        await getOrders(); 
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Generation failed", { id: loadingToast });
-    }
-  };
-
+  } catch (error) {
+    toast.error(error.response?.data?.message || "Generation failed", { id: loadingToast });
+  }
+};
   const handleViewPDF = async (orderId) => {
     try {
       const { data: invData } = await axios.get(`${BASE_URL}api/v1/invoice/order/${orderId}`);
