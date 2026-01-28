@@ -1,0 +1,12 @@
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'times new roman', serif;
+}
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  background-color: #2D0A14; /* Your burgundy color */
+  overflow-x: hidden;
+}
