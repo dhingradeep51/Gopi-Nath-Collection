@@ -25,7 +25,7 @@ const HomePage = () => {
   const HOMEPAGE_PRODUCT_LIMIT = 8;
   const displayedProducts = products.slice(0, HOMEPAGE_PRODUCT_LIMIT);
   const hasMoreProducts = products.length > HOMEPAGE_PRODUCT_LIMIT;
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const BASE_URL = import.meta.env.VITE_API_URL;
 
   // 1. Get Categories
   const getAllCategory = async () => {

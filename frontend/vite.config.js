@@ -10,7 +10,7 @@ export default defineConfig({
     proxy: {
       // This matches the '/api/v1' used in your backend routes
       '/api': {
-        target: process.env.VITE_API_BASE_URL || 'http://localhost:8080', // Backend Server Port
+        target: process.env.VITE_API_URL || 'http://localhost:8080', // Backend Server Port
         changeOrigin: true,
       },
     } // Added missing brace for proxy
