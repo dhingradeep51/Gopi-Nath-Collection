@@ -6,16 +6,13 @@ export const generateInvoicePDF = async (invoice) => {
   return new Promise((resolve, reject) => {
     try {
       const dir = path.join(process.cwd(), "uploads", "invoices");
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
       const filename = `${(invoice.invoiceNumber || "INV").replace(/\//g, "-")}.pdf`;
       const filePath = path.join(dir, filename);
 
       const doc = new PDFDocument({ size: "A4", margin: 40 });
       const buffers = [];
-
       doc.on("data", (chunk) => buffers.push(chunk));
       doc.on("end", () => {
         const pdfBuffer = Buffer.concat(buffers);
@@ -23,68 +20,103 @@ export const generateInvoicePDF = async (invoice) => {
         resolve(pdfBuffer);
       });
 
-      /* ---------- HEADER ---------- */
-      doc.fontSize(20).fillColor("#2D0A14").text(invoice.sellerName || "Seller", { align: "left" });
-      doc.fontSize(10).fillColor("black")
-        .text(`${invoice.sellerAddress || ""}`)
-        .text(`GSTIN: ${invoice.sellerGstin || "N/A"}`)
-        .moveDown();
+      // Styling Constants
+      const gold = "#D4AF37";
+      const burgundy = "#2D0A14";
+      const lightGray = "#f9f9f9";
 
-      doc.fontSize(16).fillColor("#D4AF37").text("TAX INVOICE", { align: "right" });
-      doc.fontSize(10).fillColor("black")
-        .text(`Invoice: ${invoice.invoiceNumber || ""}`, { align: "right" })
-        .text(`Order: ${invoice.orderNumber || ""}`, { align: "right" })
-        .moveDown(2);
+      /* ---------- HEADER SECTION ---------- */
+      doc.fontSize(22).fillColor(burgundy).font("Helvetica-Bold").text("Gopi Nath Collection", 40, 40);
+      doc.fontSize(9).fillColor("#555").font("Helvetica")
+        .text("56 Krishna Nagar New Model Town, Panipat, Haryana - 132103")
+        .text(`GSTIN: ${invoice.sellerGstin || "YOUR_GSTIN_HERE"}`);
 
-      /* ---------- BILL TO ---------- */
-      doc.fontSize(12).text("BILL TO", { underline: true });
-      doc.fontSize(10).text(invoice.buyerName || "Guest").text(invoice.buyerAddress || "").moveDown();
+      doc.fontSize(16).fillColor(gold).font("Helvetica-Bold").text("TAX INVOICE", 400, 40, { align: "right" });
+      doc.fontSize(9).fillColor("#333").font("Helvetica")
+        .text(`Inv: ${invoice.invoiceNumber || ""}`, 400, 60, { align: "right" })
+        .text(`Order: ${invoice.orderNumber || ""}`, 400, 72, { align: "right" });
 
-      /* ---------- TABLE ROWS WITH SAFETY ---------- */
+      doc.moveTo(40, 100).lineTo(555, 100).strokeColor(gold).lineWidth(1).stroke();
+
+      /* ---------- BILLING & PAYMENT SECTION ---------- */
+      doc.moveDown(2);
+      const topOfDetails = doc.y;
+      
+      // Left Side: Bill To
+      doc.fontSize(10).fillColor(burgundy).font("Helvetica-Bold").text("BILL TO", 40, topOfDetails);
+      doc.moveTo(40, topOfDetails + 12).lineTo(250, topOfDetails + 12).strokeColor("#ccc").stroke();
+      doc.fontSize(9).fillColor("#333").font("Helvetica-Bold").text(invoice.buyerName || "Deepak", 40, topOfDetails + 20);
+      doc.font("Helvetica").text(invoice.buyerAddress || "", { width: 200 });
+
+      // Right Side: Payment
+      doc.fontSize(10).fillColor(burgundy).font("Helvetica-Bold").text("PAYMENT", 300, topOfDetails);
+      doc.moveTo(300, topOfDetails + 12).lineTo(555, topOfDetails + 12).strokeColor("#ccc").stroke();
+      doc.fontSize(9).fillColor("#333").font("Helvetica")
+        .text(`Method: ${invoice.paymentMethod || "COD"}`, 300, topOfDetails + 20)
+        .text(`Status: SUCCESS`, 300);
+
+      /* ---------- ITEM TABLE ---------- */
+      doc.moveDown(4);
       const tableTop = doc.y;
-      const colX = [40, 200, 240, 300, 370, 450];
-      doc.font("Helvetica-Bold").fontSize(10);
-      doc.text("Item", colX[0], tableTop);
-      doc.text("Qty", colX[1], tableTop);
-      doc.text("MRP", colX[2], tableTop);
-      doc.text("Taxable", colX[3], tableTop);
-      doc.text("GST", colX[4], tableTop);
-      doc.text("Total", colX[5], tableTop);
-      doc.moveDown(0.5).font("Helvetica");
+      const col = { item: 40, qty: 260, mrp: 310, taxable: 390, gst: 480, total: 520 };
+
+      // Header Bar
+      doc.rect(40, tableTop, 515, 20).fill(burgundy);
+      doc.fontSize(9).fillColor("#FFF").font("Helvetica-Bold");
+      doc.text("Item", col.item + 5, tableTop + 6);
+      doc.text("Qty", col.qty, tableTop + 6);
+      doc.text("MRP (Inc.)", col.mrp, tableTop + 6);
+      doc.text("Taxable Val", col.taxable, tableTop + 6);
+      doc.text("GST", col.gst, tableTop + 6);
+      doc.text("Total", col.total, tableTop + 6);
+
+      // Rows
+      let currentY = tableTop + 25;
+      doc.fillColor("#333").font("Helvetica").fontSize(9);
 
       (invoice.items || []).forEach((item) => {
-        const y = doc.y;
-        doc.text(item.productName || "Product", colX[0], y, { width: 150 });
-        doc.text(item.qty || 0, colX[1], y);
-        // Safety: use (val || 0).toFixed(2)
-        doc.text(`₹${(item.unitPrice || 0).toFixed(2)}`, colX[2], y);
-        doc.text(`₹${(item.taxableValue || 0).toFixed(2)}`, colX[3], y);
-        doc.text(`₹${((item.cgst || 0) + (item.sgst || 0) + (item.igst || 0)).toFixed(2)}`, colX[4], y);
-        doc.text(`₹${(item.finalPrice || 0).toFixed(2)}`, colX[5], y);
-        doc.moveDown();
+        doc.text(item.productName || "", col.item + 5, currentY, { width: 200 });
+        doc.text(item.qty || 0, col.qty, currentY);
+        doc.text(`₹${(item.unitPrice || 0).toFixed(2)}`, col.mrp, currentY);
+        doc.text(`₹${(item.taxableValue || 0).toFixed(2)}`, col.taxable, currentY);
+        doc.text(`₹${((item.cgst || 0) + (item.sgst || 0) + (item.igst || 0)).toFixed(2)}`, col.gst, currentY);
+        doc.text(`₹${(item.finalPrice || 0).toFixed(2)}`, col.total, currentY);
+        currentY += 20;
       });
 
-      /* ---------- SUMMARY WITH SAFETY ---------- */
-      doc.moveDown(2).font("Helvetica-Bold");
-      doc.text(`Item Total: ₹${(invoice.subtotal || 0).toFixed(2)}`, { align: "right" });
+      /* ---------- SUMMARY BOX ---------- */
+      const summaryY = currentY + 30;
+      const boxWidth = 220;
+      const boxX = 335;
 
-      if ((invoice.discount || 0) > 0) {
-        doc.fillColor("red").text(`Discount: -₹${(invoice.discount || 0).toFixed(2)}`, { align: "right" }).fillColor("black");
-      }
-
-      doc.text(`Shipping Fee: ₹${(invoice.shippingCharges || 0).toFixed(2)}`, { align: "right" });
-      doc.text(`Taxable Value: ₹${(invoice.taxableValue || 0).toFixed(2)}`, { align: "right" });
+      doc.rect(boxX, summaryY, boxWidth, 115).strokeColor(gold).lineWidth(1).stroke();
       
-      const totalGST = (invoice.cgst || 0) + (invoice.sgst || 0) + (invoice.igst || 0);
-      doc.text(`Total GST (${invoice.gstType || ""}): ₹${totalGST.toFixed(2)}`, { align: "right" });
+      const rowHeight = 18;
+      let rowY = summaryY + 10;
 
-      doc.fontSize(14).fillColor("#2D0A14").text(`NET AMOUNT PAYABLE: ₹${(invoice.totalPaid || 0).toFixed(2)}`, { align: "right" });
+      const drawRow = (label, value, color = "#555", isBold = false) => {
+        doc.fontSize(9).fillColor(color).font(isBold ? "Helvetica-Bold" : "Helvetica");
+        doc.text(label, boxX + 10, rowY);
+        doc.text(value, boxX + 10, rowY, { align: "right", width: boxWidth - 20 });
+        rowY += rowHeight;
+      };
 
-      doc.moveDown(2).fontSize(9).fillColor("gray").text("Digitally generated for Gopi Nath Collection. No signature required.", { align: "center" });
+      drawRow("Item Total (Incl. GST)", `₹${(invoice.subtotal || 0).toFixed(2)}`);
+      drawRow("Less: Discount", `- ₹${(invoice.discount || 0).toFixed(2)}`, "#e74c3c");
+      drawRow("Shipping Fee", `₹${(invoice.shippingCharges || 0).toFixed(2)}`);
+      
+      doc.moveTo(boxX + 5, rowY - 5).lineTo(boxX + boxWidth - 5, rowY - 5).strokeColor(gold).stroke();
+      
+      drawRow("Taxable Value (Base)", `₹${(invoice.taxableValue || 0).toFixed(2)}`, "#333", true);
+      drawRow("Total GST (CGST_SGST)", `₹${((invoice.cgst || 0) + (invoice.sgst || 0) + (invoice.igst || 0)).toFixed(2)}`, "#333", true);
+
+      // Total Final Row
+      doc.rect(boxX, rowY - 5, boxWidth, 25).fill(burgundy);
+      doc.fontSize(10).fillColor(gold).font("Helvetica-Bold");
+      doc.text("NET AMOUNT PAYABLE", boxX + 10, rowY);
+      doc.text(`₹${(invoice.totalPaid || 0).toFixed(2)}`, boxX + 10, rowY, { align: "right", width: boxWidth - 20 });
 
       doc.end();
-    } catch (err) {
-      reject(err);
-    }
+    } catch (err) { reject(err); }
   });
 };
