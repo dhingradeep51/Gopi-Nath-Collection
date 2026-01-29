@@ -2,9 +2,15 @@ import React, { useState, useEffect } from "react";
 import Layout from "../components/Layout.jsx";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Spin, message } from "antd";
-import { ShoppingOutlined, ArrowRightOutlined } from "@ant-design/icons";
-import { FaInfoCircle } from "react-icons/fa";
+import { Checkbox, Radio, Drawer, Button, Badge, Spin, message } from "antd";
+import {
+  FilterOutlined,
+  ShoppingOutlined,
+  ArrowRightOutlined,
+  CloseOutlined,
+} from "@ant-design/icons";
+import { FaInfoCircle, FaFilter } from "react-icons/fa";
+import { Prices } from "../components/Prices";
 import { useCart } from "../context/cart";
 
 const HomePage = () => {
@@ -14,6 +20,10 @@ const HomePage = () => {
 
   // ==================== STATE MANAGEMENT ====================
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [checked, setChecked] = useState([]);
+  const [radio, setRadio] = useState([]);
+  const [drawerVisible, setDrawerVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // ==================== CONSTANTS ====================
@@ -309,6 +319,22 @@ const HomePage = () => {
             </Button>
           </div>
         </Drawer>
+
+        {/* Mobile Filter FAB */}
+        {isMobile && (
+          <div className="mobile-filter-fab">
+            <Badge count={checked.length + (radio.length ? 1 : 0)} color={gold}>
+              <Button
+                type="primary"
+                shape="circle"
+                size="large"
+                icon={<FaFilter />}
+                onClick={() => setDrawerVisible(true)}
+                className="filter-fab-button"
+              />
+            </Badge>
+          </div>
+        )}
       </div>
 
       {/* STYLES */}
@@ -351,19 +377,53 @@ const HomePage = () => {
           margin: 0 auto;
         }
 
-        /* Inventory Section */
-        .inventory-section {
+        /* Filter Header */
+        .filter-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 20px 0;
+          border-bottom: 1px solid ${gold}22;
+          margin-bottom: 30px;
+        }
+
+        .mobile-inventory {
           text-align: center;
           padding: 20px 0;
           border-bottom: 1px solid ${gold}22;
           margin-bottom: 30px;
         }
 
+        .refine-btn {
+          background: transparent !important;
+          color: ${gold} !important;
+          border: 1px solid ${gold} !important;
+          font-size: ${isMobile ? "11px" : "13px"} !important;
+          height: ${isMobile ? "35px" : "45px"} !important;
+          font-weight: bold;
+          padding: 0 20px;
+          transition: all 0.3s ease;
+        }
+
+        .refine-btn:hover {
+          background: ${gold}22 !important;
+        }
+
+        .inventory-info {
+          text-align: right;
+        }
+
+        .inventory-label {
+          font-size: 10px;
+          opacity: 0.5;
+          display: block;
+          letter-spacing: 1px;
+        }
+
         .inventory-count {
-          font-size: ${isMobile ? "14px" : "18px"};
+          font-size: ${isMobile ? "12px" : "16px"};
           color: ${gold};
           font-weight: bold;
-          letter-spacing: 2px;
         }
 
         /* Loading State */
@@ -406,18 +466,19 @@ const HomePage = () => {
 
         .product-image-wrapper {
           background: #fff;
-          height: ${isMobile ? "180px" : "280px"};
+          height: ${isMobile ? "150px" : "250px"};
           display: flex;
           align-items: center;
           justify-content: center;
+          padding: 10px;
           position: relative;
           overflow: hidden;
         }
 
         .product-image {
           width: 100%;
-          height: 100%;
-          object-fit: cover;
+          max-height: 100%;
+          object-fit: contain;
           transition: transform 0.4s ease;
         }
 
@@ -655,6 +716,7 @@ const HomePage = () => {
         @media (max-width: 768px) {
           .products-grid {
             gap: 12px;
+            padding-bottom: 80px;
           }
 
           .product-card {
@@ -671,6 +733,29 @@ const HomePage = () => {
             width: 100%;
             padding: 10px;
           }
+        }
+
+        /* Mobile Filter FAB */
+        .mobile-filter-fab {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          z-index: 1000;
+        }
+
+        .filter-fab-button {
+          width: 60px !important;
+          height: 60px !important;
+          background-color: ${gold} !important;
+          border: none !important;
+          box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4) !important;
+          color: ${burgundy} !important;
+          font-size: 20px !important;
+        }
+
+        .filter-fab-button:hover {
+          background-color: #e5c158 !important;
+          transform: scale(1.05);
         }
       `}</style>
     </Layout>
