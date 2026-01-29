@@ -1,6 +1,16 @@
-/* ... imports ... */
+import React from "react";
+import Footer from "./Footer";
+import Header from "./Header";
+import { Helmet } from "react-helmet";
+import { Toaster } from "react-hot-toast";
 
-const Layout = ({ children, title, description, keywords, author }) => {
+const Layout = ({ 
+  children, 
+  title = "Gopi Nath Collection - Devotional Items", 
+  description = "Shop for premium devotional items, idols, and spiritual accessories.", 
+  keywords = "Gopi Nath, Devotional, Spiritual, Pooja Items", 
+  author = "Deepak" 
+}) => {
   return (
     <div>
       <Helmet>
@@ -10,16 +20,23 @@ const Layout = ({ children, title, description, keywords, author }) => {
         <meta name="author" content={author} />
         <title>{title}</title>
         
-        {/* ✅ ADD THIS LINE FOR FAVICON */}
-        <link rel="icon" type="image/png" href="/gopi.jpg" />
-        {/* Or if using .ico: <link rel="icon" href="/favicon.ico" /> */}
+        {/* ✅ Favicon Implementation */}
+        <link rel="icon" type="image/png" href="/gopi.png" />
+        
+        {/* Apple Touch Icon (Optional but recommended for mobile) */}
+        <link rel="apple-touch-icon" href="/gopi.png" />
       </Helmet>
       
       <Header />
-      <main style={{ minHeight: "70vh" }}>
-        <Toaster />
+      
+      <main style={{ minHeight: "75vh" }}>
+        <Toaster 
+          position="top-center"
+          reverseOrder={false}
+        />
         {children}
       </main>
+      
       <Footer />
     </div>
   );
