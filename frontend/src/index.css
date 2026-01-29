@@ -4,17 +4,23 @@
 
 /* 1. UNIVERSAL RESET & MOBILE TAP FIX */
 /* This MUST stay at the top to target every element on the site */
-* {
+html, body, * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  /* ✅ REMOVES BLUE HIGHLIGHT GLOBALLY */
+  /* Force remove highlight for Chrome, Safari, and others */
   -webkit-tap-highlight-color: transparent !important;
   -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
-  /* ✅ REMOVES DEFAULT BROWSER OUTLINES */
+  /* Remove blue selection border/outline */
   outline: none !important;
+  box-shadow: none !important;
 }
 
+/* 2. SPECIFIC OVERRIDE FOR CLICKABLES */
+a, button, input, select, textarea, [role="button"] {
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+}
 :root {
   --gold: #D4AF37;
   --burgundy: #2D0A14;
