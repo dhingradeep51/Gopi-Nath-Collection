@@ -33,7 +33,7 @@ const OrderDetails = () => {
     try {
       setLoading(true);
       // ✅ Added a forward slash to ensure the URL is formed correctly
-      const { data } = await axios.get(`${BASE_URL}/api/v1/order/order-details/${params.oid}`);
+      const { data } = await axios.get(`${BASE_URL}api/v1/order/order-details/${params.oid}`);
       if (data?.success) {
         setOrder(data.order);
       }
@@ -52,6 +52,7 @@ const OrderDetails = () => {
 
   /* ================= 2. UPDATED LOADING STATE ================= */
   // Matching the "Loading divine pieces..." style from your image
+  // ✅ Replace your current "if (loading)" block with this:
   if (loading) {
     return (
       <Layout>
@@ -60,18 +61,17 @@ const OrderDetails = () => {
           flexDirection: "column",
           justifyContent: "center", 
           alignItems: "center", 
-          height: "80vh", 
-          background: colors.deepBurgundy 
+          height: "100vh", 
+          background: "#1a050b" // Deep Burgundy background matching your theme
         }}>
+          {/* ✅ The Spinner from your reference image */}
           <div className="custom-loader-container" style={{ marginBottom: "25px" }}>
-             {/* Using Bootstrap grow spinner as seen in your reference image */}
-             <div className="spinner-grow" role="status" style={{ width: "3.5rem", height: "3.5rem", color: colors.gold }}>
+             <div className="spinner-grow" role="status" style={{ width: "3.5rem", height: "3.5rem", color: "#D4AF37" }}>
                 <span className="visually-hidden">Loading...</span>
              </div>
           </div>
           <h4 style={{ 
-            color: colors.gold, 
-            marginTop: "10px", 
+            color: "#D4AF37", 
             fontFamily: "serif", 
             letterSpacing: "2px",
             textTransform: "uppercase",
@@ -142,7 +142,7 @@ const OrderDetails = () => {
                 {/* ✅ Improved Image Loading: prevents the "undefined" network error */}
                 {p?.product?._id ? (
                     <img 
-                        src={`${BASE_URL}/api/v1/product/product-photo/${p.product._id}`} 
+                        src={`${BASE_URL}api/v1/product/product-photo/${p.product._id}`} 
                         alt={p.name} 
                         className="product-img" 
                         onError={(e) => { e.target.src = "/logo192.png"; }}
