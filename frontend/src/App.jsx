@@ -36,6 +36,7 @@ import AdminInvoiceManager from './pages/Admin/AdminInvoiceManager';
 import AllProducts from './pages/AllProduct';
 import SearchResults from './pages/SearchResults';
 import CancellationPolicy from './pages/CancellationPolicy';
+import OrderDetails from './pages/User/OrderDetail';
 
 function App() {
   return (
@@ -78,6 +79,7 @@ function App() {
           <Route path="user/orders" element={<Orders />} />
           <Route path="user/profile" element={<Profile />} />
           <Route path="user/tickets" element={<UserTickets />} />
+          <Route path="user/orders/:oid" element={<OrderDetails />} />
         </Route>
 
         {/* ADMIN PRIVATE ROUTES */}
