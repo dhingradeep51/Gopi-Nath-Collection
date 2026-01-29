@@ -21,10 +21,10 @@ const Layout = ({
         <title>{title}</title>
         
         {/* ✅ Favicon Implementation */}
-        <link rel="icon" type="image/png" href="/gopi.png" />
+        <link rel="icon" type="image/png" href="/gopi.jpg" />
         
         {/* Apple Touch Icon (Optional but recommended for mobile) */}
-        <link rel="apple-touch-icon" href="/gopi.png" />
+        <link rel="apple-touch-icon" href="/gopi.jpg" />
       </Helmet>
       
       <Header />
