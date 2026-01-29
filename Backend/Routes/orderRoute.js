@@ -8,6 +8,7 @@ import {
   updateOrderLogisticsController,
   userOrderStatusController,
   orderInvoiceStatusController,
+  getOrderByIdController, // ✅ Import the missing controller
 } from "../Controllers/orderController.js";
 
 const router = express.Router();
@@ -17,6 +18,8 @@ router.post("/place-order", requireSignIn, placeOrderController);
 router.get("/orders", requireSignIn, getOrdersController);
 router.put("/user-order-status/:orderId", requireSignIn, userOrderStatusController);
 
+// ✅ ADD THIS ROUTE: This fixes the 404 error on the Order Details page
+router.get("/order-details/:orderId", requireSignIn, getOrderByIdController);
 
 // Admin Routes
 router.get("/all-orders", requireSignIn, isAdmin, getAllOrdersController);
