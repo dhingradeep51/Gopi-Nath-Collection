@@ -128,7 +128,7 @@ const UserTickets = () => {
                                                     <div style={{ padding: "15px", borderRadius: "5px", background: creamBackground, color: darkBurgundy, borderLeft: `5px solid ${gold}` }}>
                                                         <p style={{ marginBottom: "10px" }}>{t.message}</p>
                                                         {t.attachment && (
-                                                            <SecureImage url={`/api/v1/contact/ticket-attachment/${t._id}`} width={isMobile ? 150 : 250} />
+                                                            <SecureImage url={`${BASE_URL}api/v1/contact/ticket-attachment/${t._id}`} width={isMobile ? 150 : 250} />
                                                         )}
                                                     </div>
 
@@ -147,7 +147,7 @@ const UserTickets = () => {
                                                                                 <FaPaperclip /> Admin Attachment:
                                                                             </span>
                                                                             <SecureImage 
-                                                                                url={`/api/v1/contact/admin-reply-attachment/${t._id}/${i}`} 
+                                                                                url={`${BASE_URL}api/v1/contact/admin-reply-attachment/${t._id}/${i}`} 
                                                                                 width={isMobile ? 120 : 200} 
                                                                             />
                                                                         </div>
