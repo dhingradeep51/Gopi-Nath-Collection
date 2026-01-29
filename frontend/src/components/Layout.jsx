@@ -1,8 +1,4 @@
-import React from "react";
-import Footer from "./Footer"; // Layout and Footer are in the same folder
-import Header from "./Header"; // Layout and Header are in the same folder
-import { Helmet } from "react-helmet";
-import { Toaster } from "react-hot-toast";
+/* ... imports ... */
 
 const Layout = ({ children, title, description, keywords, author }) => {
   return (
@@ -13,8 +9,13 @@ const Layout = ({ children, title, description, keywords, author }) => {
         <meta name="keywords" content={keywords} />
         <meta name="author" content={author} />
         <title>{title}</title>
+        
+        {/* ✅ ADD THIS LINE FOR FAVICON */}
+        <link rel="icon" type="image/png" href="/gopi.jpg" />
+        {/* Or if using .ico: <link rel="icon" href="/favicon.ico" /> */}
       </Helmet>
-      <Header /> {/* If this import fails, the header won't show */}
+      
+      <Header />
       <main style={{ minHeight: "70vh" }}>
         <Toaster />
         {children}
