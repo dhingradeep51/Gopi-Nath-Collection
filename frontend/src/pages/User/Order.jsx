@@ -233,7 +233,7 @@ const UserOrders = () => {
                     return (
                       <div key={p._id} className="product-main-row">
                         <div className="product-img-container">
-                          <img src={`${API_BASE}/api/v1/product/product-photo/${p._id}`} alt={p.name} className="product-img" />
+                          <img src={`${BASE_URL}api/v1/product/product-photo/${p._id}`} alt={p.name} className="product-img" />
                         </div>
                         <div className="product-info">
                           <div style={{ color: 'white', fontWeight: 'bold', fontSize: '16px' }}>{p.name}</div>
