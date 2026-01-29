@@ -1,7 +1,8 @@
 /* =========================================
    GOPI NATH COLLECTION - GLOBAL STYLES
    ========================================= */
-
+html,
+body,
 :root {
   --gold: #D4AF37;
   --burgundy: #2D0A14;
