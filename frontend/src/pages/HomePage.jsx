@@ -136,24 +136,9 @@ const HomePage = () => {
         </div>
 
         <div className="content-container">
-          {/* Filter Header */}
-          <div className="filter-header">
-            <Badge count={checked.length + (radio.length ? 1 : 0)} color={gold} size="small">
-              <Button
-                icon={<FilterOutlined />}
-                onClick={() => setDrawerVisible(true)}
-                className="refine-btn"
-              >
-                REFINE COLLECTION
-              </Button>
-            </Badge>
-
-            <div className="inventory-info">
-              <span className="inventory-label">INVENTORY</span>
-              <span className="inventory-count">
-                {products.length} DIVINE PIECES
-              </span>
-            </div>
+          {/* Inventory Count */}
+          <div className="inventory-section">
+            <span className="inventory-count">{products.length} DIVINE PIECES</span>
           </div>
 
           {/* Products Grid */}
@@ -222,17 +207,13 @@ const HomePage = () => {
                       >
                         VIEW ALL {products.length} DIVINE PIECES
                       </Button>
-                      <p className="view-all-subtitle">
-                        Discover our complete collection
-                      </p>
+                      <p className="view-all-subtitle">Discover our complete collection</p>
                     </div>
                   )}
                 </>
               ) : (
                 <div className="empty-state">
-                  <p className="empty-message">
-                    No creations found in this selection.
-                  </p>
+                  <p className="empty-message">No creations found in this selection.</p>
                   <Button
                     onClick={() => {
                       setChecked([]);
@@ -249,13 +230,25 @@ const HomePage = () => {
           )}
         </div>
 
+        {/* Mobile Filter FAB */}
+        {isMobile && (
+          <div className="mobile-filter-fab">
+            <Badge count={checked.length + (radio.length ? 1 : 0)} color={gold}>
+              <Button
+                type="primary"
+                shape="circle"
+                size="large"
+                icon={<FaFilter />}
+                onClick={() => setDrawerVisible(true)}
+                className="filter-fab-button"
+              />
+            </Badge>
+          </div>
+        )}
+
         {/* Filter Drawer */}
         <Drawer
-          title={
-            <span className="drawer-title">
-              REFINE
-            </span>
-          }
+          title={<span className="drawer-title">REFINE</span>}
           placement={isMobile ? "bottom" : "right"}
           height={isMobile ? "70%" : "100%"}
           width={isMobile ? "100%" : 400}
@@ -319,22 +312,6 @@ const HomePage = () => {
             </Button>
           </div>
         </Drawer>
-
-        {/* Mobile Filter FAB */}
-        {isMobile && (
-          <div className="mobile-filter-fab">
-            <Badge count={checked.length + (radio.length ? 1 : 0)} color={gold}>
-              <Button
-                type="primary"
-                shape="circle"
-                size="large"
-                icon={<FaFilter />}
-                onClick={() => setDrawerVisible(true)}
-                className="filter-fab-button"
-              />
-            </Badge>
-          </div>
-        )}
       </div>
 
       {/* STYLES */}
@@ -377,53 +354,19 @@ const HomePage = () => {
           margin: 0 auto;
         }
 
-        /* Filter Header */
-        .filter-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 20px 0;
-          border-bottom: 1px solid ${gold}22;
-          margin-bottom: 30px;
-        }
-
-        .mobile-inventory {
+        /* Inventory Section */
+        .inventory-section {
           text-align: center;
           padding: 20px 0;
           border-bottom: 1px solid ${gold}22;
           margin-bottom: 30px;
         }
 
-        .refine-btn {
-          background: transparent !important;
-          color: ${gold} !important;
-          border: 1px solid ${gold} !important;
-          font-size: ${isMobile ? "11px" : "13px"} !important;
-          height: ${isMobile ? "35px" : "45px"} !important;
-          font-weight: bold;
-          padding: 0 20px;
-          transition: all 0.3s ease;
-        }
-
-        .refine-btn:hover {
-          background: ${gold}22 !important;
-        }
-
-        .inventory-info {
-          text-align: right;
-        }
-
-        .inventory-label {
-          font-size: 10px;
-          opacity: 0.5;
-          display: block;
-          letter-spacing: 1px;
-        }
-
         .inventory-count {
-          font-size: ${isMobile ? "12px" : "16px"};
+          font-size: ${isMobile ? "14px" : "18px"};
           color: ${gold};
           font-weight: bold;
+          letter-spacing: 2px;
         }
 
         /* Loading State */
@@ -466,19 +409,18 @@ const HomePage = () => {
 
         .product-image-wrapper {
           background: #fff;
-          height: ${isMobile ? "150px" : "250px"};
+          height: ${isMobile ? "180px" : "280px"};
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 10px;
           position: relative;
           overflow: hidden;
         }
 
         .product-image {
           width: 100%;
-          max-height: 100%;
-          object-fit: contain;
+          height: 100%;
+          object-fit: cover;
           transition: transform 0.4s ease;
         }
 
@@ -690,6 +632,47 @@ const HomePage = () => {
           background: #e5c158 !important;
         }
 
+        /* Mobile Filter FAB */
+        .mobile-filter-fab {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          z-index: 1000;
+          animation: fadeInUp 0.5s ease;
+        }
+
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        .filter-fab-button {
+          width: 60px !important;
+          height: 60px !important;
+          background-color: ${gold} !important;
+          border: none !important;
+          box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4) !important;
+          color: ${burgundy} !important;
+          font-size: 20px !important;
+          transition: all 0.3s ease;
+        }
+
+        .filter-fab-button:hover {
+          background-color: #e5c158 !important;
+          transform: scale(1.1);
+          box-shadow: 0 6px 16px rgba(212, 175, 55, 0.6) !important;
+        }
+
+        .filter-fab-button:active {
+          transform: scale(0.95);
+        }
+
         /* Ant Design Overrides */
         .ant-checkbox-wrapper:hover .ant-checkbox-inner,
         .ant-checkbox-checked .ant-checkbox-inner {
@@ -733,29 +716,6 @@ const HomePage = () => {
             width: 100%;
             padding: 10px;
           }
-        }
-
-        /* Mobile Filter FAB */
-        .mobile-filter-fab {
-          position: fixed;
-          bottom: 20px;
-          right: 20px;
-          z-index: 1000;
-        }
-
-        .filter-fab-button {
-          width: 60px !important;
-          height: 60px !important;
-          background-color: ${gold} !important;
-          border: none !important;
-          box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4) !important;
-          color: ${burgundy} !important;
-          font-size: 20px !important;
-        }
-
-        .filter-fab-button:hover {
-          background-color: #e5c158 !important;
-          transform: scale(1.05);
         }
       `}</style>
     </Layout>
