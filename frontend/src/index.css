@@ -1,12 +1,107 @@
-*{
+/* =========================================
+   GOPI NATH COLLECTION - GLOBAL STYLES
+   ========================================= */
+
+:root {
+  --gold: #D4AF37;
+  --burgundy: #2D0A14;
+  --dark-bg: #1a050b;
+  --light-text: #fdfdfd;
+  --transition: all 0.3s ease-in-out;
+}
+
+/* 1. Global Reset & Mobile Optimization */
+* {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'times new roman', serif;
+  /* ✅ FIX: Removes the blue highlight on mobile tap */
+  -webkit-tap-highlight-color: transparent;
 }
-html, body, #root {
-  height: 100%;
-  width: 100%;
-  background-color: #2D0A14; /* Your burgundy color */
+
+body {
+  font-family: 'Playfair Display', serif; /* Elegant serif for branding */
+  background-color: var(--dark-bg);
+  color: var(--light-text);
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 2. Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--dark-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gold);
+  border-radius: 10px;
+}
+
+/* 3. Typography & Links */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--gold);
+  letter-spacing: 1px;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: var(--transition);
+}
+
+a:hover {
+  color: var(--gold);
+}
+
+/* 4. Utility Classes */
+.btn-gold {
+  background-color: var(--gold);
+  color: var(--burgundy);
+  border: none;
+  padding: 10px 25px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: var(--transition);
+  border-radius: 4px;
+}
+
+.btn-gold:hover {
+  background-color: #f1c40f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+}
+
+/* 5. Ant Design Overrides (for Admin Panel) */
+.ant-table {
+  background: transparent !important;
+  color: white !important;
+}
+
+.ant-table-thead > tr > th {
+  background: var(--burgundy) !important;
+  color: var(--gold) !important;
+  border-bottom: 2px solid var(--gold) !important;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+  color: white !important;
+}
+
+/* 6. Mobile Touch Feedback */
+button:active, a:active {
+  opacity: 0.7;
+  transform: scale(0.98);
+}
+
+/* 7. Toast Styling (Hot Toast) */
+.hot-toast-theme {
+  border-radius: 8px;
+  background: var(--burgundy);
+  color: var(--gold);
+  border: 1px solid var(--gold);
 }

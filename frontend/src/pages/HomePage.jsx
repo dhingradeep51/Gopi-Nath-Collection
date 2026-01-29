@@ -377,11 +377,9 @@ const HomePage = () => {
           margin: 0 auto;
         }
 
-        /* Filter Header */
-        .filter-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
+        /* Desktop and Mobile Inventory */
+        .desktop-inventory {
+          text-align: center;
           padding: 20px 0;
           border-bottom: 1px solid ${gold}22;
           margin-bottom: 30px;
@@ -394,25 +392,6 @@ const HomePage = () => {
           margin-bottom: 30px;
         }
 
-        .refine-btn {
-          background: transparent !important;
-          color: ${gold} !important;
-          border: 1px solid ${gold} !important;
-          font-size: ${isMobile ? "11px" : "13px"} !important;
-          height: ${isMobile ? "35px" : "45px"} !important;
-          font-weight: bold;
-          padding: 0 20px;
-          transition: all 0.3s ease;
-        }
-
-        .refine-btn:hover {
-          background: ${gold}22 !important;
-        }
-
-        .inventory-info {
-          text-align: right;
-        }
-
         .inventory-label {
           font-size: 10px;
           opacity: 0.5;
@@ -421,9 +400,10 @@ const HomePage = () => {
         }
 
         .inventory-count {
-          font-size: ${isMobile ? "12px" : "16px"};
+          font-size: ${isMobile ? "14px" : "18px"};
           color: ${gold};
           font-weight: bold;
+          letter-spacing: 2px;
         }
 
         /* Loading State */
@@ -466,19 +446,18 @@ const HomePage = () => {
 
         .product-image-wrapper {
           background: #fff;
-          height: ${isMobile ? "150px" : "250px"};
+          height: ${isMobile ? "180px" : "280px"};
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 10px;
           position: relative;
           overflow: hidden;
         }
 
         .product-image {
           width: 100%;
-          max-height: 100%;
-          object-fit: contain;
+          height: 100%;
+          object-fit: cover;
           transition: transform 0.4s ease;
         }
 
