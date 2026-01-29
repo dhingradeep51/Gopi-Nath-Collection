@@ -9,6 +9,7 @@ import {
   ArrowRightOutlined,
   CloseOutlined,
 } from "@ant-design/icons";
+import { FaInfoCircle, FaFilter } from "react-icons/fa";
 import { Prices } from "../components/Prices";
 import { useCart } from "../context/cart";
 
@@ -187,12 +188,23 @@ const HomePage = () => {
                           <h3 className="product-name">{p.name}</h3>
                           <p className="product-price">₹{p.price?.toLocaleString()}</p>
 
-                          <button
-                            onClick={(e) => handleAddToCart(e, p)}
-                            className="add-to-cart-btn"
-                          >
-                            <ShoppingOutlined /> ADD TO CART
-                          </button>
+                          <div className="action-buttons">
+                            <button
+                              className="btn-details"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/product/${p.slug}`);
+                              }}
+                            >
+                              <FaInfoCircle /> DETAILS
+                            </button>
+                            <button
+                              onClick={(e) => handleAddToCart(e, p)}
+                              className="btn-add-to-cart"
+                            >
+                              <ShoppingOutlined /> ADD
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -307,6 +319,22 @@ const HomePage = () => {
             </Button>
           </div>
         </Drawer>
+
+        {/* Mobile Filter FAB */}
+        {isMobile && (
+          <div className="mobile-filter-fab">
+            <Badge count={checked.length + (radio.length ? 1 : 0)} color={gold}>
+              <Button
+                type="primary"
+                shape="circle"
+                size="large"
+                icon={<FaFilter />}
+                onClick={() => setDrawerVisible(true)}
+                className="filter-fab-button"
+              />
+            </Badge>
+          </div>
+        )}
       </div>
 
       {/* STYLES */}
@@ -354,6 +382,13 @@ const HomePage = () => {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          padding: 20px 0;
+          border-bottom: 1px solid ${gold}22;
+          margin-bottom: 30px;
+        }
+
+        .mobile-inventory {
+          text-align: center;
           padding: 20px 0;
           border-bottom: 1px solid ${gold}22;
           margin-bottom: 30px;
@@ -497,29 +532,49 @@ const HomePage = () => {
           margin-bottom: 15px;
         }
 
-        .add-to-cart-btn {
-          background: ${gold};
+        .action-buttons {
+          display: flex;
+          gap: 10px;
+        }
+
+        .btn-details,
+        .btn-add-to-cart {
+          flex: 1;
+          padding: ${isMobile ? "8px" : "10px"};
           border: none;
-          color: ${burgundy};
-          width: 100%;
-          padding: ${isMobile ? "10px" : "12px"};
+          cursor: pointer;
           font-size: ${isMobile ? "10px" : "11px"};
           font-weight: bold;
-          cursor: pointer;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
+          gap: 5px;
           transition: all 0.3s ease;
           border-radius: 4px;
         }
 
-        .add-to-cart-btn:hover {
+        .btn-details {
+          background: transparent;
+          border: 1px solid ${gold};
+          color: ${gold};
+        }
+
+        .btn-details:hover {
+          background-color: ${gold}22;
+        }
+
+        .btn-add-to-cart {
+          background: ${gold};
+          color: ${burgundy};
+        }
+
+        .btn-add-to-cart:hover {
           background: #e5c158;
           transform: scale(1.02);
         }
 
-        .add-to-cart-btn:active {
+        .btn-add-to-cart:active,
+        .btn-details:active {
           transform: scale(0.98);
         }
 
@@ -661,11 +716,46 @@ const HomePage = () => {
         @media (max-width: 768px) {
           .products-grid {
             gap: 12px;
+            padding-bottom: 80px;
           }
 
           .product-card {
             border-radius: 6px;
           }
+
+          .action-buttons {
+            flex-direction: column;
+            gap: 8px;
+          }
+
+          .btn-details,
+          .btn-add-to-cart {
+            width: 100%;
+            padding: 10px;
+          }
+        }
+
+        /* Mobile Filter FAB */
+        .mobile-filter-fab {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          z-index: 1000;
+        }
+
+        .filter-fab-button {
+          width: 60px !important;
+          height: 60px !important;
+          background-color: ${gold} !important;
+          border: none !important;
+          box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4) !important;
+          color: ${burgundy} !important;
+          font-size: 20px !important;
+        }
+
+        .filter-fab-button:hover {
+          background-color: #e5c158 !important;
+          transform: scale(1.05);
         }
       `}</style>
     </Layout>
