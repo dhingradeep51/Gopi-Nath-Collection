@@ -1,6 +1,10 @@
 import { useState, useEffect, useContext, createContext } from "react";
 import axios from "axios";
 
+// ✅ ADD THIS LINE: Define your backend URL here
+const BASE_URL = "https://gopi-nath-collection.onrender.com/api/v1"; 
+window.API_BASE = BASE_URL;
+
 const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
