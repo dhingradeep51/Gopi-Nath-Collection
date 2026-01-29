@@ -13,6 +13,7 @@ import toast from "react-hot-toast";
 // This stops the "Uncaught ReferenceError: API_BASE is not defined" crash
 const BASE_URL = import.meta.env.VITE_API_URL || "";
 window.API_BASE = BASE_URL;
+window.BASE_URL=BASE_URL;
 
 const OrderDetails = () => {
   const params = useParams();
