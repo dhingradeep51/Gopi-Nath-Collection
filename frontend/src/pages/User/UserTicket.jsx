@@ -15,6 +15,8 @@ const SecureImage = ({ url, width }) => {
     const [imageSrc, setImageSrc] = useState(null);
     const [auth] = useAuth();
 
+    const BASE_URL = import.meta.env.VITE_API_URL;
+
     useEffect(() => {
         const fetchImage = async () => {
             try {
@@ -74,7 +76,7 @@ const UserTickets = () => {
     const getUserTickets = async () => {
         try {
             setLoading(true);
-            const { data } = await axios.get(`/api/v1/contact/user-tickets/${auth?.user?._id}`);
+            const { data } = await axios.get(`${BASE_URL}api/v1/contact/user-tickets/${auth?.user?._id}`);
             if (data?.success) setTickets(data.tickets || []);
         } catch (error) {
             toast.error("Failed to load tickets.");

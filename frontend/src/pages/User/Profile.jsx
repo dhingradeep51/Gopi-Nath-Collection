@@ -22,6 +22,8 @@ const Profile = () => {
   const burgundy = "#2D0A14";
   const softCream = "#FDF5E6";
 
+  const BASE_URL = import.meta.env.VITE_API_URL;
+
   const labelStyle = { color: gold, fontSize: "11px", fontWeight: "bold", textTransform: "uppercase", marginBottom: "8px", display: "block", letterSpacing: "1px" };
   const inputStyle = { backgroundColor: softCream, border: "none", padding: "12px", width: "100%", marginBottom: "20px", color: "#333", borderRadius: "2px", outline: "none" };
 
@@ -44,7 +46,7 @@ const Profile = () => {
     e.preventDefault();
     try {
       // ✅ Sending matching variables for the controller to handle
-      const { data } = await axios.put("/api/v1/auth/profile", {
+      const { data } = await axios.put( `${BASE_URL}api/v1/auth/profile`, {
         name, 
         email, 
         phone, 

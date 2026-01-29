@@ -24,7 +24,7 @@ const UserOrders = () => {
   const [attachment, setAttachment] = useState(null); 
   const [preview, setPreview] = useState(""); 
 
-  const API_BASE = "http://localhost:8080"; 
+  const BASE_URL = import.meta.env.VITE_API_URL;
 
   const colors = {
     deepBurgundy: "#2D0A14", 
@@ -39,7 +39,7 @@ const UserOrders = () => {
   /* ================= FETCH DATA ================= */
   const getOrders = async () => {
     try {
-      const { data } = await axios.get("/api/v1/order/orders");
+      const { data } = await axios.get(`${BASE_URL}api/v1/order/orders`);
       setOrders(data);
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -68,7 +68,7 @@ const UserOrders = () => {
     if (existingReview) {
       setRating(existingReview.rating);
       setComment(existingReview.comment);
-      setPreview(existingReview.attachment ? `${API_BASE}${existingReview.attachment}` : "");
+      setPreview(existingReview.attachment ? `${BASE_URL}${existingReview.attachment}` : "");
     } else {
       setRating(0); setComment(""); setPreview("");
     }
@@ -85,7 +85,7 @@ const UserOrders = () => {
       if (attachment) formData.append("attachment", attachment);
 
       const { data } = await axios.post(
-        `/api/v1/product/add-review/${selectedProduct}`, 
+        `${BASE_URL}api/v1/product/add-review/${selectedProduct}`, 
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
@@ -107,7 +107,7 @@ const UserOrders = () => {
     if (!window.confirm(`Are you sure you want to ${actionText} this order?`)) return;
 
     try {
-      const { data } = await axios.put(`/api/v1/order/user-order-status/${orderId}`, {
+      const { data } = await axios.put(`${BASE_URL}api/v1/order/user-order-status/${orderId}`, {
         status: newStatus,
       });
       if (data?.success) {
