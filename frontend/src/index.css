@@ -2,25 +2,31 @@
    GOPI NATH COLLECTION - GLOBAL STYLES
    ========================================= */
 
-/* 1. UNIVERSAL RESET & MOBILE TAP FIX */
-/* This MUST stay at the top to target every element on the site */
-html, body, * {
+/* 1. THE ULTIMATE MOBILE RESET (Master Fix) */
+/* Targeted at the root and all elements to stop the 'sometimes blue' flash */
+html, 
+body, 
+* {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  /* Force remove highlight for Chrome, Safari, and others */
+  /* Aggressive removal of tap highlights */
   -webkit-tap-highlight-color: transparent !important;
   -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
-  /* Remove blue selection border/outline */
+  /* Removes the focus ring on Android Chrome */
+  -webkit-focus-ring-color: rgba(0,0,0,0) !important;
+  outline: none !important;
+}
+
+/* Specific state overrides for clickables */
+*:active, 
+*:focus {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
   outline: none !important;
   box-shadow: none !important;
 }
 
-/* 2. SPECIFIC OVERRIDE FOR CLICKABLES */
-a, button, input, select, textarea, [role="button"] {
-  -webkit-tap-highlight-color: transparent !important;
-  outline: none !important;
-}
 :root {
   --gold: #D4AF37;
   --burgundy: #2D0A14;
@@ -31,7 +37,7 @@ a, button, input, select, textarea, [role="button"] {
 
 /* 2. BODY & TYPOGRAPHY */
 body {
-  font-family: 'Playfair Display', serif; /* Ensure you have this font linked in index.html */
+  font-family: 'Playfair Display', serif;
   background-color: var(--dark-bg);
   color: var(--light-text);
   overflow-x: hidden;
@@ -59,11 +65,9 @@ a:hover {
 ::-webkit-scrollbar {
   width: 8px;
 }
-
 ::-webkit-scrollbar-track {
   background: var(--dark-bg);
 }
-
 ::-webkit-scrollbar-thumb {
   background: var(--gold);
   border-radius: 10px;
@@ -94,32 +98,30 @@ a:hover {
   background: transparent !important;
   color: white !important;
 }
-
 .ant-table-thead > tr > th {
   background: var(--burgundy) !important;
   color: var(--gold) !important;
   border-bottom: 2px solid var(--gold) !important;
 }
-
 .ant-table-tbody > tr > td {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
   color: white !important;
 }
-
 .ant-pagination-item-active {
   border-color: var(--gold) !important;
   background: var(--gold) !important;
 }
 
 /* 6. HAPTIC FEEDBACK (Premium Tap Effect) */
-/* Since blue is gone, we give users a subtle "press" feel instead */
+/* This replaces the blue flash with a high-end physical press feel */
 button:active, 
 a:active, 
 .ant-btn:active,
-.product-card:active {
-  opacity: 0.8;
-  transform: scale(0.97); /* Shrinks slightly on tap */
-  transition: transform 0.1s;
+.product-card:active,
+.category-item:active {
+  opacity: 0.8 !important;
+  transform: scale(0.96) !important; /* Noticeable but elegant press */
+  transition: transform 0.1s ease;
 }
 
 /* 7. TOAST NOTIFICATIONS (Hot Toast) */
@@ -138,8 +140,9 @@ input, textarea {
   color: white;
   padding: 10px;
   border-radius: 4px;
+  -webkit-tap-highlight-color: transparent !important;
 }
-
 input:focus {
   border-color: var(--gold);
+  box-shadow: 0 0 5px rgba(212, 175, 55, 0.2) !important;
 }
