@@ -407,7 +407,6 @@ export const orderInvoiceStatusController = async (req, res) => {
 };
 
 // --- GET ORDER BY ID (BOTH USER & ADMIN) ---
-// --- GET ORDER BY ID (BOTH USER & ADMIN) ---
 export const getOrderByIdController = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -416,10 +415,8 @@ export const getOrderByIdController = async (req, res) => {
       .findById(orderId)
       .populate({
         path: "products.product",
-        // ✅ Included _id so the frontend image URL doesn't break
-        select: "name slug photo _id" 
+        select: "name slug photo"
       })
-      // ✅ Populate buyer with more fields for the detailed view
       .populate("buyer", "name phone email address city state pincode");
 
     if (!order) {
@@ -429,14 +426,10 @@ export const getOrderByIdController = async (req, res) => {
       });
     }
 
-    // 🔒 Security Check: Only the buyer or an Admin can see this
-    const isBuyer = order.buyer._id.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === 1;
-
-    if (!isBuyer && !isAdmin) {
+    if (req.user.role !== 1 && order.buyer._id.toString() !== req.user._id.toString()) {
       return res.status(401).send({
         success: false,
-        message: "Unauthorized access to this order"
+        message: "Unauthorized access"
       });
     }
 
@@ -453,6 +446,7 @@ export const getOrderByIdController = async (req, res) => {
     });
   }
 };
+
 export default {
   placeOrderController,
   getAllOrdersController,
