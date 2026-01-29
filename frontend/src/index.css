@@ -1,8 +1,20 @@
 /* =========================================
    GOPI NATH COLLECTION - GLOBAL STYLES
    ========================================= */
-html,
-body,
+
+/* 1. UNIVERSAL RESET & MOBILE TAP FIX */
+/* This MUST stay at the top to target every element on the site */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  /* ✅ REMOVES BLUE HIGHLIGHT GLOBALLY */
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
+  /* ✅ REMOVES DEFAULT BROWSER OUTLINES */
+  outline: none !important;
+}
+
 :root {
   --gold: #D4AF37;
   --burgundy: #2D0A14;
@@ -11,42 +23,47 @@ body,
   --transition: all 0.3s ease-in-out;
 }
 
-/* 1. Global Reset & REINFORCED Mobile Fix */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent !important;
-  -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
-  outline: none !important;
-}
-
-/* ✅ Force-remove blue highlight on all clickable elements */
-a, button, input, textarea, select, .ant-table-row, [role="button"] {
-  -webkit-tap-highlight-color: transparent !important;
-  -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
-  outline: none !important;
-}
-
+/* 2. BODY & TYPOGRAPHY */
 body {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Playfair Display', serif; /* Ensure you have this font linked in index.html */
   background-color: var(--dark-bg);
   color: var(--light-text);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* 2. Scrollbar Customization */
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: var(--dark-bg); }
-::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 10px; }
+h1, h2, h3, h4, h5, h6 {
+  color: var(--gold);
+  letter-spacing: 1px;
+  font-weight: 700;
+}
 
-/* 3. Typography & Links */
-h1, h2, h3, h4, h5, h6 { color: var(--gold); letter-spacing: 1px; }
-a { text-decoration: none; color: inherit; transition: var(--transition); }
-a:hover { color: var(--gold); }
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: var(--transition);
+}
 
-/* 4. Utility Classes */
+a:hover {
+  color: var(--gold);
+}
+
+/* 3. SCROLLBAR (Luxury Gold Theme) */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--dark-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gold);
+  border-radius: 10px;
+}
+
+/* 4. BUTTONS & UI ELEMENTS */
 .btn-gold {
   background-color: var(--gold);
   color: var(--burgundy);
@@ -56,6 +73,8 @@ a:hover { color: var(--gold); }
   cursor: pointer;
   transition: var(--transition);
   border-radius: 4px;
+  display: inline-block;
+  text-align: center;
 }
 
 .btn-gold:hover {
@@ -64,29 +83,57 @@ a:hover { color: var(--gold); }
   box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
 }
 
-/* 5. Ant Design Overrides */
-.ant-table { background: transparent !important; color: white !important; }
+/* 5. ANT DESIGN TABLE OVERRIDES (Admin Panel) */
+.ant-table {
+  background: transparent !important;
+  color: white !important;
+}
+
 .ant-table-thead > tr > th {
   background: var(--burgundy) !important;
   color: var(--gold) !important;
   border-bottom: 2px solid var(--gold) !important;
 }
+
 .ant-table-tbody > tr > td {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
   color: white !important;
 }
 
-/* 6. Professional Mobile Touch Feedback (Luxury replacement for blue) */
-button:active, a:active, .ant-btn:active {
+.ant-pagination-item-active {
+  border-color: var(--gold) !important;
+  background: var(--gold) !important;
+}
+
+/* 6. HAPTIC FEEDBACK (Premium Tap Effect) */
+/* Since blue is gone, we give users a subtle "press" feel instead */
+button:active, 
+a:active, 
+.ant-btn:active,
+.product-card:active {
   opacity: 0.8;
-  transform: scale(0.97); /* Subtle "press" effect */
+  transform: scale(0.97); /* Shrinks slightly on tap */
   transition: transform 0.1s;
 }
 
-/* 7. Toast Styling */
+/* 7. TOAST NOTIFICATIONS (Hot Toast) */
 .hot-toast-theme {
   border-radius: 8px;
   background: var(--burgundy);
   color: var(--gold);
   border: 1px solid var(--gold);
+  font-family: 'Helvetica', sans-serif;
+}
+
+/* 8. INPUTS & FORMS */
+input, textarea {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: white;
+  padding: 10px;
+  border-radius: 4px;
+}
+
+input:focus {
+  border-color: var(--gold);
 }
