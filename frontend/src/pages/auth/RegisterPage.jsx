@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useAuth } from "../context/auth";
-import Layout from "../components/Layout";
+import { useAuth } from "../../context/auth";
+import Layout from "../../components/Layout";
 import toast from "react-hot-toast";
 
 const RegisterPage = () => {
@@ -18,6 +18,8 @@ const RegisterPage = () => {
     name: "", email: "", otp: "", phone: "", address: "", 
     city: "", state: "", pincode: "", password: "", confirmPassword: ""
   });
+
+  const BASE_URL = import.meta.env.VITE_API_URL;
 
   const goldColor = "#D4AF37";
   const burgundyColor = "#2D0A14";
@@ -40,7 +42,7 @@ const RegisterPage = () => {
     if (!formData.email) return toast.error("Please enter your email");
     try {
       setLoading(true);
-      const { data } = await axios.post("/api/v1/auth/send-otp", { 
+      const { data } = await axios.post(`${BASE_URL}api/v1/auth/send-otp`, { 
         email: formData.email, 
         purpose: "register" 
       });
@@ -64,7 +66,7 @@ const RegisterPage = () => {
   const handleVerifyOtp = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.post("/api/v1/auth/verify-otp", { 
+      const { data } = await axios.post(`${BASE_URL}api/v1/auth/verify-otp`, { 
         email: formData.email, 
         otp: formData.otp 
       });
@@ -105,7 +107,7 @@ const RegisterPage = () => {
       }
     };
 
-    const { data } = await axios.post("/api/v1/auth/register", payload);
+    const { data } = await axios.post(`${BASE_URL}api/v1/auth/register`, payload);
 
     if (data.success) {
       setAuth({ ...auth, user: data.user, token: data.token });

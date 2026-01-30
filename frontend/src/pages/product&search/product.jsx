@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import Layout from "../components/Layout";
+import Layout from "../../components/Layout";
 import { Spin, message, Rate, Badge } from "antd";
-import { useCart } from "../context/cart";
+import { useCart } from "../../context/cart";
 import {
   ShoppingOutlined,
   HeartOutlined,

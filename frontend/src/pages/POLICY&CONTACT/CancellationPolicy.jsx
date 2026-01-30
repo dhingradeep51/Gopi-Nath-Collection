@@ -1,5 +1,5 @@
 import React from "react";
-import Layout from "../components/Layout";
+import Layout from "../../components/Layout";
 
 const CancellationPolicy = () => {
     const goldColor = "#D4AF37";

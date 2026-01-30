@@ -7,6 +7,8 @@ const ForgotPassword = () => {
   const goldColor = "#D4AF37";
   const burgundyColor = "#2D0A14";
 
+  const BASE_URL = import.meta.env.VITE_API_URL;
+
   // --- STATE ---
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -40,7 +42,7 @@ const ForgotPassword = () => {
     try {
       setLoading(true);
       // Added purpose: "forgot-password" to match your backend requirements
-      const { data } = await axios.post("/api/v1/auth/send-otp", {
+      const { data } = await axios.post(`${BASE_URL}api/v1/auth/send-otp`, {
         email,
         purpose: "forgot-password"
       });
@@ -66,7 +68,7 @@ const ForgotPassword = () => {
     setErrorMsg("");
     try {
       setLoading(true);
-      const { data } = await axios.post("/api/v1/auth/verify-otp", { email, otp });
+      const { data } = await axios.post(`${BASE_URL}api/v1/auth/verify-otp`, { email, otp });
       if (data.success) {
         setIsVerified(true);
         setTimer(0);
@@ -88,7 +90,7 @@ const ForgotPassword = () => {
     setErrorMsg("");
     try {
       setLoading(true);
-      const { data } = await axios.post("/api/v1/auth/forgot-password", {
+      const { data } = await axios.post(`${BASE_URL}api/v1/auth/forgot-password`, {
         email,
         newPassword
       });

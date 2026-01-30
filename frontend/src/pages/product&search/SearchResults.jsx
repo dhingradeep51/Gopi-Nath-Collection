@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import Layout from "../components/Layout";
+import Layout from "../../components/Layout";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useCart } from "../context/cart";
+import { useCart } from "../../context/cart";
 import { Spin, message, Empty } from "antd";
 import {
   FaCartPlus,

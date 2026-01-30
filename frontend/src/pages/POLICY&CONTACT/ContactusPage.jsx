@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { FaMapMarkerAlt, FaPhoneAlt, FaEnvelope, FaPaperclip, FaHistory, FaClock } from "react-icons/fa";
-import Layout from "../components/Layout";
-import { useAuth } from "../context/auth"; 
+import Layout from "../../components/Layout";
+import { useAuth } from "../../context/auth"; 
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 

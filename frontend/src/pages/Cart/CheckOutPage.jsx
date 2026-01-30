@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
-import Layout from "../components/Layout";
-import { useCart } from "../context/cart";
-import { useAuth } from "../context/auth";
+import Layout from "../../components/Layout";
+import { useCart } from "../../context/cart";
+import { useAuth } from "../../context/auth";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";

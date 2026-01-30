@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import Layout from "../components/Layout";
+import Layout from "../../components/Layout";
 
 const CategoryProduct = () => {
   const params = useParams();
@@ -9,6 +9,8 @@ const CategoryProduct = () => {
   const [products, setProducts] = useState([]);
   const [category, setCategory] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const BASE_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     if (params?.slug) {
@@ -24,7 +26,7 @@ const CategoryProduct = () => {
     try {
       setLoading(true);
       // Fetches data based on current slug from URL
-      const { data } = await axios.get(`/api/v1/product/product-category/${params.slug}`);
+      const { data } = await axios.get(`${BASE_URL}api/v1/product/product-category/${params.slug}`);
 
       if (data?.success) {
         setProducts(data?.products);
@@ -65,7 +67,7 @@ const CategoryProduct = () => {
               >
                 {/* Product Photo: Fetches binary data from backend */}
                 <img
-                  src={`/api/v1/product/product-photo/${p._id}`}
+                  src={`${BASE_URL}api/v1/product/product-photo/${p._id}`}
                   alt={p.name}
                   style={{ width: "100%", height: "250px", objectFit: "contain", marginBottom: "15px" }}
                 />

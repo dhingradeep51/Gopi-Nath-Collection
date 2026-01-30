@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
-import Layout from "../components/Layout";
-import { useCart } from "../context/cart";
-import { useAuth } from "../context/auth";
+import Layout from "../../components/Layout";
+import { useCart } from "../../context/cart";
+import { useAuth } from "../../context/auth";
 import { useNavigate } from "react-router-dom";
 import { DeleteOutlined, PlusOutlined, MinusOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import { Button, Empty, message } from "antd";
