@@ -2,33 +2,17 @@ import orderModel from "../Models/orderModel.js";
 import moment from "moment";
 import ProductModel from "../Models/productModel.js";
 import userModel from "../Models/userModel.js";
+// ✅ Ensure the import path and filename match your utils folder exactly
+import { sendNotification } from "../utils/notificationUtil.js";
 
-// --- PLACE NEW ORDER WITH GST & GIFT LOGIC ---
-import { sendNotification } from "../utils/notificationUtils.js";
-
-// --- PLACE NEW ORDER WITH GST & GIFT LOGIC ---
+// --- PLACE NEW ORDER ---
 export const placeOrderController = async (req, res) => {
   try {
-    const {
-      cart,
-      address,
-      paymentMethod,
-      shippingFee = 0,
-      discount = 0,
-      subtotal,
-      totalAmount,
-      transactionId,
-      couponType,
-      giftProductId 
-    } = req.body;
+    const { cart, address, paymentMethod, shippingFee = 0, discount = 0, subtotal, totalAmount, transactionId, couponType, giftProductId } = req.body;
 
     // 1️⃣ Validate core requirements
-    if (!cart || cart.length === 0) {
-      return res.status(400).send({ success: false, message: "Cart is empty" });
-    }
-    if (!address) {
-      return res.status(400).send({ success: false, message: "Shipping address is required" });
-    }
+    if (!cart || cart.length === 0) return res.status(400).send({ success: false, message: "Cart is empty" });
+    if (!address) return res.status(400).send({ success: false, message: "Shipping address is required" });
 
     const products = [];
     let calculatedSubtotal = 0;
@@ -36,25 +20,14 @@ export const placeOrderController = async (req, res) => {
     let totalGstAmount = 0;
     let highestGstRate = 0;
 
-    // 2️⃣ Process Cart Items (With GST Calculations)
+    // 2️⃣ Process Cart Items
     for (const item of cart) {
       const product = await ProductModel.findById(item._id);
-
-      if (!product) {
-        return res.status(404).send({ 
-            success: false, 
-            message: `Product "${item.name}" not found` 
-        });
-      }
+      if (!product) return res.status(404).send({ success: false, message: `Product "${item.name}" not found` });
 
       const requestedQty = item.cartQuantity || 1;
-
-      // Stock check
       if (product.quantity < requestedQty) {
-        return res.status(400).send({
-          success: false,
-          message: `Only ${product.quantity} units of "${product.name}" available`
-        });
+        return res.status(400).send({ success: false, message: `Only ${product.quantity} units of "${product.name}" available` });
       }
 
       const pricePerUnit = product.price; 
@@ -63,17 +36,11 @@ export const placeOrderController = async (req, res) => {
       const basePricePerUnit = pricePerUnit / (1 + gstDecimal);
       const gstAmountPerUnit = pricePerUnit - basePricePerUnit;
 
-      const itemSubtotal = pricePerUnit * requestedQty;
-      const itemBaseAmount = basePricePerUnit * requestedQty;
-      const itemGstAmount = gstAmountPerUnit * requestedQty;
+      calculatedSubtotal += pricePerUnit * requestedQty;
+      totalBaseAmount += basePricePerUnit * requestedQty;
+      totalGstAmount += gstAmountPerUnit * requestedQty;
 
-      calculatedSubtotal += itemSubtotal;
-      totalBaseAmount += itemBaseAmount;
-      totalGstAmount += itemGstAmount;
-
-      if (gstPercentage > highestGstRate) {
-        highestGstRate = gstPercentage;
-      }
+      if (gstPercentage > highestGstRate) highestGstRate = gstPercentage;
 
       products.push({
         product: product._id,
@@ -86,40 +53,22 @@ export const placeOrderController = async (req, res) => {
       });
     }
 
-    // 3️⃣ GIFT INJECTION LOGIC
+    // 3️⃣ Gift Logic
     if (couponType === "gift" && giftProductId) {
       const giftItem = await ProductModel.findById(giftProductId);
       if (giftItem && giftItem.quantity > 0) {
-          products.push({
-            product: giftItem._id,
-            name: `🎁 GIFT: ${giftItem.name}`,
-            qty: 1,
-            price: 0,
-            gstRate: 0,
-            basePrice: 0,
-            gstAmount: 0
-          });
-          await ProductModel.findByIdAndUpdate(giftItem._id, { $inc: { quantity: -1 } });
+        products.push({ product: giftItem._id, name: `🎁 GIFT: ${giftItem.name}`, qty: 1, price: 0, gstRate: 0, basePrice: 0, gstAmount: 0 });
+        await ProductModel.findByIdAndUpdate(giftItem._id, { $inc: { quantity: -1 } });
       }
-    }
-
-    // 4️⃣ Final Totals Calculation
-    const finalSubtotal = subtotal || calculatedSubtotal;
-    const totalPaid = totalAmount || (finalSubtotal + shippingFee - discount);
-
-    if (totalPaid < 0) {
-      return res.status(400).send({ success: false, message: "Invalid order amount" });
     }
 
     // 5️⃣ Generate Order Number
     const datePart = moment().format("YYYYMMDD");
-    const todayCount = await orderModel.countDocuments({
-      orderNumber: { $regex: `^GN-${datePart}` }
-    });
+    const todayCount = await orderModel.countDocuments({ orderNumber: { $regex: `^GN-${datePart}` } });
     const sequence = String(todayCount + 1).padStart(3, "0");
     const generatedOrderNumber = `GN-${datePart}-${sequence}`;
 
-    // 6️⃣ Save Order to Database
+    // 6️⃣ Save Order
     const order = await orderModel.create({
       products,
       buyer: req.user._id,
@@ -131,10 +80,10 @@ export const placeOrderController = async (req, res) => {
         paidAt: paymentMethod === "cod" ? null : new Date()
       },
       orderNumber: generatedOrderNumber,
-      subtotal: Number(finalSubtotal.toFixed(2)),
+      subtotal: Number((subtotal || calculatedSubtotal).toFixed(2)),
       discount: Number(discount.toFixed(2)),
       shippingFee: Number(shippingFee.toFixed(2)),
-      totalPaid: Number(totalPaid.toFixed(2)),
+      totalPaid: Number((totalAmount || (calculatedSubtotal + shippingFee - discount)).toFixed(2)),
       totalBaseAmount: Number(totalBaseAmount.toFixed(2)),
       totalGstAmount: Number(totalGstAmount.toFixed(2)),
       highestGstRate: highestGstRate,
@@ -144,54 +93,15 @@ export const placeOrderController = async (req, res) => {
     // ✅ TRIGGER REAL-TIME NOTIFICATION FOR ADMIN
     sendNotification(req, "NEW_ORDER", { orderId: generatedOrderNumber });
 
-    // 7️⃣ Final Stock Reduction for Cart Items
+    // 7️⃣ Stock Reduction
     for (const item of cart) {
-      await ProductModel.findByIdAndUpdate(
-        item._id,
-        { $inc: { quantity: -(item.cartQuantity || 1) } }
-      );
+      await ProductModel.findByIdAndUpdate(item._id, { $inc: { quantity: -(item.cartQuantity || 1) } });
     }
 
-    return res.status(201).send({
-      success: true,
-      message: "Order placed successfully",
-      order
-    });
+    return res.status(201).send({ success: true, message: "Order placed successfully", order });
 
   } catch (error) {
-    console.error("Place order error:", error);
-    return res.status(500).send({
-      success: false,
-      message: "Error processing your divine order",
-      error: error.message
-    });
-  }
-};
-
-// --- GET ALL ORDERS (ADMIN REGISTRY) ---
-// --- GET ALL ORDERS (ADMIN REGISTRY) ---
-export const getAllOrdersController = async (req, res) => {
-  try {
-    const orders = await orderModel
-      .find({})
-      .populate({
-        path: "products.product",
-        select: "name slug photo",
-      })
-      .populate("buyer", "name phone email state address")
-      // ✅ ADDED: cancelReason and returnReason to the selection
-      // Add these to your select() call in the controller
-.select("orderNumber products buyer status payment isInvoiced invoiceNo createdAt cancelReason returnReason isApprovedByAdmin")
-      .sort({ createdAt: -1 });
-
-    res.status(200).json(orders);
-  } catch (error) {
-    console.error("Get all orders error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error fetching all orders",
-      error: error.message,
-    });
+    res.status(500).send({ success: false, error: error.message });
   }
 };
 
@@ -202,46 +112,19 @@ export const orderStatusController = async (req, res) => {
     const { orderId } = req.params;
     const { status } = req.body;
 
-    // Security Check: Ensure only Admin can access
-    if (req.user.role !== 1) {
-      return res.status(401).send({ 
-        success: false, 
-        message: "Admin access required" 
-      });
-    }
-
-    // ✅ PREPARE UPDATE DATA: Include the approval flag for Cancel/Return
     const updateData = { status };
-    
-    if (status === "Cancel" || status === "Return") {
-      updateData.isApprovedByAdmin = true;
+    if (status === "Cancel" || status === "Return") updateData.isApprovedByAdmin = true;
+
+    const updated = await orderModel.findByIdAndUpdate(orderId, updateData, { new: true }).populate("buyer", "name");
+
+    // ✅ TRIGGER: INVOICE ALERT (If status set to Delivered but isInvoiced is false)
+    if (status === "Delivered" && !updated.isInvoiced) {
+      sendNotification(req, "INVOICE_ALERT", { orderId: updated.orderNumber });
     }
 
-    const updated = await orderModel.findByIdAndUpdate(
-      orderId,
-      updateData, // Apply the flag update here
-      { new: true }
-    ).populate("buyer", "name");
-
-    if (!updated) {
-      return res.status(404).send({
-        success: false,
-        message: "Order not found"
-      });
-    }
-
-    res.status(200).send({ 
-      success: true, 
-      message: `Order marked as ${status} and approved`, 
-      updated 
-    });
+    res.status(200).send({ success: true, updated });
   } catch (error) {
-    console.error("Update order status error:", error);
-    res.status(500).send({ 
-      success: false, 
-      message: "Error updating status", 
-      error: error.message 
-    });
+    res.status(500).send({ success: false, error: error.message });
   }
 };
 // --- UPDATE LOGISTICS (AWB & TRACKING) ---
@@ -288,63 +171,33 @@ export const updateOrderLogisticsController = async (req, res) => {
 export const userOrderStatusController = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { status, reason } = req.body; // status will be "Cancel" or "Return"
-    
-    if (!status || !reason || !reason.trim()) {
-      return res.status(400).send({ success: false, message: "Status and Reason are required" });
-    }
+    const { status, reason } = req.body;
 
     const order = await orderModel.findById(orderId);
     if (!order) return res.status(404).send({ success: false, message: "Order not found" });
 
-    if (order.buyer.toString() !== req.user._id.toString()) {
-      return res.status(401).send({ success: false, message: "Unauthorized access" });
-    }
-
-    // ✅ Map to "Request" statuses instead of finalized statuses
     let newStatus;
     if (status === "Cancel") {
-      const cancellableStatuses = ["Not Processed", "Processing"];
-      if (!cancellableStatuses.includes(order.status)) {
-        return res.status(400).send({ success: false, message: "Order cannot be cancelled at this stage" });
-      }
       newStatus = "Cancel Request";
+      // ✅ TRIGGER: CANCEL NOTIFICATION
+      sendNotification(req, "CANCEL_REQUEST", { orderId: order.orderNumber });
     } else if (status === "Return") {
-      if (order.status !== "Delivered") {
-        return res.status(400).send({ success: false, message: "Can only return delivered orders" });
-      }
-      // Check 7-day window
-      const deliveryDate = new Date(order.updatedAt);
-      const daysSinceDelivery = Math.floor((new Date() - deliveryDate) / (1000 * 60 * 60 * 24));
-      if (daysSinceDelivery > 7) {
-        return res.status(400).send({ success: false, message: "Return period has expired" });
-      }
       newStatus = "Return Request";
+      // ✅ TRIGGER: RETURN NOTIFICATION
+      sendNotification(req, "RETURN_REQUEST", { orderId: order.orderNumber });
     }
 
-    // ✅ Update with the Request status and reset Admin Approval flag
-    const updateData = {
+    const updated = await orderModel.findByIdAndUpdate(orderId, {
       status: newStatus,
       cancelReason: status === "Cancel" ? reason.trim() : order.cancelReason,
       returnReason: status === "Return" ? reason.trim() : order.returnReason,
-      isApprovedByAdmin: false, // Ensures the Approve button shows for Admin
+      isApprovedByAdmin: false,
       updatedAt: Date.now()
-    };
+    }, { new: true });
 
-    const updated = await orderModel.findByIdAndUpdate(orderId, updateData, { new: true });
-
-    // 🛑 Note: Stock restoration logic is removed from here. 
-    // It must be triggered in orderStatusController when Admin clicks "Approve".
-
-    res.status(200).send({ 
-      success: true, 
-      message: `${status} request submitted. Our team is reviewing it.`, 
-      order: updated 
-    });
-
+    res.status(200).send({ success: true, message: "Request submitted", order: updated });
   } catch (error) {
-    console.error("User order status error:", error);
-    res.status(500).send({ success: false, message: "Error updating request", error: error.message });
+    res.status(500).send({ success: false, error: error.message });
   }
 };
 export const getOrdersController = async (req, res) => {
