@@ -19,7 +19,6 @@ export const contactUsController = async (req, res) => {
 
         const ticketId = `GN-${Math.floor(100000 + Math.random() * 900000)}`;
 
-        // Normalize path for database storage
         const attachmentPath = req.file ? req.file.path.replace(/\\/g, "/") : "";
 
         const newTicket = await TicketModel.create({
@@ -31,6 +30,10 @@ export const contactUsController = async (req, res) => {
             message,
             attachment: attachmentPath
         });
+
+        // ✅ TRIGGER REAL-TIME NOTIFICATION FOR ADMIN
+        // We use the ticketId as the reference number
+        sendNotification(req, "USER_TICKET_ALERT", { orderId: ticketId });
 
         const transporter = nodemailer.createTransport({
             host: 'smtp-relay.brevo.com',
