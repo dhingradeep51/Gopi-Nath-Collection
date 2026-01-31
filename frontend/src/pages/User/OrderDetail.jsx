@@ -173,14 +173,21 @@ const OrderDetails = () => {
 
   const canCancel = () => {
     const cancellableStatuses = ["Not Processed", "Processing"];
-    return cancellableStatuses.includes(order?.status);
+    const result = cancellableStatuses.includes(order?.status);
+    console.log("Can cancel?", result, "Status:", order?.status);
+    return result;
   };
 
   const canReturn = () => {
-    if (order?.status !== "Delivered") return false;
+    if (order?.status !== "Delivered") {
+      console.log("Cannot return - status is not Delivered:", order?.status);
+      return false;
+    }
     const deliveryDate = moment(order.updatedAt);
     const daysSinceDelivery = moment().diff(deliveryDate, 'days');
-    return daysSinceDelivery <= 7;
+    const result = daysSinceDelivery <= 7;
+    console.log("Can return?", result, "Days since delivery:", daysSinceDelivery);
+    return result;
   };
 
   const showInvoice = order?.status === "Delivered" && invoice;
@@ -353,7 +360,9 @@ const OrderDetails = () => {
           display: flex; 
           gap: 15px; 
           margin-top: 20px; 
-          flex-wrap: wrap; 
+          flex-wrap: wrap;
+          position: relative;
+          z-index: 1;
         }
         
         .btn-action { 
@@ -370,11 +379,18 @@ const OrderDetails = () => {
           font-size: 14px;
           flex: 1;
           min-width: 150px;
+          position: relative;
+          z-index: 1;
+          pointer-events: auto;
         }
         
         .btn-action:hover:not(:disabled) { 
           transform: translateY(-2px); 
           box-shadow: 0 6px 20px rgba(0,0,0,0.3); 
+        }
+        
+        .btn-action:active:not(:disabled) {
+          transform: translateY(0);
         }
         
         .btn-invoice { 
@@ -395,6 +411,7 @@ const OrderDetails = () => {
         .btn-action:disabled { 
           opacity: 0.5; 
           cursor: not-allowed; 
+          pointer-events: none;
         }
 
         .section-title {
@@ -790,7 +807,13 @@ const OrderDetails = () => {
               {canCancel() && (
                 <button 
                   className="btn-action btn-cancel"
-                  onClick={() => setCancelModalVisible(true)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log("Cancel button clicked");
+                    setCancelModalVisible(true);
+                  }}
+                  type="button"
                 >
                   <FaTimes /> Cancel Order
                 </button>
@@ -799,7 +822,13 @@ const OrderDetails = () => {
               {canReturn() && (
                 <button 
                   className="btn-action btn-return"
-                  onClick={() => setReturnModalVisible(true)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log("Return button clicked");
+                    setReturnModalVisible(true);
+                  }}
+                  type="button"
                 >
                   <FaUndo /> Return Order
                 </button>
