@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import UserMenu from "../../components/Menus/UserMenu";
 import Layout from "../../components/Layout";
 import { useAuth } from "../../context/auth";
 import toast from "react-hot-toast";
@@ -78,7 +77,6 @@ const Profile = () => {
         <div className="container-fluid dashboard">
           <div className="row">
             <div className="col-md-3">
-              <UserMenu />
             </div>
             <div className="col-md-9">
               <div style={{ maxWidth: "800px", margin: "0 auto", padding: "0 15px" }}>
