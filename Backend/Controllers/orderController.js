@@ -186,27 +186,8 @@ export const getAllOrdersController = async (req, res) => {
       error: error.message,
     });
   }
-};
+}
 
-// --- GET SPECIFIC USER ORDERS ---
-export const getOrderDetailsController = async (req, res) => {
-  try {
-    // ❌ WRONG: await orderModel.findById(req.params.id) 
-    
-    // ✅ CORRECT: Search by the custom field you generated
-    const order = await orderModel.findOne({ orderNumber: req.params.id })
-      .populate("products._id")
-      .populate("buyer", "name email");
-
-    if (!order) {
-      return res.status(404).send({ success: false, message: "Order not found" });
-    }
-
-    res.status(200).send({ success: true, order });
-  } catch (error) {
-    res.status(500).send({ success: false, error: error.message });
-  }
-};
 
 // --- UPDATE ORDER STATUS (ADMIN ONLY) ---
 export const orderStatusController = async (req, res) => {
