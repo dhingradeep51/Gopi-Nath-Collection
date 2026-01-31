@@ -42,16 +42,24 @@ const AdminCoupons = () => {
 
   // ==================== API CALLS ====================
   const getAllCoupons = async () => {
-    try {
-      setLoading(true);
-      const { data } = await axios.get(`${BASE_URL}api/v1/coupon/get-coupons`);
-      setCoupons(data || []);
-      setLoading(false);
-    } catch (error) {
-      setLoading(false);
-      console.log("Fetch Error:", error);
+  try {
+    setLoading(true);
+    const { data } = await axios.get(`${BASE_URL}api/v1/coupon/get-coupons`);
+    
+    // Check if the data itself is the array or if it's inside a property
+    if (data?.success && Array.isArray(data.coupons)) {
+      setCoupons(data.coupons);
+    } else if (Array.isArray(data)) {
+      setCoupons(data);
     }
-  };
+    
+    setLoading(false);
+  } catch (error) {
+    setLoading(false);
+    console.error("Fetch Error:", error);
+    message.error("Failed to load coupons");
+  }
+};
 
   const getAllProducts = async () => {
     try {
