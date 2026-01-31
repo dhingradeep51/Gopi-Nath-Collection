@@ -225,16 +225,19 @@ export const userOrderStatusController = async (req, res) => {
     if (!order) return res.status(404).send({ success: false, message: "Order not found" });
 
     let newStatus;
+    let notificationType; // ✅ FIX: Declare the variable here
+
     if (status === "Cancel") {
       newStatus = "Cancel Request";
-      notificationType = "CANCEL_REQUEST"
-      // ✅ TRIGGER: CANCEL NOTIFICATION
-      sendNotification(req, "CANCEL_REQUEST", { orderId: order.orderNumber });
+      notificationType = "CANCEL_REQUEST";
     } else if (status === "Return") {
       newStatus = "Return Request";
-      notificationType = "RETURN_REQUEST"
-      // ✅ TRIGGER: RETURN NOTIFICATION
-      sendNotification(req, "RETURN_REQUEST", { orderId: order.orderNumber });
+      notificationType = "RETURN_REQUEST";
+    }
+
+    // Only send if we have a valid type
+    if (notificationType) {
+      sendNotification(req, notificationType, { orderId: order.orderNumber });
     }
 
     const updated = await orderModel.findByIdAndUpdate(orderId, {
@@ -247,6 +250,7 @@ export const userOrderStatusController = async (req, res) => {
 
     res.status(200).send({ success: true, message: "Request submitted", order: updated });
   } catch (error) {
+    console.error("User Order Status Error:", error);
     res.status(500).send({ success: false, error: error.message });
   }
 };
