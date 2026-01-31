@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
-import AdminNotification from "./AdminNotification"; // Ensure this file exists in the same folder
+import AdminNotification from "../AdminNotification"; // Ensure this file exists in the same folder
 import { 
   FaChartLine, 
   FaBoxOpen, 
