@@ -13,9 +13,7 @@ const AdminNotification = ({ setUnreadCount, role }) => {
             socket.emit("join_admin_room");
 
             socket.on("admin_alert", (data) => {
-                console.log("🔔 New Alert Received:", data); // DEBUG LOG
-                
-                // 1. Update the bubble count
+                // 1. Update the bubble count for the bell
                 setUnreadCount(prev => prev + 1);
 
                 // 2. ✅ SAVE TO LOCALSTORAGE
@@ -23,7 +21,9 @@ const AdminNotification = ({ setUnreadCount, role }) => {
                     const existingLogs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
                     const updatedLogs = [data, ...existingLogs].slice(0, 50); 
                     localStorage.setItem("admin_notifications", JSON.stringify(updatedLogs));
-                    console.log("✅ Data saved to Registry");
+                    
+                    // ✅ This "dispatches" an event so the Notification Page updates instantly
+                    window.dispatchEvent(new Event("storage"));
                 } catch (err) {
                     console.error("❌ Storage Error:", err);
                 }
