@@ -356,24 +356,25 @@ export const userOrderStatusController = async (req, res) => {
     });
   }
 };
-export const getOrdersController = async (req, res) => {
+// Backend: Controllers/orderController.js
+export const getOrderByIdController = async (req, res) => {
   try {
-    const orders = await orderModel
-      .find({ buyer: req.user._id })
-      .populate({
-        path: "products.product",
-        select: "name photo"
-      })
-      .sort({ createdAt: -1 });
+    const { orderId } = req.params;
 
-    res.status(200).send(orders);
+    // Check if the input is a valid MongoDB ID or a custom string
+    const query = orderId.match(/^[0-9a-fA-F]{24}$/) 
+      ? { _id: orderId } 
+      : { orderNumber: orderId };
+
+    const order = await orderModel.findOne(query)
+      .populate("products.product", "name photo")
+      .populate("buyer", "name email phone address city state pincode");
+
+    if (!order) return res.status(404).send({ success: false, message: "Order not found" });
+
+    res.status(200).send({ success: true, order });
   } catch (error) {
-    console.error("Get user orders error:", error);
-    res.status(500).send({
-      success: false,
-      message: "Error fetching your orders",
-      error: error.message
-    });
+    res.status(500).send({ success: false, error: error.message });
   }
 };
 // --- MANAGE INVOICE STATUS ---
