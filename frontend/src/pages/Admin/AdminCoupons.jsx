@@ -93,9 +93,10 @@ const AdminCoupons = () => {
   const handleSubmit = async (e) => {
   e.preventDefault();
 
-  // Updated validation logic
+  // New check: if it's a gift, we don't need a discountValue
   const isGift = discountType === "gift";
-  if (!name || !expiry || (!isGift && !discountValue) || (isGift && !selectedProduct)) {
+
+  if (!name || !expiry || (!isGift && !discountValue)) {
     return message.error("Please fill all required fields");
   }
 
@@ -105,8 +106,7 @@ const AdminCoupons = () => {
       name: name.toUpperCase(),
       expiry: expiry,
       discountType,
-      // Send 0 for value if it's a gift type
-      discountValue: isGift ? 0 : discountValue, 
+      discountValue: isGift ? 0 : discountValue, // Send 0 if it's a gift
       maxDiscount: discountType === "percentage" ? maxDiscount : 0,
       minPurchase,
       usageLimit,
@@ -114,19 +114,18 @@ const AdminCoupons = () => {
     };
 
     const { data } = await axios.post(`${BASE_URL}api/v1/coupon/create-coupon`, couponData);
-    // ... rest of your logic
-
-      if (data.success) {
-        message.success("Divine Coupon Created Successfully!");
-        resetForm();
-        getAllCoupons();
-      }
-      setLoading(false);
-    } catch (error) {
-      setLoading(false);
-      message.error(error.response?.data?.message || "Failed to create coupon");
+    
+    if (data.success) {
+      message.success("Divine Coupon Created!");
+      resetForm();
+      getAllCoupons();
     }
-  };
+    setLoading(false);
+  } catch (error) {
+    setLoading(false);
+    message.error(error.response?.data?.message || "Creation Failed");
+  }
+};
 
   const handleDelete = async (id) => {
     try {
