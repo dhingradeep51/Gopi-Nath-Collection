@@ -281,127 +281,63 @@ export const updateOrderLogisticsController = async (req, res) => {
 export const userOrderStatusController = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { status, reason } = req.body;
+    const { status, reason } = req.body; // status will be "Cancel" or "Return"
     
-    // Validate required fields
-    if (!status) {
-      return res.status(400).send({ 
-        success: false, 
-        message: "Status is required" 
-      });
-    }
-
-    if (!reason || !reason.trim()) {
-      return res.status(400).send({ 
-        success: false, 
-        message: "Reason is required" 
-      });
+    if (!status || !reason || !reason.trim()) {
+      return res.status(400).send({ success: false, message: "Status and Reason are required" });
     }
 
     const order = await orderModel.findById(orderId);
+    if (!order) return res.status(404).send({ success: false, message: "Order not found" });
 
-    if (!order) {
-      return res.status(404).send({ 
-        success: false, 
-        message: "Order not found" 
-      });
-    }
-
-    // Check if user owns this order
     if (order.buyer.toString() !== req.user._id.toString()) {
-      return res.status(401).send({ 
-        success: false, 
-        message: "Unauthorized access" 
-      });
+      return res.status(401).send({ success: false, message: "Unauthorized access" });
     }
 
-    // Validate cancel conditions
+    // ✅ Map to "Request" statuses instead of finalized statuses
+    let newStatus;
     if (status === "Cancel") {
       const cancellableStatuses = ["Not Processed", "Processing"];
       if (!cancellableStatuses.includes(order.status)) {
-        return res.status(400).send({ 
-          success: false, 
-          message: `Cannot cancel order with status: ${order.status}. Only orders with status 'Not Processed' or 'Processing' can be cancelled.` 
-        });
+        return res.status(400).send({ success: false, message: "Order cannot be cancelled at this stage" });
       }
-    }
-
-    // Validate return conditions
-    if (status === "Return") {
+      newStatus = "Cancel Request";
+    } else if (status === "Return") {
       if (order.status !== "Delivered") {
-        return res.status(400).send({ 
-          success: false, 
-          message: "Can only return delivered orders" 
-        });
+        return res.status(400).send({ success: false, message: "Can only return delivered orders" });
       }
-
-      // Check if return is within 7 days of delivery
+      // Check 7-day window
       const deliveryDate = new Date(order.updatedAt);
-      const currentDate = new Date();
-      const daysSinceDelivery = Math.floor((currentDate - deliveryDate) / (1000 * 60 * 60 * 24));
-      
+      const daysSinceDelivery = Math.floor((new Date() - deliveryDate) / (1000 * 60 * 60 * 24));
       if (daysSinceDelivery > 7) {
-        return res.status(400).send({ 
-          success: false, 
-          message: "Return period has expired. Returns are only accepted within 7 days of delivery." 
-        });
+        return res.status(400).send({ success: false, message: "Return period has expired" });
       }
+      newStatus = "Return Request";
     }
 
-    // Prepare update data
+    // ✅ Update with the Request status and reset Admin Approval flag
     const updateData = {
-      status,
+      status: newStatus,
       cancelReason: status === "Cancel" ? reason.trim() : order.cancelReason,
       returnReason: status === "Return" ? reason.trim() : order.returnReason,
+      isApprovedByAdmin: false, // Ensures the Approve button shows for Admin
       updatedAt: Date.now()
     };
 
-    // Update order with reason
-    const updated = await orderModel.findByIdAndUpdate(
-      orderId, 
-      updateData, 
-      { new: true }
-    );
+    const updated = await orderModel.findByIdAndUpdate(orderId, updateData, { new: true });
 
-    // If canceling, restore stock to inventory
-    if (status === "Cancel") {
-      for (const item of order.products) {
-        await ProductModel.findByIdAndUpdate(
-          item.product,
-          { $inc: { quantity: item.qty } }
-        );
-      }
-      
-      console.log(`Order ${orderId} cancelled. Stock restored for ${order.products.length} items.`);
-    }
-
-    // If returning, you might want to handle stock differently
-    // Uncomment if you want to restore stock on returns as well
-    // if (status === "Return") {
-    //   for (const item of order.products) {
-    //     await ProductModel.findByIdAndUpdate(
-    //       item.product,
-    //       { $inc: { quantity: item.qty } }
-    //     );
-    //   }
-    //   console.log(`Order ${orderId} returned. Stock restored for ${order.products.length} items.`);
-    // }
+    // 🛑 Note: Stock restoration logic is removed from here. 
+    // It must be triggered in orderStatusController when Admin clicks "Approve".
 
     res.status(200).send({ 
       success: true, 
-      message: status === "Cancel" 
-        ? "Order cancelled successfully" 
-        : "Return request submitted successfully", 
+      message: `${status} request submitted. Our team is reviewing it.`, 
       order: updated 
     });
 
   } catch (error) {
     console.error("User order status error:", error);
-    res.status(500).send({ 
-      success: false, 
-      message: "Error updating order status",
-      error: error.message 
-    });
+    res.status(500).send({ success: false, message: "Error updating request", error: error.message });
   }
 };
 export const getOrdersController = async (req, res) => {

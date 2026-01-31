@@ -3,8 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
 import axios from "axios";
 import moment from "moment";
-import { 
-  FaArrowLeft, FaTruck, FaBoxOpen, 
+import {
+  FaArrowLeft, FaTruck, FaBoxOpen,
   FaInfoCircle, FaMapMarkerAlt, FaReceipt,
   FaDownload, FaTimes, FaUndo
 } from "react-icons/fa";
@@ -92,7 +92,7 @@ const OrderDetails = () => {
         `${BASE_URL}api/v1/invoice/download/${invoice._id}`,
         { responseType: 'blob' }
       );
-      
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -100,7 +100,7 @@ const OrderDetails = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      
+
       toast.dismiss();
       toast.success("Invoice downloaded successfully!");
     } catch (error) {
@@ -123,7 +123,7 @@ const OrderDetails = () => {
     try {
       setProcessingAction(true);
       const finalReason = cancelReason === "Other" ? cancelReasonText.trim() : cancelReason;
-      
+
       const { data } = await axios.put(`${BASE_URL}api/v1/order/user-order-status/${order._id}`, {
         status: "Cancel",
         reason: finalReason
@@ -157,7 +157,7 @@ const OrderDetails = () => {
     try {
       setProcessingAction(true);
       const finalReason = returnReason === "Other" ? returnReasonText.trim() : returnReason;
-      
+
       const { data } = await axios.put(`${BASE_URL}api/v1/order/user-order-status/${order._id}`, {
         status: "Return",
         reason: finalReason
@@ -219,21 +219,21 @@ const OrderDetails = () => {
     return (
       <Layout>
         <div style={{
-          display: "flex", 
+          display: "flex",
           flexDirection: "column",
-          justifyContent: "center", 
-          alignItems: "center", 
-          height: "100vh", 
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
           background: "#1a050b",
           padding: "20px"
         }}>
           <div className="spinner-grow" role="status" style={{ width: "3.5rem", height: "3.5rem", color: "#D4AF37" }}>
             <span className="visually-hidden">Loading...</span>
           </div>
-          <h4 style={{ 
-            color: "#D4AF37", 
-            fontFamily: "serif", 
-            letterSpacing: "2px", 
+          <h4 style={{
+            color: "#D4AF37",
+            fontFamily: "serif",
+            letterSpacing: "2px",
             marginTop: "20px",
             fontSize: "clamp(14px, 4vw, 18px)",
             textAlign: "center"
@@ -248,17 +248,17 @@ const OrderDetails = () => {
   if (!order) {
     return (
       <Layout>
-        <div style={{ 
-          textAlign: "center", 
-          padding: "100px 20px", 
-          background: "#1a050b", 
-          minHeight: "100vh" 
+        <div style={{
+          textAlign: "center",
+          padding: "100px 20px",
+          background: "#1a050b",
+          minHeight: "100vh"
         }}>
           <h3 style={{ color: colors.gold, fontSize: "clamp(18px, 5vw, 24px)" }}>
             Order not found
           </h3>
-          <Button 
-            onClick={() => navigate("/dashboard/user/orders")} 
+          <Button
+            onClick={() => navigate("/dashboard/user/orders")}
             style={{ marginTop: "20px" }}
           >
             Back to Orders
@@ -767,7 +767,7 @@ const OrderDetails = () => {
 
       <div className="details-wrapper">
         <div className="details-container">
-          
+
           <div className="back-link" onClick={() => navigate("/dashboard/user/orders")}>
             <FaArrowLeft /> BACK TO ORDERS
           </div>
@@ -777,68 +777,66 @@ const OrderDetails = () => {
             <div className="status-header">
               <div>
                 <h2 style={{
-                  color: colors.gold, 
-                  fontSize: '1.5rem', 
-                  marginBottom: '5px', 
+                  color: colors.gold,
+                  fontSize: '1.5rem',
+                  marginBottom: '5px',
                   fontFamily: 'serif'
                 }}>
                   Order Receipt
                 </h2>
-                <p style={{fontSize: '12px', color: colors.textMuted}}>
+                <p style={{ fontSize: '12px', color: colors.textMuted }}>
                   Placed on {moment(order?.createdAt).format("LLLL")}
                 </p>
               </div>
               <div>
                 <span className="status-badge" style={{
-                  background: 
-                    order?.status === "Delivered" ? colors.success + '22' :
-                    order?.status === "Cancel" ? colors.danger + '22' :
-                    order?.status === "Return" ? '#ff9800' + '22' :
-                    colors.gold + '22', 
-                  color: 
-                    order?.status === "Delivered" ? colors.success :
-                    order?.status === "Cancel" ? colors.danger :
-                    order?.status === "Return" ? '#ff9800' :
-                    colors.gold,
+                  background:
+                    order?.status?.includes("Request") ? "#faad1422" : // Amber for Under Review
+                      order?.status === "Delivered" ? colors.success + '22' :
+                        order?.status === "Cancel" ? colors.danger + '22' :
+                          colors.gold + '22',
+                  color:
+                    order?.status?.includes("Request") ? "#faad14" :
+                      order?.status === "Delivered" ? colors.success :
+                        order?.status === "Cancel" ? colors.danger :
+                          colors.gold,
                   borderColor:
-                    order?.status === "Delivered" ? colors.success :
-                    order?.status === "Cancel" ? colors.danger :
-                    order?.status === "Return" ? '#ff9800' :
-                    colors.gold
+                    order?.status?.includes("Request") ? "#faad14" :
+                      colors.gold
                 }}>
-                  {order?.status?.toUpperCase()}
+                  {order?.status?.includes("Request") ? "UNDER REVIEW" : order?.status?.toUpperCase()}
                 </span>
               </div>
             </div>
-            
+
             <div className="info-row">
-              <FaInfoCircle color={colors.gold} style={{ flexShrink: 0, marginTop: '2px' }}/> 
-              <span className="info-label">Order No:</span> 
+              <FaInfoCircle color={colors.gold} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <span className="info-label">Order No:</span>
               <span className="info-val">{order?.orderNumber}</span>
             </div>
             <div className="info-row">
-              <FaReceipt color={colors.gold} style={{ flexShrink: 0, marginTop: '2px' }}/> 
-              <span className="info-label">Payment:</span> 
+              <FaReceipt color={colors.gold} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <span className="info-label">Payment:</span>
               <span className="info-val">
-                {order?.payment?.method?.toUpperCase() || "COD"} 
+                {order?.payment?.method?.toUpperCase() || "COD"}
                 ({order?.payment?.success ? "Success" : "Pending"})
               </span>
             </div>
 
             <div className="action-buttons">
               {showInvoice && (
-                <button 
+                <button
                   className="btn-action btn-invoice"
                   onClick={handleDownloadInvoice}
                   disabled={loadingInvoice}
                 >
-                  <FaDownload /> 
+                  <FaDownload />
                   {loadingInvoice ? "Loading..." : "Download Invoice"}
                 </button>
               )}
 
               {canCancel() && (
-                <button 
+                <button
                   className="btn-action btn-cancel"
                   onClick={(e) => {
                     e.preventDefault();
@@ -855,7 +853,7 @@ const OrderDetails = () => {
               )}
 
               {canReturn() && (
-                <button 
+                <button
                   className="btn-action btn-return"
                   onClick={(e) => {
                     e.preventDefault();
@@ -879,8 +877,8 @@ const OrderDetails = () => {
               <FaTruck /> SHIPPING DETAILS
             </h3>
             <div className="info-row">
-              <FaMapMarkerAlt color={colors.gold} style={{ flexShrink: 0, marginTop: '2px' }}/> 
-              <span className="info-label">Destination:</span> 
+              <FaMapMarkerAlt color={colors.gold} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <span className="info-label">Destination:</span>
               <span className="info-val">{order?.address || "No Address Provided"}</span>
             </div>
           </div>
@@ -892,20 +890,20 @@ const OrderDetails = () => {
             </h3>
             {order?.products?.map((p, index) => (
               <div key={index} className="product-item">
-                <img 
-                  src={`${BASE_URL}api/v1/product/product-photo/${p.product?._id || p.product}`} 
-                  alt={p.name} 
-                  className="product-img" 
+                <img
+                  src={`${BASE_URL}api/v1/product/product-photo/${p.product?._id || p.product}`}
+                  alt={p.name}
+                  className="product-img"
                   onError={(e) => { e.target.src = "/logo192.png"; }}
                 />
                 <div className="product-info">
                   <div className="product-name">
                     {p.name}
                   </div>
-                  <div style={{color: colors.gold, marginTop: '5px'}}>
+                  <div style={{ color: colors.gold, marginTop: '5px' }}>
                     ₹{p.price?.toLocaleString()} × {p.qty}
                   </div>
-                  <div style={{fontSize: '13px', color: colors.textMuted, marginTop: '3px'}}>
+                  <div style={{ fontSize: '13px', color: colors.textMuted, marginTop: '3px' }}>
                     Total: ₹{(p.price * p.qty)?.toLocaleString()}
                   </div>
                 </div>
@@ -914,7 +912,7 @@ const OrderDetails = () => {
           </div>
 
           {/* SUMMARY SECTION */}
-          <div className="section-card" style={{border: `2px solid ${colors.gold}`}}>
+          <div className="section-card" style={{ border: `2px solid ${colors.gold}` }}>
             <h3 className="section-title">
               <FaReceipt /> ORDER SUMMARY
             </h3>
@@ -929,7 +927,7 @@ const OrderDetails = () => {
               </span>
             </div>
             {order?.discount > 0 && (
-              <div className="summary-row" style={{color: colors.success}}>
+              <div className="summary-row" style={{ color: colors.success }}>
                 <span>Discount</span>
                 <span>- ₹{order?.discount?.toLocaleString()}</span>
               </div>
@@ -959,7 +957,7 @@ const OrderDetails = () => {
           setCancelReasonText("");
         }}
         footer={null}
-        bodyStyle={{ 
+        bodyStyle={{
           backgroundColor: colors.richBurgundy,
           padding: '24px'
         }}
@@ -974,21 +972,21 @@ const OrderDetails = () => {
           <p className="modal-text">
             Please select a reason for cancelling this order:
           </p>
-          <Radio.Group 
-            onChange={(e) => setCancelReason(e.target.value)} 
+          <Radio.Group
+            onChange={(e) => setCancelReason(e.target.value)}
             value={cancelReason}
             style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}
           >
             {cancelReasons.map((reason, idx) => (
-              <Radio 
-                key={idx} 
+              <Radio
+                key={idx}
                 value={reason}
               >
                 <span style={{ color: 'white', fontSize: '14px' }}>{reason}</span>
               </Radio>
             ))}
           </Radio.Group>
-          
+
           {cancelReason === "Other" && (
             <div style={{ marginTop: '15px' }}>
               <textarea
@@ -1056,7 +1054,7 @@ const OrderDetails = () => {
           setReturnReasonText("");
         }}
         footer={null}
-        bodyStyle={{ 
+        bodyStyle={{
           backgroundColor: colors.richBurgundy,
           padding: '24px'
         }}
@@ -1074,21 +1072,21 @@ const OrderDetails = () => {
           <p className="modal-note">
             Note: Return requests can only be submitted within 7 days of delivery.
           </p>
-          <Radio.Group 
-            onChange={(e) => setReturnReason(e.target.value)} 
+          <Radio.Group
+            onChange={(e) => setReturnReason(e.target.value)}
             value={returnReason}
             style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}
           >
             {returnReasons.map((reason, idx) => (
-              <Radio 
-                key={idx} 
+              <Radio
+                key={idx}
                 value={reason}
               >
                 <span style={{ color: 'white', fontSize: '14px' }}>{reason}</span>
               </Radio>
             ))}
           </Radio.Group>
-          
+
           {returnReason === "Other" && (
             <div style={{ marginTop: '15px' }}>
               <textarea
