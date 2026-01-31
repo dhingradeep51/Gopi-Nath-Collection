@@ -26,6 +26,8 @@ const OrderDetails = () => {
   const [returnModalVisible, setReturnModalVisible] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [returnReason, setReturnReason] = useState("");
+  const [cancelReasonText, setCancelReasonText] = useState("");
+  const [returnReasonText, setReturnReasonText] = useState("");
   const [processingAction, setProcessingAction] = useState(false);
 
   const colors = {
@@ -113,17 +115,25 @@ const OrderDetails = () => {
       return;
     }
 
+    if (cancelReason === "Other" && !cancelReasonText.trim()) {
+      toast.error("Please specify your reason for cancellation");
+      return;
+    }
+
     try {
       setProcessingAction(true);
+      const finalReason = cancelReason === "Other" ? cancelReasonText.trim() : cancelReason;
+      
       const { data } = await axios.put(`${BASE_URL}api/v1/order/user-order-status/${order._id}`, {
         status: "Cancel",
-        reason: cancelReason
+        reason: finalReason
       });
 
       if (data?.success) {
         toast.success("Order cancelled successfully");
         setCancelModalVisible(false);
         setCancelReason("");
+        setCancelReasonText("");
         getOrderDetails();
       }
     } catch (error) {
@@ -139,17 +149,25 @@ const OrderDetails = () => {
       return;
     }
 
+    if (returnReason === "Other" && !returnReasonText.trim()) {
+      toast.error("Please specify your reason for return");
+      return;
+    }
+
     try {
       setProcessingAction(true);
+      const finalReason = returnReason === "Other" ? returnReasonText.trim() : returnReason;
+      
       const { data } = await axios.put(`${BASE_URL}api/v1/order/user-order-status/${order._id}`, {
         status: "Return",
-        reason: returnReason
+        reason: finalReason
       });
 
       if (data?.success) {
         toast.success("Return request submitted successfully");
         setReturnModalVisible(false);
         setReturnReason("");
+        setReturnReasonText("");
         getOrderDetails();
       }
     } catch (error) {
@@ -658,6 +676,16 @@ const OrderDetails = () => {
             height: 44px !important;
             font-size: 14px;
           }
+
+          /* Textarea mobile styles */
+          textarea {
+            font-size: 14px !important;
+            min-height: 100px !important;
+          }
+
+          textarea::placeholder {
+            font-size: 13px;
+          }
         }
 
         /* ===== EXTRA SMALL MOBILE (< 480px) ===== */
@@ -928,6 +956,7 @@ const OrderDetails = () => {
         onCancel={() => {
           setCancelModalVisible(false);
           setCancelReason("");
+          setCancelReasonText("");
         }}
         footer={null}
         bodyStyle={{ 
@@ -959,11 +988,34 @@ const OrderDetails = () => {
               </Radio>
             ))}
           </Radio.Group>
+          
+          {cancelReason === "Other" && (
+            <div style={{ marginTop: '15px' }}>
+              <textarea
+                placeholder="Please specify your reason for cancellation..."
+                value={cancelReason === "Other" ? cancelReasonText : ""}
+                onChange={(e) => setCancelReasonText(e.target.value)}
+                style={{
+                  width: '100%',
+                  minHeight: '80px',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: `1px solid ${colors.gold}44`,
+                  background: colors.deepBurgundy,
+                  color: 'white',
+                  fontSize: '14px',
+                  fontFamily: 'inherit',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+          )}
           <div className="modal-footer">
             <Button
               onClick={() => {
                 setCancelModalVisible(false);
                 setCancelReason("");
+                setCancelReasonText("");
               }}
               style={{
                 background: 'transparent',
@@ -979,7 +1031,7 @@ const OrderDetails = () => {
               danger
               onClick={handleCancelOrder}
               loading={processingAction}
-              disabled={!cancelReason}
+              disabled={!cancelReason || (cancelReason === "Other" && !cancelReasonText.trim())}
               style={{ height: '40px' }}
             >
               Confirm Cancellation
@@ -1001,6 +1053,7 @@ const OrderDetails = () => {
         onCancel={() => {
           setReturnModalVisible(false);
           setReturnReason("");
+          setReturnReasonText("");
         }}
         footer={null}
         bodyStyle={{ 
@@ -1035,11 +1088,34 @@ const OrderDetails = () => {
               </Radio>
             ))}
           </Radio.Group>
+          
+          {returnReason === "Other" && (
+            <div style={{ marginTop: '15px' }}>
+              <textarea
+                placeholder="Please specify your reason for return..."
+                value={returnReason === "Other" ? returnReasonText : ""}
+                onChange={(e) => setReturnReasonText(e.target.value)}
+                style={{
+                  width: '100%',
+                  minHeight: '80px',
+                  padding: '12px',
+                  borderRadius: '8px',
+                  border: `1px solid ${colors.gold}44`,
+                  background: colors.deepBurgundy,
+                  color: 'white',
+                  fontSize: '14px',
+                  fontFamily: 'inherit',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+          )}
           <div className="modal-footer">
             <Button
               onClick={() => {
                 setReturnModalVisible(false);
                 setReturnReason("");
+                setReturnReasonText("");
               }}
               style={{
                 background: 'transparent',
@@ -1059,7 +1135,7 @@ const OrderDetails = () => {
               }}
               onClick={handleReturnOrder}
               loading={processingAction}
-              disabled={!returnReason}
+              disabled={!returnReason || (returnReason === "Other" && !returnReasonText.trim())}
             >
               Submit Return Request
             </Button>
