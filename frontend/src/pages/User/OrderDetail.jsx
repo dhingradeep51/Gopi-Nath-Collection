@@ -6,12 +6,10 @@ import moment from "moment";
 import { 
   FaArrowLeft, FaTruck, FaBoxOpen, 
   FaInfoCircle, FaMapMarkerAlt, FaReceipt,
-  FaDownload, FaTimes, FaUndo, FaFileInvoice
+  FaDownload, FaTimes, FaUndo
 } from "react-icons/fa";
 import toast from "react-hot-toast";
-import { Modal, Input, Button } from "antd";
-
-const { TextArea } = Input;
+import { Modal, Radio, Button } from "antd";
 
 const OrderDetails = () => {
   const params = useParams();
@@ -23,7 +21,7 @@ const OrderDetails = () => {
 
   const BASE_URL = import.meta.env.VITE_API_URL || "/";
 
-  // ✅ MODAL STATES
+  // ✅ MODAL STATES WITH RADIO OPTIONS
   const [cancelModalVisible, setCancelModalVisible] = useState(false);
   const [returnModalVisible, setReturnModalVisible] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
@@ -39,7 +37,23 @@ const OrderDetails = () => {
     textMuted: "#aaaaaa"
   };
 
-  /* ================= FETCH ORDER ================= */
+  // ✅ PREDEFINED REASONS
+  const cancelReasons = [
+    "Changed my mind",
+    "Found a better price elsewhere",
+    "Ordered by mistake",
+    "Delivery time is too long",
+    "Other"
+  ];
+
+  const returnReasons = [
+    "Product is defective/damaged",
+    "Wrong product received",
+    "Product not as described",
+    "Quality not satisfactory",
+    "Other"
+  ];
+
   const getOrderDetails = useCallback(async () => {
     try {
       setLoading(true);
@@ -53,9 +67,8 @@ const OrderDetails = () => {
     } finally {
       setLoading(false);
     }
-  }, [params.orderID]);
+  }, [params.orderID, BASE_URL]);
 
-  /* ================= FETCH INVOICE ================= */
   const fetchInvoice = useCallback(async () => {
     try {
       setLoadingInvoice(true);
@@ -68,9 +81,8 @@ const OrderDetails = () => {
     } finally {
       setLoadingInvoice(false);
     }
-  }, [order?._id]);
+  }, [order?._id, BASE_URL]);
 
-  /* ================= DOWNLOAD INVOICE ================= */
   const handleDownloadInvoice = async () => {
     try {
       toast.loading("Downloading invoice...");
@@ -95,10 +107,9 @@ const OrderDetails = () => {
     }
   };
 
-  /* ================= CANCEL ORDER ================= */
   const handleCancelOrder = async () => {
-    if (!cancelReason.trim()) {
-      toast.error("Please provide a reason for cancellation");
+    if (!cancelReason) {
+      toast.error("Please select a reason for cancellation");
       return;
     }
 
@@ -113,7 +124,7 @@ const OrderDetails = () => {
         toast.success("Order cancelled successfully");
         setCancelModalVisible(false);
         setCancelReason("");
-        getOrderDetails(); // Refresh order data
+        getOrderDetails();
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to cancel order");
@@ -122,10 +133,9 @@ const OrderDetails = () => {
     }
   };
 
-  /* ================= RETURN ORDER ================= */
   const handleReturnOrder = async () => {
-    if (!returnReason.trim()) {
-      toast.error("Please provide a reason for return");
+    if (!returnReason) {
+      toast.error("Please select a reason for return");
       return;
     }
 
@@ -140,7 +150,7 @@ const OrderDetails = () => {
         toast.success("Return request submitted successfully");
         setReturnModalVisible(false);
         setReturnReason("");
-        getOrderDetails(); // Refresh order data
+        getOrderDetails();
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to submit return request");
@@ -149,7 +159,6 @@ const OrderDetails = () => {
     }
   };
 
-  /* ================= EFFECTS ================= */
   useEffect(() => {
     if (params?.orderID) {
       getOrderDetails();
@@ -162,26 +171,20 @@ const OrderDetails = () => {
     }
   }, [order, fetchInvoice]);
 
-  /* ================= HELPER FUNCTIONS ================= */
-  // ✅ Check if order can be cancelled (only if Not Processed or Processing - NOT Shipped/Delivered)
   const canCancel = () => {
     const cancellableStatuses = ["Not Processed", "Processing"];
     return cancellableStatuses.includes(order?.status);
   };
 
-  // ✅ Check if order can be returned (only if Delivered and within 7 days)
   const canReturn = () => {
     if (order?.status !== "Delivered") return false;
-    
-    const deliveryDate = moment(order.updatedAt); // Assuming updatedAt is when delivered
+    const deliveryDate = moment(order.updatedAt);
     const daysSinceDelivery = moment().diff(deliveryDate, 'days');
     return daysSinceDelivery <= 7;
   };
 
-  // ✅ Check if invoice should be shown (only after Delivered)
   const showInvoice = order?.status === "Delivered" && invoice;
 
-  /* ================= LOADING STATE ================= */
   if (loading) {
     return (
       <Layout>
@@ -248,6 +251,11 @@ const OrderDetails = () => {
         .btn-cancel { background: ${colors.danger}; color: white; }
         .btn-return { background: #ff9800; color: white; }
         .btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .ant-radio-wrapper { color: white !important; display: block; margin-bottom: 12px; padding: 12px; border-radius: 8px; transition: all 0.2s; }
+        .ant-radio-wrapper:hover { background: rgba(212, 175, 55, 0.05); }
+        .ant-radio-checked .ant-radio-inner { border-color: ${colors.gold} !important; background-color: ${colors.gold} !important; }
+        .ant-radio:hover .ant-radio-inner { border-color: ${colors.gold} !important; }
 
         @media (max-width: 768px) {
           .details-wrapper { padding: 20px 10px; }
@@ -317,9 +325,7 @@ const OrderDetails = () => {
               </span>
             </div>
 
-            {/* ✅ ACTION BUTTONS */}
             <div className="action-buttons">
-              {/* Invoice Download Button - Only when Delivered */}
               {showInvoice && (
                 <button 
                   className="btn-action btn-invoice"
@@ -331,7 +337,6 @@ const OrderDetails = () => {
                 </button>
               )}
 
-              {/* Cancel Button - Only when Not Processed or Processing (NOT Delivered/Shipped) */}
               {canCancel() && (
                 <button 
                   className="btn-action btn-cancel"
@@ -341,7 +346,6 @@ const OrderDetails = () => {
                 </button>
               )}
 
-              {/* Return Button - Only when Delivered and within 7 days */}
               {canReturn() && (
                 <button 
                   className="btn-action btn-return"
@@ -429,7 +433,7 @@ const OrderDetails = () => {
         </div>
       </div>
 
-      {/* ✅ CANCEL MODAL */}
+      {/* ✅ CANCEL MODAL WITH RADIO BUTTONS */}
       <Modal
         title={
           <span style={{ color: colors.gold, fontSize: '18px', fontWeight: 'bold' }}>
@@ -449,22 +453,21 @@ const OrderDetails = () => {
         }}
       >
         <div style={{ padding: '20px 0' }}>
-          <p style={{ color: 'white', marginBottom: '15px' }}>
-            Please provide a reason for cancelling this order:
+          <p style={{ color: 'white', marginBottom: '20px', fontSize: '14px' }}>
+            Please select a reason for cancelling this order:
           </p>
-          <TextArea
-            rows={4}
-            placeholder="Enter your reason for cancellation..."
+          <Radio.Group 
+            onChange={(e) => setCancelReason(e.target.value)} 
             value={cancelReason}
-            onChange={(e) => setCancelReason(e.target.value)}
-            style={{
-              backgroundColor: 'rgba(255,255,255,0.05)',
-              border: `1px solid ${colors.gold}44`,
-              color: 'white',
-              borderRadius: '8px'
-            }}
-          />
-          <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+            style={{ width: '100%' }}
+          >
+            {cancelReasons.map((reason, idx) => (
+              <Radio key={idx} value={reason}>
+                {reason}
+              </Radio>
+            ))}
+          </Radio.Group>
+          <div style={{ marginTop: '25px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
             <Button
               onClick={() => {
                 setCancelModalVisible(false);
@@ -483,7 +486,7 @@ const OrderDetails = () => {
               danger
               onClick={handleCancelOrder}
               loading={processingAction}
-              disabled={!cancelReason.trim()}
+              disabled={!cancelReason}
             >
               Confirm Cancellation
             </Button>
@@ -491,7 +494,7 @@ const OrderDetails = () => {
         </div>
       </Modal>
 
-      {/* ✅ RETURN MODAL */}
+      {/* ✅ RETURN MODAL WITH RADIO BUTTONS */}
       <Modal
         title={
           <span style={{ color: colors.gold, fontSize: '18px', fontWeight: 'bold' }}>
@@ -511,25 +514,24 @@ const OrderDetails = () => {
         }}
       >
         <div style={{ padding: '20px 0' }}>
-          <p style={{ color: 'white', marginBottom: '15px' }}>
-            Please provide a reason for returning this order:
+          <p style={{ color: 'white', marginBottom: '15px', fontSize: '14px' }}>
+            Please select a reason for returning this order:
           </p>
-          <p style={{ color: colors.textMuted, fontSize: '12px', marginBottom: '15px' }}>
+          <p style={{ color: colors.textMuted, fontSize: '12px', marginBottom: '20px' }}>
             Note: Return requests can only be submitted within 7 days of delivery.
           </p>
-          <TextArea
-            rows={4}
-            placeholder="Enter your reason for return (defective product, wrong item, etc.)..."
+          <Radio.Group 
+            onChange={(e) => setReturnReason(e.target.value)} 
             value={returnReason}
-            onChange={(e) => setReturnReason(e.target.value)}
-            style={{
-              backgroundColor: 'rgba(255,255,255,0.05)',
-              border: `1px solid ${colors.gold}44`,
-              color: 'white',
-              borderRadius: '8px'
-            }}
-          />
-          <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+            style={{ width: '100%' }}
+          >
+            {returnReasons.map((reason, idx) => (
+              <Radio key={idx} value={reason}>
+                {reason}
+              </Radio>
+            ))}
+          </Radio.Group>
+          <div style={{ marginTop: '25px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
             <Button
               onClick={() => {
                 setReturnModalVisible(false);
@@ -551,7 +553,7 @@ const OrderDetails = () => {
               }}
               onClick={handleReturnOrder}
               loading={processingAction}
-              disabled={!returnReason.trim()}
+              disabled={!returnReason}
             >
               Submit Return Request
             </Button>
