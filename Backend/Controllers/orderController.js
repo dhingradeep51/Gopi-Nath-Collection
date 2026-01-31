@@ -442,33 +442,31 @@ export const getOrderByIdController = async (req, res) => {
 };
 export const getAdminStatsController = async (req, res) => {
   try {
-    const userCount = await userModel.countDocuments({});
-    const allOrders = await orderModel.find({}, "totalPaid status isInvoiced");
-    const products = await ProductModel.find({}, "quantity");
-    
-    const totalRevenue = allOrders.reduce((acc, curr) => acc + (curr.totalPaid || 0), 0);
-    const lowStockItems = products.filter(p => p.quantity < 5).length;
+    const userCount = await userModel.countDocuments({}); 
+    const allOrders = await orderModel.find({}, "orderNumber totalPaid status isInvoiced"); 
+    const products = await ProductModel.find({}, "name quantity"); 
 
-    // ✅ NOTIFICATION LOGIC
-    // 1. Return/Cancel Requests
-    const orderRequests = allOrders.filter(o => o.status.includes("Request")).length;
-    // 2. Unbilled Orders (Not yet Invoiced)
-    const unbilledOrders = allOrders.filter(o => !o.isInvoiced && o.status !== "Cancel").length;
-    // 3. Total Notifications
-    const totalNotifications = orderRequests + unbilledOrders + (lowStockItems > 0 ? 1 : 0);
+    // Filter Logic for Category Sections
+    const unbilled = allOrders.filter(o => !o.isInvoiced && o.status !== "Cancel"); 
+    const requests = allOrders.filter(o => o.status.includes("Request")); 
+    const lowStock = products.filter(p => p.quantity < 5); 
 
     res.status(200).send({
       success: true,
       stats: {
-        totalRevenue,
+        totalRevenue: allOrders.reduce((acc, curr) => acc + (curr.totalPaid || 0), 0),
         orderCount: allOrders.length,
         userCount,
-        lowStockItems,
+        lowStockItems: lowStock.length,
         notifications: {
-          total: totalNotifications,
-          requests: orderRequests,
-          unbilled: unbilledOrders,
-          lowStock: lowStockItems
+          total: unbilled.length + requests.length + lowStock.length,
+          // Detailed arrays for the sidebar
+          unbilledOrders: unbilled.map(o => ({ id: o._id, num: o.orderNumber })),
+          requestOrders: requests.map(o => ({ id: o._id, num: o.orderNumber, status: o.status })),
+          lowStockItems: lowStock.map(p => ({ name: p.name, qty: p.quantity })),
+          requests: requests.length,
+          unbilled: unbilled.length,
+          lowStock: lowStock.length
         }
       },
     });
