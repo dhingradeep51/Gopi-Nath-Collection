@@ -1,25 +1,22 @@
 import express from "express";
-import { requireSignIn, isAdmin } from "../Middlewares/authMiddleware.js";
-// ✅ Corrected spelling from 'coupanController' to 'couponController'
-import { 
-  createCouponController, 
-  getCouponsController, 
+import {
+  createCouponController,
+  getCouponsController,
   deleteCouponController,
-  getSingleCouponController 
+  getSingleCouponController,
+  incrementCouponUsageController,
 } from "../Controllers/couponController.js";
+import { requireSignIn, isAdmin } from "../Middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Create Coupon (Admin Only)
+// Admin routes
 router.post("/create-coupon", requireSignIn, isAdmin, createCouponController);
-
-// Get All Coupons (Admin Only)
 router.get("/get-coupons", requireSignIn, isAdmin, getCouponsController);
-
-// Delete Coupon (Admin Only)
 router.delete("/delete-coupon/:id", requireSignIn, isAdmin, deleteCouponController);
 
-// Validate Coupon (User Checkout)
-router.get("/get-coupon/:name", requireSignIn, getSingleCouponController);
+// Public routes
+router.get("/get-coupon/:name", getSingleCouponController);
+router.post("/increment-usage", requireSignIn, incrementCouponUsageController);
 
 export default router;
