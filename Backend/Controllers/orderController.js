@@ -192,7 +192,7 @@ export const getAllOrdersController = async (req, res) => {
 export const getOrdersController = async (req, res) => {
   try {
     const orders = await orderModel
-      .find({ buyer: req.user._id })
+      .find({ buyer: req.user.orderNumber })
       .populate({
         path: "products.product",
         select: "name slug photo",
