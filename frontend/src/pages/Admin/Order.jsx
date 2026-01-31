@@ -25,7 +25,6 @@ const AdminOrders = () => {
 
   const BASE_URL = import.meta.env.VITE_API_URL;
 
-  // Added logic for status lifecycle management
   const statusList = ["Not Processed", "Processing", "Shipped", "Delivered", "Cancel", "Return"];
   const burgundy = "#2D0A14";
   const darkBurgundy = "#1a050b";
@@ -63,14 +62,17 @@ const AdminOrders = () => {
   /* ================= HANDLERS ================= */
   const handleStatusChange = async (orderId, value) => {
     setActionLoading(true);
-    const loadToast = toast.loading(`Updating status to ${value}...`);
+    const loadToast = toast.loading(`Processing ${value}...`);
     try {
-      // Logic for admin to approve/update status
-      await axios.put(`${BASE_URL}api/v1/order/order-status/${orderId}`, { status: value });
-      toast.success(`Order marked as ${value}`, { id: loadToast });
+      // Logic for admin to finalize status and set the approved flag
+      await axios.put(`${BASE_URL}api/v1/order/order-status/${orderId}`, { 
+        status: value,
+        isApprovedByAdmin: true // Flag to hide the button after approval
+      });
+      toast.success(`Order ${value} successfully`, { id: loadToast });
       getAllOrders(); 
     } catch (error) {
-      toast.error("Status update failed", { id: loadToast });
+      toast.error("Action failed", { id: loadToast });
     } finally {
       setActionLoading(false);
     }
@@ -162,7 +164,6 @@ const AdminOrders = () => {
             return (
               <div key={o._id} style={{ marginBottom: "20px", border: `1px solid ${isOpen ? gold : gold + "44"}`, borderRadius: "12px", background: 'rgba(255,255,255,0.03)', overflow: 'hidden' }}>
                 
-                {/* Header Section */}
                 <div 
                   style={{ padding: "20px 30px", display: "flex", justifyContent: "space-between", alignItems: 'center', cursor: "pointer", background: isOpen ? 'rgba(212, 175, 55, 0.05)' : 'transparent' }}
                   onClick={() => setExpandedOrder(isOpen ? null : o._id)}
@@ -207,18 +208,21 @@ const AdminOrders = () => {
                                 </p>
                             </div>
                             
-                            {/* ✅ QUICK APPROVAL BUTTONS */}
-                            <Tooltip title={`Approve ${o.status} Request`}>
-                                <Button 
-                                    type="primary" 
-                                    danger 
-                                    icon={<FaCheckCircle />} 
-                                    onClick={() => handleStatusChange(o._id, o.status)}
-                                    style={{ height: '45px', fontWeight: 'bold' }}
-                                >
-                                    APPROVE
-                                </Button>
-                            </Tooltip>
+                            {/* ✅ APPROVE BUTTON: Only shows if the order is NOT yet approved by admin */}
+                            {!o.isApprovedByAdmin && (
+                                <Tooltip title={`Finalize ${o.status} Request`}>
+                                    <Button 
+                                        type="primary" 
+                                        danger 
+                                        loading={actionLoading}
+                                        icon={<FaCheckCircle />} 
+                                        onClick={() => handleStatusChange(o._id, o.status)}
+                                        style={{ height: '45px', fontWeight: 'bold' }}
+                                    >
+                                        APPROVE
+                                    </Button>
+                                </Tooltip>
+                            )}
                         </div>
                     )}
 
@@ -236,7 +240,7 @@ const AdminOrders = () => {
                         <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#fff' }}>{o.address}</p>
                       </div>
 
-                      {/* Management Tools */}
+                      {/* Management Panel */}
                       <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '10px' }}>
                         <h6 style={{ color: gold, marginBottom: "20px" }}><FaEdit /> MANAGEMENT</h6>
                         <Dropdown 
