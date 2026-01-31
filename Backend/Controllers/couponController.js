@@ -15,48 +15,33 @@ export const createCouponController = async (req, res) => {
       giftProductId,
     } = req.body;
 
-    // Validation
-    if (!name || !expiry || !discountType || !discountValue) {
+    // 1. Updated Conditional Validation
+    const isGift = discountType === "gift";
+    if (!name || !expiry || !discountType || (!isGift && !discountValue)) {
       return res.status(400).send({
         success: false,
-        message: "Required fields: name, expiry, discountType, discountValue",
+        message: "Required fields missing: name, expiry, or discount value",
       });
     }
 
-    // Validate discount type
-    if (!["fixed", "percentage", "gift"].includes(discountType)) {
-      return res.status(400).send({
-        success: false,
-        message: "Invalid discount type. Must be: fixed, percentage, or gift",
-      });
-    }
-
-    // Validate percentage value
-    if (discountType === "percentage" && (discountValue < 0 || discountValue > 100)) {
-      return res.status(400).send({
-        success: false,
-        message: "Percentage discount must be between 0 and 100",
-      });
-    }
-
-    // Validate gift product exists
-    if (discountType === "gift") {
+    // 2. Validate gift product if applicable
+    if (isGift) {
       if (!giftProductId) {
         return res.status(400).send({
           success: false,
-          message: "Gift product is required for gift type coupons",
+          message: "Please select a product to offer as a gift",
         });
       }
       const productExists = await Product.findById(giftProductId);
       if (!productExists) {
         return res.status(400).send({
           success: false,
-          message: "Selected gift product does not exist",
+          message: "The selected gift product no longer exists",
         });
       }
     }
 
-    // Check if coupon code already exists
+    // 3. Check for existing coupon (Case Insensitive)
     const existingCoupon = await Coupon.findOne({
       name: { $regex: new RegExp(`^${name}$`, "i") },
     });
@@ -64,33 +49,34 @@ export const createCouponController = async (req, res) => {
     if (existingCoupon) {
       return res.status(400).send({
         success: false,
-        message: "Coupon code already exists",
+        message: "This coupon code already exists",
       });
     }
 
-    // Create coupon
+    // 4. Create and Save
     const coupon = await new Coupon({
       name: name.toUpperCase(),
       expiry,
       discountType,
-      discountValue,
+      // Force 0 for gifts so the 'required' field in Schema is satisfied
+      discountValue: isGift ? 0 : discountValue, 
       maxDiscount: discountType === "percentage" ? maxDiscount || 0 : 0,
       minPurchase: minPurchase || 0,
       usageLimit: usageLimit || 1,
       usedCount: 0,
-      giftProductId: discountType === "gift" ? giftProductId : null,
+      giftProductId: isGift ? giftProductId : null,
     }).save();
 
     res.status(201).send({
       success: true,
-      message: "Coupon created successfully",
+      message: "Divine Coupon Created Successfully",
       coupon,
     });
   } catch (error) {
-    console.error("Error creating coupon:", error);
+    console.error("Creation Error:", error);
     res.status(500).send({
       success: false,
-      message: "Error creating coupon",
+      message: "Server error while creating coupon",
       error: error.message,
     });
   }
