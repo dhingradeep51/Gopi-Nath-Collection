@@ -104,6 +104,54 @@ export const placeOrderController = async (req, res) => {
     res.status(500).send({ success: false, error: error.message });
   }
 };
+export const getAllOrdersController = async (req, res) => {
+
+  try {
+
+    const orders = await orderModel
+
+      .find({})
+
+      .populate({
+
+        path: "products.product",
+
+        select: "name slug photo",
+
+      })
+
+      .populate("buyer", "name phone email state address")
+
+      // ✅ ADDED: cancelReason and returnReason to the selection
+
+      // Add these to your select() call in the controller
+
+.select("orderNumber products buyer status payment isInvoiced invoiceNo createdAt cancelReason returnReason isApprovedByAdmin")
+
+      .sort({ createdAt: -1 });
+
+
+
+    res.status(200).json(orders);
+
+  } catch (error) {
+
+    console.error("Get all orders error:", error);
+
+    res.status(500).json({
+
+      success: false,
+
+      message: "Error fetching all orders",
+
+      error: error.message,
+
+    });
+
+  }
+
+};
+
 
 
 // --- UPDATE ORDER STATUS (ADMIN ONLY) ---
