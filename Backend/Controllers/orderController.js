@@ -2,7 +2,7 @@ import orderModel from "../Models/orderModel.js";
 import moment from "moment";
 import ProductModel from "../Models/productModel.js";
 
-// --- PLACE NEW ORDER WITH GST ---
+// --- PLACE NEW ORDER WITH GST & GIFT LOGIC ---
 export const placeOrderController = async (req, res) => {
   try {
     const {
@@ -13,56 +13,51 @@ export const placeOrderController = async (req, res) => {
       discount = 0,
       subtotal,
       totalAmount,
-      transactionId // For online payments
+      transactionId,
+      // Gift specific fields from frontend CheckOutPage
+      couponType,
+      giftProductId 
     } = req.body;
 
-    // 🔒 Validate cart
+    // 1️⃣ Validate core requirements
     if (!cart || cart.length === 0) {
-      return res.status(400).send({
-        success: false,
-        message: "Cart is empty"
-      });
+      return res.status(400).send({ success: false, message: "Cart is empty" });
     }
-
     if (!address) {
-      return res.status(400).send({
-        success: false,
-        message: "Shipping address is required"
-      });
+      return res.status(400).send({ success: false, message: "Shipping address is required" });
     }
 
-    // 1️⃣ Validate products and prepare order items WITH GST
     const products = [];
     let calculatedSubtotal = 0;
     let totalBaseAmount = 0;
     let totalGstAmount = 0;
-    let highestGstRate = 0; // ✅ Track highest GST rate
+    let highestGstRate = 0;
 
+    // 2️⃣ Process Cart Items (With GST Calculations)
     for (const item of cart) {
-      // Fetch product to validate stock and get GST rate
       const product = await ProductModel.findById(item._id);
 
       if (!product) {
-        return res.status(404).send({
-          success: false,
-          message: `Product "${item.name}" not found`
+        return res.status(404).send({ 
+            success: false, 
+            message: `Product "${item.name}" not found` 
         });
       }
 
       const requestedQty = item.cartQuantity || 1;
 
-      // Check stock availability
+      // Stock check
       if (product.quantity < requestedQty) {
         return res.status(400).send({
           success: false,
-          message: `Only ${product.quantity} units of "${product.name}" available in stock`
+          message: `Only ${product.quantity} units of "${product.name}" available`
         });
       }
 
-      // ✅ CALCULATE GST BREAKDOWN PER PRODUCT
-      const pricePerUnit = product.price; // GST-inclusive price
-      const gstPercentage = product.gstRate || 18; // Default to 18% if not set
-      const gstDecimal = gstPercentage / 100; // Convert to decimal
+      // ✅ GST Calculation Logic (Inclusive to Exclusive)
+      const pricePerUnit = product.price; // Tax-inclusive price
+      const gstPercentage = product.gstRate || 18; 
+      const gstDecimal = gstPercentage / 100;
       const basePricePerUnit = pricePerUnit / (1 + gstDecimal);
       const gstAmountPerUnit = pricePerUnit - basePricePerUnit;
 
@@ -74,7 +69,6 @@ export const placeOrderController = async (req, res) => {
       totalBaseAmount += itemBaseAmount;
       totalGstAmount += itemGstAmount;
 
-      // ✅ Track highest GST rate in cart
       if (gstPercentage > highestGstRate) {
         highestGstRate = gstPercentage;
       }
@@ -84,24 +78,47 @@ export const placeOrderController = async (req, res) => {
         name: product.name,
         qty: requestedQty,
         price: Number(pricePerUnit.toFixed(2)),
-        gstRate: gstPercentage, // Store as percentage
+        gstRate: gstPercentage,
         basePrice: Number(basePricePerUnit.toFixed(2)),
         gstAmount: Number(gstAmountPerUnit.toFixed(2))
       });
     }
 
-    // 2️⃣ Calculate final payable amount
+    // 3️⃣ ✅ GIFT INJECTION LOGIC
+    // If the applied coupon is a "gift" type, we add the product to the order at ₹0
+    if (couponType === "gift" && giftProductId) {
+      const giftItem = await ProductModel.findById(giftProductId);
+      
+      if (giftItem) {
+        // Ensure gift is in stock
+        if (giftItem.quantity > 0) {
+          products.push({
+            product: giftItem._id,
+            name: `🎁 GIFT: ${giftItem.name}`,
+            qty: 1,
+            price: 0, // Gift is free of charge
+            gstRate: 0,
+            basePrice: 0,
+            gstAmount: 0
+          });
+          
+          // Deduct stock for the gift item specifically
+          await ProductModel.findByIdAndUpdate(giftItem._id, { $inc: { quantity: -1 } });
+        } else {
+            console.log("Gift item out of stock, skipping injection.");
+        }
+      }
+    }
+
+    // 4️⃣ Final Totals Calculation
     const finalSubtotal = subtotal || calculatedSubtotal;
     const totalPaid = totalAmount || (finalSubtotal + shippingFee - discount);
 
-    if (totalPaid <= 0) {
-      return res.status(400).send({
-        success: false,
-        message: "Invalid order amount"
-      });
+    if (totalPaid < 0) {
+      return res.status(400).send({ success: false, message: "Invalid order amount" });
     }
 
-    // 3️⃣ Generate Order Number (GN-YYYYMMDD-XXX)
+    // 5️⃣ Generate Order Number (GN-YYYYMMDD-XXX)
     const datePart = moment().format("YYYYMMDD");
     const todayCount = await orderModel.countDocuments({
       orderNumber: { $regex: `^GN-${datePart}` }
@@ -109,39 +126,33 @@ export const placeOrderController = async (req, res) => {
     const sequence = String(todayCount + 1).padStart(3, "0");
     const generatedOrderNumber = `GN-${datePart}-${sequence}`;
 
-    // 4️⃣ Save Order WITH GST
+    // 6️⃣ Save Order to Database
     const order = await orderModel.create({
       products,
       buyer: req.user._id,
       address,
-
       payment: {
-        success: paymentMethod === "online" ? true : false,
+        success: paymentMethod === "cod" ? false : true,
         method: paymentMethod,
-        transactionId: paymentMethod === "online" ? transactionId : null,
-        paidAt: paymentMethod === "online" ? new Date() : null
+        transactionId: transactionId || null,
+        paidAt: paymentMethod === "cod" ? null : new Date()
       },
-
       orderNumber: generatedOrderNumber,
-
       subtotal: Number(finalSubtotal.toFixed(2)),
       discount: Number(discount.toFixed(2)),
       shippingFee: Number(shippingFee.toFixed(2)),
       totalPaid: Number(totalPaid.toFixed(2)),
-      
-      // ✅ GST TOTALS
       totalBaseAmount: Number(totalBaseAmount.toFixed(2)),
       totalGstAmount: Number(totalGstAmount.toFixed(2)),
-      highestGstRate: highestGstRate, // ✅ Store highest GST rate
-
+      highestGstRate: highestGstRate,
       status: "Not Processed"
     });
 
-    // 5️⃣ Reduce product stock
-    for (const item of products) {
+    // 7️⃣ Final Stock Reduction for Cart Items
+    for (const item of cart) {
       await ProductModel.findByIdAndUpdate(
-        item.product,
-        { $inc: { quantity: -item.qty } }
+        item._id,
+        { $inc: { quantity: -(item.cartQuantity || 1) } }
       );
     }
 
@@ -155,7 +166,7 @@ export const placeOrderController = async (req, res) => {
     console.error("Place order error:", error);
     return res.status(500).send({
       success: false,
-      message: "Error placing order",
+      message: "Error processing your divine order",
       error: error.message
     });
   }

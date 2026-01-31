@@ -177,33 +177,34 @@ const CheckOutPage = () => {
     }
   };
 
-// Frontend: CheckOutPage.js (Updated handleUpdateAddress)
-const handleUpdateAddress = async () => {
-  try {
-    setLoading(true);
-    // Nesting fields to match the User Schema
-    const updateData = {
-      address: {
-        fullAddress: formData.address,
-        city: formData.city,
-        state: formData.state,
-        pincode: formData.pincode
-      }
-    };
+  // Frontend: CheckOutPage.js (Updated handleUpdateAddress)
+  const handleUpdateAddress = async () => {
+    try {
+      setLoading(true);
+      // Nesting fields to match the User Schema
+      const updateData = {
+        address: {
+          fullAddress: formData.address,
+          city: formData.city,
+          state: formData.state,
+          pincode: formData.pincode
+        }
+      };
 
-    const { data } = await axios.put(`${BASE_URL}api/v1/auth/update-address`, updateData);
-    if (data?.success) {
-      setAuth({ ...auth, user: data.updatedUser });
-      setShowAddressForm(false);
-      toast.success("Divine Address Updated!");
+      const { data } = await axios.put(`${BASE_URL}api/v1/auth/update-address`, updateData);
+      if (data?.success) {
+        setAuth({ ...auth, user: data.updatedUser });
+        setShowAddressForm(false);
+        toast.success("Divine Address Updated!");
+      }
+    } catch (error) {
+      toast.error("Failed to sync address");
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    toast.error("Failed to sync address");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
   const handlePlaceOrder = async () => {
+    // 1️⃣ Validation Guards
     if (!formData.phone || !formData.address || !formData.city || !formData.state) {
       return toast.error("Please provide complete delivery details including State");
     }
@@ -215,13 +216,14 @@ const handleUpdateAddress = async () => {
     try {
       setLoading(true);
 
+      // 2️⃣ Prepare the payload for placeOrderController
       const orderData = {
         cart: cart.map((item) => ({
           _id: item._id,
           name: item.name,
           price: item.price,
           cartQuantity: item.cartQuantity || 1,
-          quantity: item.quantity,
+          gstRate: item.gstRate || 18, // Pass GST rate for backend calculation
         })),
         address: `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`,
         paymentMethod: "cod",
@@ -230,29 +232,41 @@ const handleUpdateAddress = async () => {
         subtotal: totals.sub,
         totalAmount: totals.total,
         highestGstRate: totals.highestGst,
-        // Include coupon details if applied
+
+        // ✅ GIFT & COUPON LOGIC
+        // Passes details to trigger gift injection in the backend
         couponCode: appliedCoupon?.name || null,
-        couponId: appliedCoupon?._id || null,
-        giftProductId: appliedCoupon?.giftProductId || null,
+        couponType: appliedCoupon?.discountType || null,
+        giftProductId: appliedCoupon?.giftProductId?._id || appliedCoupon?.giftProductId || null,
       };
 
+      // 3️⃣ Execute Order Placement
       const { data } = await axios.post(`${BASE_URL}api/v1/order/place-order`, orderData);
 
       if (data?.success) {
-        // Increment coupon usage if applied
+        // 4️⃣ Trigger Coupon Usage Increment (Server Side)
         if (appliedCoupon?._id) {
-          await axios.post(`${BASE_URL}api/v1/coupon/increment-usage`, {
-            couponId: appliedCoupon._id,
-          });
+          try {
+            await axios.post(`${BASE_URL}api/v1/coupon/increment-usage`, {
+              couponId: appliedCoupon._id,
+            });
+          } catch (couponErr) {
+            // Log error but don't stop the success flow
+            console.error("Coupon usage increment failed:", couponErr);
+          }
         }
 
+        // 5️⃣ Finalize and Cleanup
         setFinalOrderId(data.order.orderNumber);
         localStorage.removeItem("cart");
         setCart([]);
         setIsSuccess(true);
+        toast.success("Divine order placed successfully!");
       }
     } catch (error) {
-      toast.error("Order failed. Please try again or contact support.");
+      // Handle specific backend errors (like stock issues)
+      const errorMsg = error.response?.data?.message || "Order failed. Please check stock and try again.";
+      toast.error(errorMsg);
       console.error("Order placement error:", error);
     } finally {
       setLoading(false);
@@ -390,9 +404,9 @@ const handleUpdateAddress = async () => {
                       onClick={
                         appliedCoupon
                           ? () => {
-                              setAppliedCoupon(null);
-                              setCouponCode("");
-                            }
+                            setAppliedCoupon(null);
+                            setCouponCode("");
+                          }
                           : handleApplyCoupon
                       }
                       className={appliedCoupon ? "coupon-btn-remove" : "coupon-btn-apply"}
@@ -450,15 +464,39 @@ const handleUpdateAddress = async () => {
                   </div>
                 )}
 
+                {/* ✅ PASTE THE ENHANCED GIFT UI HERE (Approx Line 335) */}
                 {appliedCoupon?.discountType === "gift" && (
-                  <div className="summary-row gift-row">
-                    <span>
-                      <FaGift size={10} /> Free Gift
-                    </span>
-                    <span className="gift-text">Included 🎁</span>
+                  <div style={{
+                    marginTop: '15px',
+                    padding: '12px',
+                    background: 'rgba(212, 175, 55, 0.1)',
+                    border: `1px solid ${COLORS.gold}`,
+                    borderRadius: '8px',
+                    marginBottom: '20px' // Added margin to separate from subtotal
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: COLORS.gold }}>
+                      <FaGift size={18} />
+                      <span style={{ fontWeight: 'bold', fontSize: '14px' }}>DIVINE GIFT UNLOCKED!</span>
+                    </div>
+                    <div style={{
+                      marginTop: '8px',
+                      fontSize: '13px',
+                      color: '#fff',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      opacity: 0.9
+                    }}>
+                      <span>{appliedCoupon.giftProductId?.name || "Special Item"}</span>
+                      <span style={{ color: '#4bb543', fontWeight: 'bold' }}>FREE</span>
+                    </div>
                   </div>
                 )}
 
+                {/* Price Breakdown starts here (approx Line 360) */}
+                <div className="summary-row">
+                  <span>Subtotal</span>
+                  <span>₹{totals.sub.toLocaleString()}</span>
+                </div>
                 {totals.highestGst > 0 && (
                   <div className="summary-row" style={{ opacity: 0.6, fontSize: "12px" }}>
                     <span>GST ({totals.highestGst}% applicable)</span>

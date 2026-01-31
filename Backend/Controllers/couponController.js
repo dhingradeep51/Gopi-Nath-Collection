@@ -215,15 +215,13 @@ export const getSingleCouponController = async (req, res) => {
 };
 
 // ==================== INCREMENT USAGE COUNT ====================
+// ==================== INCREMENT USAGE COUNT ====================
 export const incrementCouponUsageController = async (req, res) => {
   try {
     const { couponId } = req.body;
 
-    const coupon = await Coupon.findByIdAndUpdate(
-      couponId,
-      { $inc: { usedCount: 1 } },
-      { new: true }
-    );
+    // 1️⃣ Find the coupon first to check limits
+    const coupon = await Coupon.findById(couponId);
 
     if (!coupon) {
       return res.status(404).send({
@@ -232,10 +230,24 @@ export const incrementCouponUsageController = async (req, res) => {
       });
     }
 
+    // 2️⃣ ✅ Safety Check: Prevent incrementing if limit is already reached
+    // This is crucial for Gift Coupons so you don't give away more items than planned
+    if (coupon.usedCount >= coupon.usageLimit) {
+      return res.status(400).send({
+        success: false,
+        message: "Coupon usage limit has already been reached",
+      });
+    }
+
+    // 3️⃣ Increment usage count
+    coupon.usedCount += 1;
+    await coupon.save();
+
     res.status(200).send({
       success: true,
-      message: "Coupon usage updated",
-      coupon,
+      message: "Coupon usage updated successfully",
+      usedCount: coupon.usedCount,
+      remaining: coupon.usageLimit - coupon.usedCount
     });
   } catch (error) {
     console.error("Error incrementing coupon usage:", error);
