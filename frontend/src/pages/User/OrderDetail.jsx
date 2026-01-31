@@ -194,12 +194,20 @@ const OrderDetails = () => {
           justifyContent: "center", 
           alignItems: "center", 
           height: "100vh", 
-          background: "#1a050b"
+          background: "#1a050b",
+          padding: "20px"
         }}>
           <div className="spinner-grow" role="status" style={{ width: "3.5rem", height: "3.5rem", color: "#D4AF37" }}>
             <span className="visually-hidden">Loading...</span>
           </div>
-          <h4 style={{ color: "#D4AF37", fontFamily: "serif", letterSpacing: "2px", marginTop: "20px" }}>
+          <h4 style={{ 
+            color: "#D4AF37", 
+            fontFamily: "serif", 
+            letterSpacing: "2px", 
+            marginTop: "20px",
+            fontSize: "clamp(14px, 4vw, 18px)",
+            textAlign: "center"
+          }}>
             Loading order details...
           </h4>
         </div>
@@ -210,9 +218,19 @@ const OrderDetails = () => {
   if (!order) {
     return (
       <Layout>
-        <div style={{ textAlign: "center", padding: "100px 20px", background: "#1a050b", minHeight: "100vh" }}>
-          <h3 style={{ color: colors.gold }}>Order not found</h3>
-          <Button onClick={() => navigate("/dashboard/user/orders")} style={{ marginTop: "20px" }}>
+        <div style={{ 
+          textAlign: "center", 
+          padding: "100px 20px", 
+          background: "#1a050b", 
+          minHeight: "100vh" 
+        }}>
+          <h3 style={{ color: colors.gold, fontSize: "clamp(18px, 5vw, 24px)" }}>
+            Order not found
+          </h3>
+          <Button 
+            onClick={() => navigate("/dashboard/user/orders")} 
+            style={{ marginTop: "20px" }}
+          >
             Back to Orders
           </Button>
         </div>
@@ -223,17 +241,121 @@ const OrderDetails = () => {
   return (
     <Layout title={`Order Details - Gopi Nath Collection`}>
       <style>{`
-        .details-wrapper { background-color: ${colors.deepBurgundy}; min-height: 100vh; padding: 40px 15px; color: white; }
-        .details-container { max-width: 800px; margin: 0 auto; }
-        .back-link { color: ${colors.gold}; cursor: pointer; display: flex; align-items: center; gap: 8px; margin-bottom: 25px; font-weight: bold; transition: all 0.3s; }
-        .back-link:hover { transform: translateX(-5px); }
-        .section-card { background: ${colors.richBurgundy}; border: 1px solid ${colors.gold}33; border-radius: 12px; padding: 25px; margin-bottom: 20px; }
-        .status-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(212, 175, 55, 0.2); padding-bottom: 15px; margin-bottom: 15px; }
-        .product-item { display: flex; gap: 15px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .product-img { width: 85px; height: 85px; border-radius: 8px; object-fit: cover; border: 1px solid ${colors.gold}22; background: #000; }
-        .info-row { display: flex; gap: 12px; margin-bottom: 10px; font-size: 14px; color: ${colors.textMuted}; align-items: flex-start; }
-        .info-val { color: white; }
-        .action-buttons { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
+        /* ===== BASE STYLES ===== */
+        .details-wrapper { 
+          background-color: ${colors.deepBurgundy}; 
+          min-height: 100vh; 
+          padding: 40px 15px; 
+          color: white; 
+        }
+        
+        .details-container { 
+          max-width: 800px; 
+          margin: 0 auto; 
+        }
+        
+        .back-link { 
+          color: ${colors.gold}; 
+          cursor: pointer; 
+          display: flex; 
+          align-items: center; 
+          gap: 8px; 
+          margin-bottom: 25px; 
+          font-weight: bold; 
+          transition: all 0.3s;
+          font-size: 14px;
+        }
+        
+        .back-link:hover { 
+          transform: translateX(-5px); 
+        }
+        
+        .section-card { 
+          background: ${colors.richBurgundy}; 
+          border: 1px solid ${colors.gold}33; 
+          border-radius: 12px; 
+          padding: 25px; 
+          margin-bottom: 20px; 
+        }
+        
+        .status-header { 
+          display: flex; 
+          justify-content: space-between; 
+          align-items: center; 
+          border-bottom: 1px solid rgba(212, 175, 55, 0.2); 
+          padding-bottom: 15px; 
+          margin-bottom: 15px; 
+        }
+        
+        .status-badge {
+          background: ${colors.gold}22;
+          color: ${colors.gold};
+          padding: 6px 16px;
+          border-radius: 20px;
+          fontSize: 11px;
+          fontWeight: bold;
+          border: 1px solid ${colors.gold};
+          white-space: nowrap;
+        }
+        
+        .product-item { 
+          display: flex; 
+          gap: 15px; 
+          margin-bottom: 15px; 
+          padding-bottom: 15px; 
+          border-bottom: 1px solid rgba(255,255,255,0.05); 
+        }
+        
+        .product-img { 
+          width: 85px; 
+          height: 85px; 
+          border-radius: 8px; 
+          object-fit: cover; 
+          border: 1px solid ${colors.gold}22; 
+          background: #000;
+          flex-shrink: 0;
+        }
+        
+        .product-info {
+          flex: 1;
+          min-width: 0;
+        }
+        
+        .product-name {
+          font-weight: bold;
+          font-size: 1.1rem;
+          color: #fff;
+          word-wrap: break-word;
+        }
+        
+        .info-row { 
+          display: flex; 
+          gap: 12px; 
+          margin-bottom: 10px; 
+          font-size: 14px; 
+          color: ${colors.textMuted}; 
+          align-items: flex-start;
+          flex-wrap: wrap;
+        }
+        
+        .info-label {
+          min-width: 90px;
+          flex-shrink: 0;
+        }
+        
+        .info-val { 
+          color: white;
+          flex: 1;
+          word-break: break-word;
+        }
+        
+        .action-buttons { 
+          display: flex; 
+          gap: 15px; 
+          margin-top: 20px; 
+          flex-wrap: wrap; 
+        }
+        
         .btn-action { 
           padding: 12px 24px; 
           border: none; 
@@ -242,27 +364,354 @@ const OrderDetails = () => {
           cursor: pointer; 
           display: flex; 
           align-items: center; 
+          justify-content: center;
           gap: 8px;
           transition: all 0.3s;
           font-size: 14px;
+          flex: 1;
+          min-width: 150px;
         }
-        .btn-action:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
-        .btn-invoice { background: ${colors.gold}; color: ${colors.deepBurgundy}; }
-        .btn-cancel { background: ${colors.danger}; color: white; }
-        .btn-return { background: #ff9800; color: white; }
-        .btn-action:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-action:hover:not(:disabled) { 
+          transform: translateY(-2px); 
+          box-shadow: 0 6px 20px rgba(0,0,0,0.3); 
+        }
+        
+        .btn-invoice { 
+          background: ${colors.gold}; 
+          color: ${colors.deepBurgundy}; 
+        }
+        
+        .btn-cancel { 
+          background: ${colors.danger}; 
+          color: white; 
+        }
+        
+        .btn-return { 
+          background: #ff9800; 
+          color: white; 
+        }
+        
+        .btn-action:disabled { 
+          opacity: 0.5; 
+          cursor: not-allowed; 
+        }
 
-        .ant-radio-wrapper { color: white !important; display: block; margin-bottom: 12px; padding: 12px; border-radius: 8px; transition: all 0.2s; }
-        .ant-radio-wrapper:hover { background: rgba(212, 175, 55, 0.05); }
-        .ant-radio-checked .ant-radio-inner { border-color: ${colors.gold} !important; background-color: ${colors.gold} !important; }
-        .ant-radio:hover .ant-radio-inner { border-color: ${colors.gold} !important; }
+        .section-title {
+          color: ${colors.gold};
+          margin-bottom: 15px;
+          font-size: 16px;
+          letter-spacing: 1px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
 
+        .summary-row {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 10px;
+          color: ${colors.textMuted};
+          font-size: 14px;
+        }
+
+        .summary-total {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 15px;
+          padding-top: 15px;
+          border-top: 2px solid ${colors.gold}44;
+          font-size: 1.4rem;
+          font-weight: bold;
+          color: ${colors.gold};
+        }
+
+        /* ===== MODAL STYLES ===== */
+        .ant-radio-wrapper { 
+          color: white !important; 
+          display: block; 
+          margin-bottom: 12px; 
+          padding: 12px; 
+          border-radius: 8px; 
+          transition: all 0.2s; 
+        }
+        
+        .ant-radio-wrapper:hover { 
+          background: rgba(212, 175, 55, 0.05); 
+        }
+        
+        .ant-radio-checked .ant-radio-inner { 
+          border-color: ${colors.gold} !important; 
+          background-color: ${colors.gold} !important; 
+        }
+        
+        .ant-radio:hover .ant-radio-inner { 
+          border-color: ${colors.gold} !important; 
+        }
+
+        .modal-title {
+          color: ${colors.gold};
+          font-size: 18px;
+          font-weight: bold;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .modal-text {
+          color: white;
+          margin-bottom: 20px;
+          font-size: 14px;
+        }
+
+        .modal-note {
+          color: ${colors.textMuted};
+          font-size: 12px;
+          margin-bottom: 20px;
+        }
+
+        .modal-footer {
+          margin-top: 25px;
+          display: flex;
+          gap: 10px;
+          justify-content: flex-end;
+        }
+
+        /* ===== MOBILE RESPONSIVE STYLES ===== */
         @media (max-width: 768px) {
-          .details-wrapper { padding: 20px 10px; }
-          .section-card { padding: 18px; }
-          .action-buttons { flex-direction: column; }
-          .btn-action { width: 100%; justify-content: center; }
-          .status-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+          .details-wrapper { 
+            padding: 20px 10px; 
+          }
+          
+          .section-card { 
+            padding: 18px;
+            border-radius: 10px;
+          }
+          
+          .back-link {
+            font-size: 13px;
+            margin-bottom: 20px;
+          }
+          
+          .status-header { 
+            flex-direction: column; 
+            align-items: flex-start; 
+            gap: 12px; 
+          }
+
+          .status-header > div:first-child {
+            width: 100%;
+          }
+
+          .status-header > div:last-child {
+            width: 100%;
+            text-align: left;
+          }
+
+          .status-header h2 {
+            font-size: 1.3rem !important;
+          }
+
+          .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            font-size: 10px;
+          }
+          
+          .product-item { 
+            flex-direction: column; 
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+          }
+          
+          .product-img { 
+            width: 100%; 
+            height: 200px;
+            max-height: 250px;
+          }
+
+          .product-info {
+            width: 100%;
+          }
+
+          .product-name {
+            font-size: 1rem;
+          }
+          
+          .info-row {
+            font-size: 13px;
+            gap: 10px;
+          }
+
+          .info-label {
+            min-width: 80px;
+          }
+
+          .section-title {
+            font-size: 15px;
+            letter-spacing: 0.5px;
+          }
+
+          .summary-row {
+            font-size: 13px;
+          }
+
+          .summary-total {
+            font-size: 1.2rem;
+            flex-wrap: wrap;
+          }
+          
+          .action-buttons { 
+            flex-direction: column;
+            gap: 12px;
+          }
+          
+          .btn-action { 
+            width: 100%; 
+            justify-content: center;
+            min-width: unset;
+            padding: 14px 20px;
+            font-size: 13px;
+          }
+
+          /* Modal Mobile Optimizations */
+          .ant-modal { 
+            max-width: 95vw !important;
+            margin: 10px auto !important;
+          }
+          
+          .ant-modal-body { 
+            max-height: 70vh; 
+            overflow-y: auto;
+            padding: 20px !important;
+          }
+          
+          .ant-modal-content {
+            border-radius: 12px !important;
+          }
+          
+          .ant-modal-header {
+            padding: 16px 20px !important;
+            border-radius: 12px 12px 0 0 !important;
+          }
+
+          .modal-title {
+            font-size: 16px;
+          }
+
+          .modal-text {
+            font-size: 13px;
+            margin-bottom: 16px;
+          }
+
+          .modal-note {
+            font-size: 11px;
+            margin-bottom: 16px;
+          }
+          
+          .ant-radio-wrapper {
+            padding: 14px 12px !important;
+            margin-bottom: 10px !important;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(212, 175, 55, 0.2);
+          }
+          
+          .ant-radio-wrapper:hover {
+            background: rgba(212, 175, 55, 0.08) !important;
+            border-color: ${colors.gold} !important;
+          }
+
+          .ant-radio-wrapper span {
+            font-size: 13px !important;
+          }
+
+          .modal-footer {
+            flex-direction: column-reverse;
+            gap: 10px;
+            margin-top: 20px;
+          }
+
+          .modal-footer .ant-btn {
+            width: 100% !important;
+            height: 44px !important;
+            font-size: 14px;
+          }
+        }
+
+        /* ===== EXTRA SMALL MOBILE (< 480px) ===== */
+        @media (max-width: 480px) {
+          .details-wrapper {
+            padding: 15px 8px;
+          }
+
+          .section-card {
+            padding: 15px;
+            margin-bottom: 15px;
+          }
+
+          .status-header h2 {
+            font-size: 1.1rem !important;
+          }
+
+          .status-header p {
+            font-size: 11px !important;
+          }
+
+          .product-name {
+            font-size: 0.95rem;
+          }
+
+          .info-row {
+            font-size: 12px;
+          }
+
+          .section-title {
+            font-size: 14px;
+          }
+
+          .summary-total {
+            font-size: 1.1rem;
+          }
+
+          .btn-action {
+            padding: 12px 16px;
+            font-size: 12px;
+          }
+        }
+
+        /* ===== LANDSCAPE MOBILE ===== */
+        @media (max-width: 768px) and (orientation: landscape) {
+          .details-wrapper {
+            padding: 20px 15px;
+          }
+
+          .product-img {
+            height: 150px;
+          }
+
+          .ant-modal-body {
+            max-height: 60vh;
+          }
+        }
+
+        /* ===== TABLET STYLES ===== */
+        @media (min-width: 769px) and (max-width: 1024px) {
+          .details-wrapper {
+            padding: 30px 20px;
+          }
+
+          .section-card {
+            padding: 22px;
+          }
+
+          .action-buttons {
+            flex-wrap: wrap;
+          }
+
+          .btn-action {
+            flex: 1 1 calc(50% - 8px);
+            min-width: 140px;
+          }
         }
       `}</style>
 
@@ -273,18 +722,24 @@ const OrderDetails = () => {
             <FaArrowLeft /> BACK TO ORDERS
           </div>
 
+          {/* ORDER INFO SECTION */}
           <div className="section-card">
             <div className="status-header">
               <div>
-                <h2 style={{color: colors.gold, fontSize: '1.5rem', marginBottom: '5px', fontFamily: 'serif'}}>
+                <h2 style={{
+                  color: colors.gold, 
+                  fontSize: '1.5rem', 
+                  marginBottom: '5px', 
+                  fontFamily: 'serif'
+                }}>
                   Order Receipt
                 </h2>
                 <p style={{fontSize: '12px', color: colors.textMuted}}>
                   Placed on {moment(order?.createdAt).format("LLLL")}
                 </p>
               </div>
-              <div style={{textAlign: 'right'}}>
-                <span style={{
+              <div>
+                <span className="status-badge" style={{
                   background: 
                     order?.status === "Delivered" ? colors.success + '22' :
                     order?.status === "Cancel" ? colors.danger + '22' :
@@ -294,17 +749,12 @@ const OrderDetails = () => {
                     order?.status === "Delivered" ? colors.success :
                     order?.status === "Cancel" ? colors.danger :
                     order?.status === "Return" ? '#ff9800' :
-                    colors.gold, 
-                  padding: '6px 16px', 
-                  borderRadius: '20px', 
-                  fontSize: '11px', 
-                  fontWeight: 'bold', 
-                  border: `1px solid ${
+                    colors.gold,
+                  borderColor:
                     order?.status === "Delivered" ? colors.success :
                     order?.status === "Cancel" ? colors.danger :
                     order?.status === "Return" ? '#ff9800' :
                     colors.gold
-                  }`
                 }}>
                   {order?.status?.toUpperCase()}
                 </span>
@@ -313,12 +763,12 @@ const OrderDetails = () => {
             
             <div className="info-row">
               <FaInfoCircle color={colors.gold} style={{ flexShrink: 0, marginTop: '2px' }}/> 
-              <span>Order No:</span> 
+              <span className="info-label">Order No:</span> 
               <span className="info-val">{order?.orderNumber}</span>
             </div>
             <div className="info-row">
               <FaReceipt color={colors.gold} style={{ flexShrink: 0, marginTop: '2px' }}/> 
-              <span>Payment:</span> 
+              <span className="info-label">Payment:</span> 
               <span className="info-val">
                 {order?.payment?.method?.toUpperCase() || "COD"} 
                 ({order?.payment?.success ? "Success" : "Pending"})
@@ -357,19 +807,21 @@ const OrderDetails = () => {
             </div>
           </div>
 
+          {/* SHIPPING SECTION */}
           <div className="section-card">
-            <h3 style={{color: colors.gold, marginBottom: '15px', fontSize: '16px', letterSpacing: '1px'}}>
+            <h3 className="section-title">
               <FaTruck /> SHIPPING DETAILS
             </h3>
             <div className="info-row">
               <FaMapMarkerAlt color={colors.gold} style={{ flexShrink: 0, marginTop: '2px' }}/> 
-              <span style={{ minWidth: '90px' }}>Destination:</span> 
-              <span className="info-val" style={{ flex: 1 }}>{order?.address || "No Address Provided"}</span>
+              <span className="info-label">Destination:</span> 
+              <span className="info-val">{order?.address || "No Address Provided"}</span>
             </div>
           </div>
 
+          {/* PRODUCTS SECTION */}
           <div className="section-card">
-            <h3 style={{color: colors.gold, marginBottom: '15px', fontSize: '16px', letterSpacing: '1px'}}>
+            <h3 className="section-title">
               <FaBoxOpen /> ORDERED ITEMS
             </h3>
             {order?.products?.map((p, index) => (
@@ -380,8 +832,8 @@ const OrderDetails = () => {
                   className="product-img" 
                   onError={(e) => { e.target.src = "/logo192.png"; }}
                 />
-                <div style={{ flex: 1 }}>
-                  <div style={{fontWeight: 'bold', fontSize: '1.1rem', color: '#fff'}}>
+                <div className="product-info">
+                  <div className="product-name">
                     {p.name}
                   </div>
                   <div style={{color: colors.gold, marginTop: '5px'}}>
@@ -395,36 +847,28 @@ const OrderDetails = () => {
             ))}
           </div>
 
+          {/* SUMMARY SECTION */}
           <div className="section-card" style={{border: `2px solid ${colors.gold}`}}>
-            <h3 style={{color: colors.gold, marginBottom: '15px', fontSize: '16px', letterSpacing: '1px'}}>
+            <h3 className="section-title">
               <FaReceipt /> ORDER SUMMARY
             </h3>
-            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '10px', color: colors.textMuted}}>
+            <div className="summary-row">
               <span>Subtotal</span>
               <span>₹{order?.subtotal?.toLocaleString()}</span>
             </div>
-            <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '10px', color: colors.textMuted}}>
+            <div className="summary-row">
               <span>Shipping Fee</span>
               <span style={{ color: order?.shippingFee === 0 ? colors.success : colors.textMuted }}>
                 {order?.shippingFee === 0 ? "FREE" : `₹${order?.shippingFee}`}
               </span>
             </div>
             {order?.discount > 0 && (
-              <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '10px', color: colors.success}}>
+              <div className="summary-row" style={{color: colors.success}}>
                 <span>Discount</span>
                 <span>- ₹{order?.discount?.toLocaleString()}</span>
               </div>
             )}
-            <div style={{
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              marginTop: '15px', 
-              paddingTop: '15px', 
-              borderTop: `2px solid ${colors.gold}44`, 
-              fontSize: '1.4rem', 
-              fontWeight: 'bold', 
-              color: colors.gold
-            }}>
+            <div className="summary-total">
               <span>Total Amount</span>
               <span>₹{order?.totalPaid?.toLocaleString()}</span>
             </div>
@@ -433,41 +877,49 @@ const OrderDetails = () => {
         </div>
       </div>
 
-      {/* ✅ CANCEL MODAL WITH RADIO BUTTONS */}
+      {/* ✅ CANCEL MODAL */}
       <Modal
         title={
-          <span style={{ color: colors.gold, fontSize: '18px', fontWeight: 'bold' }}>
-            <FaTimes style={{ marginRight: '8px' }} />
+          <span className="modal-title">
+            <FaTimes />
             Cancel Order
           </span>
         }
-        open={cancelModalVisible}
+        visible={cancelModalVisible}
         onCancel={() => {
           setCancelModalVisible(false);
           setCancelReason("");
         }}
         footer={null}
-        styles={{
-          content: { backgroundColor: colors.richBurgundy },
-          header: { backgroundColor: colors.deepBurgundy, borderBottom: `1px solid ${colors.gold}33` }
+        bodyStyle={{ 
+          backgroundColor: colors.richBurgundy,
+          padding: '24px'
         }}
+        headerStyle={{
+          backgroundColor: colors.deepBurgundy,
+          borderBottom: `1px solid ${colors.gold}33`
+        }}
+        centered
       >
-        <div style={{ padding: '20px 0' }}>
-          <p style={{ color: 'white', marginBottom: '20px', fontSize: '14px' }}>
+        <div>
+          <p className="modal-text">
             Please select a reason for cancelling this order:
           </p>
           <Radio.Group 
             onChange={(e) => setCancelReason(e.target.value)} 
             value={cancelReason}
-            style={{ width: '100%' }}
+            style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}
           >
             {cancelReasons.map((reason, idx) => (
-              <Radio key={idx} value={reason}>
-                {reason}
+              <Radio 
+                key={idx} 
+                value={reason}
+              >
+                <span style={{ color: 'white', fontSize: '14px' }}>{reason}</span>
               </Radio>
             ))}
           </Radio.Group>
-          <div style={{ marginTop: '25px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <div className="modal-footer">
             <Button
               onClick={() => {
                 setCancelModalVisible(false);
@@ -476,7 +928,8 @@ const OrderDetails = () => {
               style={{
                 background: 'transparent',
                 color: colors.gold,
-                border: `1px solid ${colors.gold}`
+                border: `1px solid ${colors.gold}`,
+                height: '40px'
               }}
             >
               Close
@@ -487,6 +940,7 @@ const OrderDetails = () => {
               onClick={handleCancelOrder}
               loading={processingAction}
               disabled={!cancelReason}
+              style={{ height: '40px' }}
             >
               Confirm Cancellation
             </Button>
@@ -494,44 +948,52 @@ const OrderDetails = () => {
         </div>
       </Modal>
 
-      {/* ✅ RETURN MODAL WITH RADIO BUTTONS */}
+      {/* ✅ RETURN MODAL */}
       <Modal
         title={
-          <span style={{ color: colors.gold, fontSize: '18px', fontWeight: 'bold' }}>
-            <FaUndo style={{ marginRight: '8px' }} />
+          <span className="modal-title">
+            <FaUndo />
             Return Order
           </span>
         }
-        open={returnModalVisible}
+        visible={returnModalVisible}
         onCancel={() => {
           setReturnModalVisible(false);
           setReturnReason("");
         }}
         footer={null}
-        styles={{
-          content: { backgroundColor: colors.richBurgundy },
-          header: { backgroundColor: colors.deepBurgundy, borderBottom: `1px solid ${colors.gold}33` }
+        bodyStyle={{ 
+          backgroundColor: colors.richBurgundy,
+          padding: '24px'
         }}
+        headerStyle={{
+          backgroundColor: colors.deepBurgundy,
+          borderBottom: `1px solid ${colors.gold}33`
+        }}
+        centered
       >
-        <div style={{ padding: '20px 0' }}>
-          <p style={{ color: 'white', marginBottom: '15px', fontSize: '14px' }}>
+        <div>
+          <p className="modal-text">
             Please select a reason for returning this order:
           </p>
-          <p style={{ color: colors.textMuted, fontSize: '12px', marginBottom: '20px' }}>
+          <p className="modal-note">
             Note: Return requests can only be submitted within 7 days of delivery.
           </p>
           <Radio.Group 
             onChange={(e) => setReturnReason(e.target.value)} 
             value={returnReason}
-            style={{ width: '100%' }}
+            style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}
           >
             {returnReasons.map((reason, idx) => (
-              <Radio key={idx} value={reason}>
-                {reason}
+              <Radio 
+                key={idx} 
+                value={reason}
+              >
+                <span style={{ color: 'white', fontSize: '14px' }}>{reason}</span>
               </Radio>
             ))}
           </Radio.Group>
-          <div style={{ marginTop: '25px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <div className="modal-footer">
             <Button
               onClick={() => {
                 setReturnModalVisible(false);
@@ -540,7 +1002,8 @@ const OrderDetails = () => {
               style={{
                 background: 'transparent',
                 color: colors.gold,
-                border: `1px solid ${colors.gold}`
+                border: `1px solid ${colors.gold}`,
+                height: '40px'
               }}
             >
               Close
@@ -549,7 +1012,8 @@ const OrderDetails = () => {
               style={{
                 background: '#ff9800',
                 color: 'white',
-                border: 'none'
+                border: 'none',
+                height: '40px'
               }}
               onClick={handleReturnOrder}
               loading={processingAction}
