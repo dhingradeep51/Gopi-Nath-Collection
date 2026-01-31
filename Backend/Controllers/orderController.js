@@ -232,7 +232,7 @@ export const userOrderStatusController = async (req, res) => {
       sendNotification(req, "CANCEL_REQUEST", { orderId: order.orderNumber });
     } else if (status === "Return") {
       newStatus = "Return Request";
-      notificationType = "CANCEL_REQUEST"
+      notificationType = "RETURN_REQUEST"
       // ✅ TRIGGER: RETURN NOTIFICATION
       sendNotification(req, "RETURN_REQUEST", { orderId: order.orderNumber });
     }
