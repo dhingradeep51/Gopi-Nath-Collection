@@ -1,6 +1,7 @@
 import orderModel from "../Models/orderModel.js";
 import moment from "moment";
 import ProductModel from "../Models/productModel.js";
+import userModel from "../Models/userModel.js";
 
 // --- PLACE NEW ORDER WITH GST & GIFT LOGIC ---
 export const placeOrderController = async (req, res) => {
@@ -441,10 +442,11 @@ export const getOrderByIdController = async (req, res) => {
 };
 export const getAdminStatsController = async (req, res) => {
   try {
-    const userCount = await userModel.countDocuments({});
-    const allOrders = await orderModel.find({}, "totalPaid");
+    // 1. Live counts from database
+    const userCount = await userModel.countDocuments({}); 
+    const allOrders = await orderModel.find({}, "totalPaid"); 
     const totalRevenue = allOrders.reduce((acc, curr) => acc + (curr.totalPaid || 0), 0);
-    const lowStockItems = await ProductModel.countDocuments({ quantity: { $lt: 5 } });
+    const lowStockItems = await ProductModel.countDocuments({ quantity: { $lt: 5 } }); 
 
     res.status(200).send({
       success: true,
@@ -456,7 +458,12 @@ export const getAdminStatsController = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).send({ success: false, message: error.message });
+    console.error("Admin Stats Error:", error);
+    res.status(500).send({
+      success: false,
+      message: "Error fetching admin statistics",
+      error: error.message,
+    });
   }
 };
 export default {
