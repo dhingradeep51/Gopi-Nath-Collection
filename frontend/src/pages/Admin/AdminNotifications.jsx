@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import Layout from "../../components/Layout/Layout";
 import AdminMenu from "../../components/Menus/AdminMenu";
 
 const AdminNotifications = () => {
@@ -16,7 +15,7 @@ const AdminNotifications = () => {
   };
 
   return (
-    <Layout title={"System Notifications - Gopi Nath Collection"}>
+    <div title={"System Notifications - Gopi Nath Collection"}>
       <div className="container-fluid m-3 p-3">
         <div className="row">
           <div className="col-md-3">
@@ -53,7 +52,7 @@ const AdminNotifications = () => {
           </div>
         </div>
       </div>
-    </Layout>
+    </div>
   );
 };
 
