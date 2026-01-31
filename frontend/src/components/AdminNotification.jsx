@@ -4,7 +4,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Replace with your actual backend URL (e.g., your Render link)
-const socket = io("http://localhost:8080"); 
+const socket = io("https://gopi-nath-collection.onrender.com/"); 
 
 const AdminNotification = () => {
     useEffect(() => {

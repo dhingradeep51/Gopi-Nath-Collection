@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { NavLink } from "react-router-dom";
-import AdminNotification from "./AdminNotification"; // Import your notification logic file
+import AdminNotification from "./AdminNotification"; // Ensure this file exists in the same folder
 import { 
   FaChartLine, 
   FaBoxOpen, 
@@ -10,14 +10,14 @@ import {
   FaThList,
   FaQuestionCircle,
   FaTicketAlt,
-  FaBell // ✅ Added Bell Icon
+  FaBell // ✅ Notification Bell Icon
 } from "react-icons/fa";
 
 const AdminMenu = () => {
-  const [unreadCount, setUnreadCount] = useState(0); // Track notification count
+  const [unreadCount, setUnreadCount] = useState(0); // State to track new alerts
   const gold = "#D4AF37";
 
-  // Mock role check - in your real app, get this from your Auth context
+  // Mock role check - this should ideally come from your Auth Context/Hook
   const userRole = 1; 
 
   const linkStyle = ({ isActive }) => ({
@@ -52,7 +52,9 @@ const AdminMenu = () => {
       top: 0,
       zIndex: 1000
     }}>
-      {/* Logic Component (Invisible) */}
+      {/* 1. BACKGROUND LOGIC COMPONENT 
+          This listens for Socket.io events and updates the unreadCount state.
+      */}
       <AdminNotification setUnreadCount={setUnreadCount} role={userRole} />
 
       {/* Brand/Label */}
@@ -60,7 +62,7 @@ const AdminMenu = () => {
         ADMIN PANEL
       </div>
 
-      {/* Horizontal Links */}
+      {/* 2. MAIN NAVIGATION LINKS */}
       <div style={{ display: "flex", height: "100%" }}>
         <NavLink to="/dashboard/admin" end style={linkStyle}>
           <FaChartLine size={14} /> Dashboard
@@ -95,13 +97,13 @@ const AdminMenu = () => {
         </NavLink>
       </div>
 
-      {/* Quick Actions & Notifications */}
+      {/* 3. QUICK ACTIONS & NOTIFICATION BELL */}
       <div style={{ display: "flex", alignItems: "center", gap: "20px", marginLeft: "20px" }}>
           
-          {/* ✅ Notification Bell with Badge */}
+          {/* ✅ Notification Bell with Dynamic Badge */}
           <div 
             style={{ position: "relative", cursor: "pointer", color: gold }} 
-            onClick={() => setUnreadCount(0)} // Reset count when clicked
+            onClick={() => setUnreadCount(0)} // Resets bubble when you click it
           >
             <FaBell size={18} />
             {unreadCount > 0 && (
@@ -115,14 +117,26 @@ const AdminMenu = () => {
                 padding: "2px 6px",
                 fontSize: "10px",
                 fontWeight: "bold",
-                boxShadow: "0 0 5px rgba(0,0,0,0.5)"
+                boxShadow: "0 0 5px rgba(0,0,0,0.5)",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center"
               }}>
                 {unreadCount}
               </span>
             )}
           </div>
 
-          <NavLink to="/" style={{ color: gold, fontSize: "12px", textDecoration: "none", border: `1px solid ${gold}`, padding: "4px 10px", borderRadius: "3px" }}>
+          {/* View Store Button */}
+          <NavLink to="/" style={{ 
+            color: gold, 
+            fontSize: "12px", 
+            textDecoration: "none", 
+            border: `1px solid ${gold}`, 
+            padding: "4px 10px", 
+            borderRadius: "3px",
+            whiteSpace: "nowrap"
+          }}>
             VIEW STORE
           </NavLink>
       </div>
