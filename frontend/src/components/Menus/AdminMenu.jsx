@@ -100,7 +100,7 @@ const AdminMenu = () => {
             onClick={() => {
               setUnreadCount(0); 
               // ✅ Navigates to the path defined in your App.js
-              navigate("/dashboard/admin/notififcation"); 
+              navigate("/dashboard/admin/notification"); 
             }}
           >
             <FaBell size={18} />
