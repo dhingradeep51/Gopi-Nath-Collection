@@ -170,6 +170,34 @@ const AdminNotifications = () => {
     });
   }, [logs]);
 
+  // Track new critical notifications for animation
+  const [newCriticalIds, setNewCriticalIds] = useState(new Set());
+
+  useEffect(() => {
+    const currentCriticalIds = criticalNotifications.map(
+      log => `${log.orderId}-${log.type}-${log.date}-${log.time}`
+    );
+    
+    const previousCriticalIds = JSON.parse(
+      sessionStorage.getItem('previousCriticalIds') || '[]'
+    );
+
+    // Find newly added critical notifications
+    const newIds = currentCriticalIds.filter(id => !previousCriticalIds.includes(id));
+    
+    if (newIds.length > 0) {
+      setNewCriticalIds(new Set(newIds));
+      
+      // Remove the "new" animation after 3 seconds
+      setTimeout(() => {
+        setNewCriticalIds(new Set());
+      }, 3000);
+    }
+
+    // Store current IDs for next comparison
+    sessionStorage.setItem('previousCriticalIds', JSON.stringify(currentCriticalIds));
+  }, [criticalNotifications]);
+
   const handleDismissCritical = (logToRemove) => {
     const updatedLogs = logs.filter(log => 
       !(log.orderId === logToRemove.orderId && 
@@ -275,6 +303,45 @@ const AdminNotifications = () => {
           50% { opacity: 0.7; transform: scale(1.1); }
         }
 
+        @keyframes slideInBounce {
+          0% {
+            opacity: 0;
+            transform: translateY(-20px) scale(0.9);
+          }
+          60% {
+            opacity: 1;
+            transform: translateY(5px) scale(1.05);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes plusIcon {
+          0% {
+            opacity: 0;
+            transform: scale(0) rotate(-180deg);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.5) rotate(0deg);
+          }
+          100% {
+            opacity: 0;
+            transform: scale(1) rotate(180deg);
+          }
+        }
+
+        @keyframes glowPulse {
+          0%, 100% {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+          }
+          50% {
+            box-shadow: 0 0 20px rgba(255, 77, 79, 0.4), 0 0 40px rgba(255, 77, 79, 0.2);
+          }
+        }
+
         .critical-header-text h3 {
           margin: 0;
           color: ${colors.danger};
@@ -312,6 +379,30 @@ const AdminNotifications = () => {
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
           transition: all 0.3s;
           position: relative;
+        }
+
+        .critical-notification-card.new-notification {
+          animation: slideInBounce 0.6s ease-out, glowPulse 2s ease-in-out;
+        }
+
+        .critical-notification-card.new-notification::before {
+          content: '+';
+          position: absolute;
+          top: -10px;
+          right: -10px;
+          width: 40px;
+          height: 40px;
+          background: ${colors.danger};
+          color: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          font-weight: bold;
+          animation: plusIcon 2s ease-out;
+          z-index: 10;
+          box-shadow: 0 4px 12px rgba(255, 77, 79, 0.4);
         }
 
         .critical-notification-card.cancelled {
@@ -857,56 +948,61 @@ const AdminNotifications = () => {
                       </div>
                       
                       <div className="critical-notifications-grid">
-                        {criticalNotifications.map((log, index) => (
-                          <div 
-                            key={index} 
-                            className={`critical-notification-card ${
-                              log.type === "ORDER_CANCELLED" ? "cancelled" : "returned"
-                            }`}
-                          >
-                            <div className="critical-card-header">
-                              <span 
-                                className="critical-type-badge"
-                                style={{
-                                  background: `${getTypeColor(log.type)}22`,
-                                  color: getTypeColor(log.type),
-                                  border: `1px solid ${getTypeColor(log.type)}`
-                                }}
-                              >
-                                {getTypeIcon(log.type)}
-                                {log.type === "ORDER_CANCELLED" ? "CANCELLED" : "RETURNED"}
-                              </span>
-                              <button 
-                                className="critical-dismiss-btn"
-                                onClick={() => handleDismissCritical(log)}
-                                title="Dismiss notification"
-                              >
-                                <FaTimes />
-                              </button>
+                        {criticalNotifications.map((log, index) => {
+                          const logId = `${log.orderId}-${log.type}-${log.date}-${log.time}`;
+                          const isNew = newCriticalIds.has(logId);
+                          
+                          return (
+                            <div 
+                              key={index} 
+                              className={`critical-notification-card ${
+                                log.type === "ORDER_CANCELLED" ? "cancelled" : "returned"
+                              } ${isNew ? "new-notification" : ""}`}
+                            >
+                              <div className="critical-card-header">
+                                <span 
+                                  className="critical-type-badge"
+                                  style={{
+                                    background: `${getTypeColor(log.type)}22`,
+                                    color: getTypeColor(log.type),
+                                    border: `1px solid ${getTypeColor(log.type)}`
+                                  }}
+                                >
+                                  {getTypeIcon(log.type)}
+                                  {log.type === "ORDER_CANCELLED" ? "CANCELLED" : "RETURNED"}
+                                </span>
+                                <button 
+                                  className="critical-dismiss-btn"
+                                  onClick={() => handleDismissCritical(log)}
+                                  title="Dismiss notification"
+                                >
+                                  <FaTimes />
+                                </button>
+                              </div>
+                              
+                              <div className="critical-order-id">
+                                Order: {log.orderId}
+                              </div>
+                              
+                              <div className="critical-message">
+                                {log.message}
+                              </div>
+                              
+                              <div className="critical-footer">
+                                <span className="critical-timestamp">
+                                  {moment(`${log.date} ${log.time}`).format("MMM DD, hh:mm A")}
+                                </span>
+                                <button 
+                                  className="critical-view-btn"
+                                  onClick={() => handleViewDetails(log)}
+                                >
+                                  <FaEye />
+                                  View
+                                </button>
+                              </div>
                             </div>
-                            
-                            <div className="critical-order-id">
-                              Order: {log.orderId}
-                            </div>
-                            
-                            <div className="critical-message">
-                              {log.message}
-                            </div>
-                            
-                            <div className="critical-footer">
-                              <span className="critical-timestamp">
-                                {moment(`${log.date} ${log.time}`).format("MMM DD, hh:mm A")}
-                              </span>
-                              <button 
-                                className="critical-view-btn"
-                                onClick={() => handleViewDetails(log)}
-                              >
-                                <FaEye />
-                                View
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
