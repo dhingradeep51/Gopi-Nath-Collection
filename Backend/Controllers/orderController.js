@@ -442,11 +442,20 @@ export const getOrderByIdController = async (req, res) => {
 };
 export const getAdminStatsController = async (req, res) => {
   try {
-    // 1. Live counts from database
-    const userCount = await userModel.countDocuments({}); 
-    const allOrders = await orderModel.find({}, "totalPaid"); 
+    const userCount = await userModel.countDocuments({});
+    const allOrders = await orderModel.find({}, "totalPaid status isInvoiced");
+    const products = await ProductModel.find({}, "quantity");
+    
     const totalRevenue = allOrders.reduce((acc, curr) => acc + (curr.totalPaid || 0), 0);
-    const lowStockItems = await ProductModel.countDocuments({ quantity: { $lt: 5 } }); 
+    const lowStockItems = products.filter(p => p.quantity < 5).length;
+
+    // ✅ NOTIFICATION LOGIC
+    // 1. Return/Cancel Requests
+    const orderRequests = allOrders.filter(o => o.status.includes("Request")).length;
+    // 2. Unbilled Orders (Not yet Invoiced)
+    const unbilledOrders = allOrders.filter(o => !o.isInvoiced && o.status !== "Cancel").length;
+    // 3. Total Notifications
+    const totalNotifications = orderRequests + unbilledOrders + (lowStockItems > 0 ? 1 : 0);
 
     res.status(200).send({
       success: true,
@@ -455,15 +464,16 @@ export const getAdminStatsController = async (req, res) => {
         orderCount: allOrders.length,
         userCount,
         lowStockItems,
+        notifications: {
+          total: totalNotifications,
+          requests: orderRequests,
+          unbilled: unbilledOrders,
+          lowStock: lowStockItems
+        }
       },
     });
   } catch (error) {
-    console.error("Admin Stats Error:", error);
-    res.status(500).send({
-      success: false,
-      message: "Error fetching admin statistics",
-      error: error.message,
-    });
+    res.status(500).send({ success: false, error: error.message });
   }
 };
 export default {

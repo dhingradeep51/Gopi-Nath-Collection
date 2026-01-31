@@ -5,7 +5,8 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { 
   TrendingUp, Users, Package, FileText, ArrowRight, 
-  ShoppingBag, Bell, Layers, PlusCircle, Ticket, UserCheck 
+  ShoppingBag, Bell, Layers, PlusCircle, Ticket, UserCheck,
+  AlertTriangle, Info
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -16,14 +17,20 @@ const AdminDashboard = () => {
     totalRevenue: 0,
     userCount: 0,
     lowStockItems: 0,
-    orderCount: 0
+    orderCount: 0,
+    notifications: {
+      total: 0,
+      requests: 0,
+      unbilled: 0,
+      lowStock: 0
+    }
   });
   const [loading, setLoading] = useState(true);
 
   const gold = "#D4AF37";
   const darkBg = "#120307";
 
-  // Fetch Live Statistics from the backend
+  // Fetch Live Statistics & Notifications from backend
   const getStats = async () => {
     try {
       setLoading(true);
@@ -43,7 +50,7 @@ const AdminDashboard = () => {
     if (auth?.token) getStats();
   }, [auth?.token]);
 
-  // Luxury Card Style
+  // Luxury UI Styles
   const cardStyle = {
     background: "rgba(255, 255, 255, 0.03)",
     border: `1px solid ${gold}22`,
@@ -56,7 +63,6 @@ const AdminDashboard = () => {
     justifyContent: "center"
   };
 
-  // Luxury Button Style for Management Suite
   const quickLinkStyle = {
     background: "rgba(255, 255, 255, 0.05)",
     color: "white",
@@ -68,10 +74,27 @@ const AdminDashboard = () => {
     alignItems: "center",
     gap: "12px",
     fontSize: "13px",
-    width: "calc(50% - 10px)", // Creates perfect 2-column grid with gap
+    width: "calc(50% - 10px)",
     transition: "all 0.3s ease",
     cursor: "pointer",
   };
+
+  const alertBoxStyle = (color) => ({
+    flex: '1',
+    minWidth: '280px',
+    background: `${color}15`,
+    border: `1px solid ${color}44`,
+    borderRadius: "10px",
+    padding: "15px 20px",
+    color: color,
+    fontWeight: "bold",
+    fontSize: "13px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    cursor: "pointer",
+    marginBottom: "20px"
+  });
 
   return (
     <div style={{ backgroundColor: darkBg, minHeight: "100vh", paddingBottom: "50px", color: "white" }}>
@@ -79,7 +102,7 @@ const AdminDashboard = () => {
 
       <div style={{ padding: "30px 40px", maxWidth: "1400px", margin: "0 auto" }}>
         
-        {/* Header Section */}
+        {/* Header Section with Notification Bell */}
         <div style={{ 
           display: "flex", 
           justifyContent: "space-between", 
@@ -92,29 +115,63 @@ const AdminDashboard = () => {
             <h1 style={{ color: gold, fontFamily: "'Playfair Display', serif", fontSize: "2.5rem", margin: "0 0 8px 0" }}>
               Divine Dashboard
             </h1>
-            <p style={{ margin: 0, opacity: 0.7, fontSize: "14px", display: "flex", alignItems: "center" }}>
-              <Bell size={14} style={{ marginRight: "8px", color: gold }}/> 
-              System status: <span style={{ color: "#4CAF50", marginLeft: "5px" }}>Operational</span> 
-              <span style={{ margin: "0 10px" }}>|</span> 
-              Welcome, {auth?.user?.name}
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                <p style={{ margin: 0, opacity: 0.7, fontSize: "14px", display: "flex", alignItems: "center" }}>
+                  System status: <span style={{ color: "#4CAF50", marginLeft: "5px" }}>Operational</span> 
+                  <span style={{ margin: "0 10px" }}>|</span> 
+                  Welcome, {auth?.user?.name}
+                </p>
+
+                {/* ✅ NOTIFICATION BELL WITH BADGE */}
+                <div 
+                  onClick={() => navigate("/dashboard/admin/orders")}
+                  style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                >
+                  <Bell size={22} color={stats.notifications?.total > 0 ? gold : "rgba(255,255,255,0.3)"} />
+                  {stats.notifications?.total > 0 && (
+                    <span style={{
+                      position: 'absolute', top: '-8px', right: '-8px',
+                      background: '#ff4d4f', color: 'white', borderRadius: '50%',
+                      padding: '2px 6px', fontSize: '10px', fontWeight: 'bold',
+                      border: `2px solid ${darkBg}`
+                    }}>
+                      {stats.notifications.total}
+                    </span>
+                  )}
+                </div>
+            </div>
           </div>
           <button 
             onClick={() => navigate("/dashboard/admin/orders")}
-            style={{ 
-              background: "transparent", 
-              border: `1px solid ${gold}`, 
-              color: gold, 
-              padding: "10px 20px", 
-              borderRadius: "4px", 
-              fontWeight: "bold", 
-              fontSize: "12px",
-              cursor: "pointer"
-            }}
+            style={{ background: "transparent", border: `1px solid ${gold}`, color: gold, padding: "10px 20px", borderRadius: "4px", fontWeight: "bold", fontSize: "12px", cursor: "pointer" }}
           >
             MANAGE REGISTRY
           </button>
         </div>
+
+        {/* ✅ DIVINE ACTION CENTER (NOTIFICATIONS BAR) */}
+        {(stats.notifications?.requests > 0 || stats.notifications?.unbilled > 0) && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', marginBottom: '10px' }}>
+            {stats.notifications.requests > 0 && (
+              <div onClick={() => navigate("/dashboard/admin/orders")} style={alertBoxStyle('#ff4d4f')}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <AlertTriangle size={18} />
+                  <span>{stats.notifications.requests} PENDING RETURN/CANCEL REQUESTS</span>
+                </div>
+                <ArrowRight size={14} />
+              </div>
+            )}
+            {stats.notifications.unbilled > 0 && (
+              <div onClick={() => navigate("/dashboard/admin/invoice")} style={alertBoxStyle(gold)}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <FileText size={18} />
+                  <span>{stats.notifications.unbilled} UNBILLED ORDERS (PENDING INVOICE)</span>
+                </div>
+                <ArrowRight size={14} />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Live Stats Row */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", marginBottom: "40px" }}>
@@ -150,8 +207,6 @@ const AdminDashboard = () => {
 
         {/* Bottom Section: Profile & Management */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "30px" }}>
-          
-          {/* Admin Details */}
           <div style={{ flex: "1", minWidth: "400px" }}>
             <div style={{ ...cardStyle, background: "rgba(255,255,255,0.01)" }}>
               <h5 style={{ color: gold, fontFamily: "serif", margin: "0 0 25px 0", fontSize: "1.2rem" }}>Administrative Profile</h5>
@@ -166,68 +221,42 @@ const AdminDashboard = () => {
                 </div>
                 <div style={{ padding: "15px", borderRadius: "8px", background: "rgba(0,0,0,0.2)", border: "1px solid rgba(255,255,255,0.05)" }}>
                   <label style={{ color: "rgba(255,255,255,0.5)", fontSize: "9px", textTransform: "uppercase", display: "block", marginBottom: "5px" }}>Authority</label>
-                  <span style={{ 
-                    display: "inline-block", 
-                    padding: "4px 12px", 
-                    borderRadius: "4px", 
-                    backgroundColor: gold, 
-                    color: darkBg, 
-                    fontWeight: "bold", 
-                    fontSize: "12px" 
-                  }}>MASTER ADMIN</span>
+                  <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: "4px", backgroundColor: gold, color: darkBg, fontWeight: "bold", fontSize: "12px" }}>MASTER ADMIN</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Management Suite */}
           <div style={{ flex: "1", minWidth: "400px" }}>
             <div style={cardStyle}>
-              <h5 style={{ 
-                color: gold, 
-                fontFamily: "serif", 
-                margin: "0 0 25px 0", 
-                fontSize: "1.2rem", 
-                borderBottom: `1px solid ${gold}22`, 
-                paddingBottom: "10px" 
-              }}>
+              <h5 style={{ color: gold, fontFamily: "serif", margin: "0 0 25px 0", fontSize: "1.2rem", borderBottom: `1px solid ${gold}22`, paddingBottom: "10px" }}>
                 Management Suite
               </h5>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
-                
-                {/* Row 1 */}
                 <button onClick={() => navigate("/dashboard/admin/orders")} style={quickLinkStyle}>
                   <ShoppingBag size={16} color={gold} /> Order Registry
                 </button>
                 <button onClick={() => navigate("/dashboard/admin/invoice")} style={quickLinkStyle}>
                   <FileText size={16} color={gold} /> Divine Billing
                 </button>
-
-                {/* Row 2 */}
                 <button onClick={() => navigate("/dashboard/admin/products")} style={quickLinkStyle}>
                   <Package size={16} color={gold} /> Product Hub
                 </button>
                 <button onClick={() => navigate("/dashboard/admin/create-product")} style={quickLinkStyle}>
                   <PlusCircle size={16} color={gold} /> New Product
                 </button>
-
-                {/* Row 3 */}
                 <button onClick={() => navigate("/dashboard/admin/create-category")} style={quickLinkStyle}>
                   <Layers size={16} color={gold} /> Categories
                 </button>
                 <button onClick={() => navigate("/dashboard/admin/coupons")} style={quickLinkStyle}>
                   <Ticket size={16} color={gold} /> Gift Coupons
                 </button>
-
-                {/* Row 4 (Full Width) */}
                 <button onClick={() => navigate("/dashboard/admin/users")} style={{ ...quickLinkStyle, width: "100%" }}>
                   <UserCheck size={16} color={gold} /> Devotee (User) Registry
                 </button>
-                
               </div>
             </div>
           </div>
-          
         </div>
       </div>
     </div>
