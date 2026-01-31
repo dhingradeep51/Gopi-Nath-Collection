@@ -140,6 +140,11 @@ const orderSchema = new mongoose.Schema(
       type: Date
     },
 
+    isApprovedByAdmin: {
+      type: Boolean,
+      default: false,
+    },
+
     // 🚫 CANCEL/RETURN REASONS
     cancelReason: {
       type: String,
