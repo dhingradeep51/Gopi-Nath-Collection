@@ -227,10 +227,12 @@ export const userOrderStatusController = async (req, res) => {
     let newStatus;
     if (status === "Cancel") {
       newStatus = "Cancel Request";
+      notificationType = "CANCEL_REQUEST"
       // ✅ TRIGGER: CANCEL NOTIFICATION
       sendNotification(req, "CANCEL_REQUEST", { orderId: order.orderNumber });
     } else if (status === "Return") {
       newStatus = "Return Request";
+      notificationType = "CANCEL_REQUEST"
       // ✅ TRIGGER: RETURN NOTIFICATION
       sendNotification(req, "RETURN_REQUEST", { orderId: order.orderNumber });
     }
