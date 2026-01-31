@@ -5,14 +5,15 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: true, // This exposes the project to your network
-    port: 5173,  // Default Vite port
+    host: true, 
+    port: 5173,  
     proxy: {
-      // This matches the '/api/v1' used in your backend routes
       '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:8080', // Backend Server Port
+        // ✅ Change this to your live Render URL for local testing
+        target: 'https://gopi-nath-collection.onrender.com', 
         changeOrigin: true,
+        secure: false, // Useful for some SSL environments
       },
-    } // Added missing brace for proxy
-  } // Added missing brace for server
+    } 
+  } 
 })

@@ -7,7 +7,6 @@ import {
   FaMoneyBillWave, FaShoppingBag, FaFilter, FaCheckCircle
 } from "react-icons/fa";
 import AdminMenu from "../../components/Menus/AdminMenu";
-import Layout from "../../components/Layout/Layout";
 import { useAuth } from "../../context/auth";
 import toast from "react-hot-toast";
 import moment from "moment";
@@ -88,7 +87,7 @@ const AdminOrders = () => {
   };
 
   return (
-    <Layout title="Order Registry - Gopi Nath Collection">
+    <div title="Order Registry - Gopi Nath Collection">
       <style>{`
         .orders-wrapper {
           background: ${colors.darkBurgundy};
@@ -605,7 +604,7 @@ const AdminOrders = () => {
           )}
         </div>
       </div>
-    </Layout>
+    </div>
   );
 };
 
