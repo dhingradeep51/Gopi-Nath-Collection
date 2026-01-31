@@ -42,7 +42,7 @@ const couponSchema = new mongoose.Schema(
     },
     giftProductId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Product",
+      ref: "Products",
       default: null,
     },
     expiry: {
