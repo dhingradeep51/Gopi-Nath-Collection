@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import AdminMenu from "../../components/Menus/AdminMenu";
-import Layout from "../../components/Layout/Layout"; // Assuming you have a Layout component
+
 
 const AdminNotifications = () => {
   const [logs, setLogs] = useState([]);
