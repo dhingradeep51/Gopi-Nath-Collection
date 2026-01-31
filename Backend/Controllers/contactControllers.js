@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer';
 import TicketModel from "../Models/ticketModel.js";
 import path from 'path';
 import fs from 'fs';
-
+import { sendNotification } from '../Utils/notificationUtils.js';
 /* =====================================================
    1. CREATE TICKET (USER SIDE)
 ===================================================== */
