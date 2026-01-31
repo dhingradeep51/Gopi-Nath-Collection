@@ -1,43 +1,24 @@
-import React, { useEffect, useState } from "react"; // Added useEffect/useState
-import { NavLink, useNavigate } from "react-router-dom"; // Added useNavigate
-import { io } from "socket.io-client"; // Import Socket
-import { toast, ToastContainer } from "react-toastify";
-import 'react-toastify/dist/ReactToastify.css';
+import React, { useState } from "react";
+import { NavLink } from "react-router-dom";
+import AdminNotification from "./AdminNotification"; // Import your notification logic file
 import { 
-  FaChartLine, FaBoxOpen, FaUsers, FaClipboardList, 
-  FaPlusSquare, FaThList, FaQuestionCircle, FaTicketAlt,
+  FaChartLine, 
+  FaBoxOpen, 
+  FaUsers, 
+  FaClipboardList, 
+  FaPlusSquare, 
+  FaThList,
+  FaQuestionCircle,
+  FaTicketAlt,
   FaBell // ✅ Added Bell Icon
 } from "react-icons/fa";
 
-// Connect to your backend
-const socket = io("http://localhost:8080"); 
-
 const AdminMenu = () => {
-  const [unreadCount, setUnreadCount] = useState(0);
-  const navigate = useNavigate();
+  const [unreadCount, setUnreadCount] = useState(0); // Track notification count
   const gold = "#D4AF37";
 
-  useEffect(() => {
-    // Join the admin room
-    socket.emit("join_admin_room");
-
-    // Listen for alerts
-    socket.on("admin_alert", (data) => {
-      setUnreadCount(prev => prev + 1);
-      
-      // Professional toast with click action
-      toast.info(data.message, {
-        position: "bottom-right",
-        theme: "dark",
-        onClick: () => {
-          navigate(`/dashboard/admin/orders`); // Take admin to orders
-          setUnreadCount(0);
-        }
-      });
-    });
-
-    return () => socket.off("admin_alert");
-  }, [navigate]);
+  // Mock role check - in your real app, get this from your Auth context
+  const userRole = 1; 
 
   const linkStyle = ({ isActive }) => ({
     display: "flex",
@@ -66,32 +47,62 @@ const AdminMenu = () => {
       justifyContent: "space-between",
       height: "60px",
       width: "100%", 
+      overflowX: "auto", 
       position: "sticky",
       top: 0,
       zIndex: 1000
     }}>
-      <ToastContainer />
+      {/* Logic Component (Invisible) */}
+      <AdminNotification setUnreadCount={setUnreadCount} role={userRole} />
 
+      {/* Brand/Label */}
       <div style={{ color: gold, fontSize: "14px", fontWeight: "bold", fontFamily: 'serif', marginRight: "20px" }}>
         ADMIN PANEL
       </div>
 
-      <div style={{ display: "flex", height: "100%", overflowX: "auto" }}>
-        <NavLink to="/dashboard/admin" end style={linkStyle}><FaChartLine size={14} /> Dashboard</NavLink>
-        <NavLink to="/dashboard/admin/create-category" style={linkStyle}><FaThList size={14} /> Categories</NavLink>
-        <NavLink to="/dashboard/admin/orders" style={linkStyle}><FaClipboardList size={14} /> Orders</NavLink>
-        <NavLink to="/dashboard/admin/products" style={linkStyle}><FaBoxOpen size={14} /> Products</NavLink>
-        <NavLink to="/dashboard/admin/users" style={linkStyle}><FaUsers size={14} /> Customers</NavLink>
-        <NavLink to="/dashboard/admin/create-product" style={linkStyle}><FaPlusSquare size={14} /> Add Product</NavLink>
-        <NavLink to="/dashboard/admin/coupons" style={linkStyle}><FaTicketAlt size={14} /> Coupons</NavLink>
-        <NavLink to="/dashboard/admin/help-center" style={linkStyle}><FaQuestionCircle size={14} /> Help</NavLink>
+      {/* Horizontal Links */}
+      <div style={{ display: "flex", height: "100%" }}>
+        <NavLink to="/dashboard/admin" end style={linkStyle}>
+          <FaChartLine size={14} /> Dashboard
+        </NavLink>
+        
+        <NavLink to="/dashboard/admin/create-category" style={linkStyle}>
+          <FaThList size={14} /> Categories
+        </NavLink>
+
+        <NavLink to="/dashboard/admin/orders" style={linkStyle}>
+          <FaClipboardList size={14} /> Orders
+        </NavLink>
+        
+        <NavLink to="/dashboard/admin/products" style={linkStyle}>
+          <FaBoxOpen size={14} /> Products
+        </NavLink>
+        
+        <NavLink to="/dashboard/admin/users" style={linkStyle}>
+          <FaUsers size={14} /> Customers
+        </NavLink>
+        
+        <NavLink to="/dashboard/admin/create-product" style={linkStyle}>
+          <FaPlusSquare size={14} /> Add Product
+        </NavLink>
+
+        <NavLink to="/dashboard/admin/coupons" style={linkStyle}>
+          <FaTicketAlt size={14} /> Coupons
+        </NavLink>
+
+        <NavLink to="/dashboard/admin/help-center" style={linkStyle}>
+          <FaQuestionCircle size={14} /> Help Center
+        </NavLink>
       </div>
 
-      {/* Quick Actions with Notification Bell */}
+      {/* Quick Actions & Notifications */}
       <div style={{ display: "flex", alignItems: "center", gap: "20px", marginLeft: "20px" }}>
           
-          {/* ✅ The Notification Bell with Badge */}
-          <div style={{ position: "relative", cursor: "pointer", color: gold }} onClick={() => setUnreadCount(0)}>
+          {/* ✅ Notification Bell with Badge */}
+          <div 
+            style={{ position: "relative", cursor: "pointer", color: gold }} 
+            onClick={() => setUnreadCount(0)} // Reset count when clicked
+          >
             <FaBell size={18} />
             {unreadCount > 0 && (
               <span style={{
@@ -101,17 +112,19 @@ const AdminMenu = () => {
                 background: "red",
                 color: "white",
                 borderRadius: "50%",
-                padding: "2px 5px",
+                padding: "2px 6px",
                 fontSize: "10px",
                 fontWeight: "bold",
-                border: "1px solid #1a060c"
+                boxShadow: "0 0 5px rgba(0,0,0,0.5)"
               }}>
                 {unreadCount}
               </span>
             )}
           </div>
 
-          <NavLink to="/" style={{ color: gold, fontSize: "12px", textDecoration: "none", border: `1px solid ${gold}`, padding: "4px 10px", borderRadius: "3px" }}>VIEW STORE</NavLink>
+          <NavLink to="/" style={{ color: gold, fontSize: "12px", textDecoration: "none", border: `1px solid ${gold}`, padding: "4px 10px", borderRadius: "3px" }}>
+            VIEW STORE
+          </NavLink>
       </div>
     </nav>
   );
