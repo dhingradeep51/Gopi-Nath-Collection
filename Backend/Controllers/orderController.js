@@ -195,6 +195,7 @@ export const orderStatusController = async (req, res) => {
     const { orderId } = req.params;
     const { status } = req.body;
 
+    // Security Check: Ensure only Admin can access
     if (req.user.role !== 1) {
       return res.status(401).send({ 
         success: false, 
@@ -202,9 +203,16 @@ export const orderStatusController = async (req, res) => {
       });
     }
 
+    // ✅ PREPARE UPDATE DATA: Include the approval flag for Cancel/Return
+    const updateData = { status };
+    
+    if (status === "Cancel" || status === "Return") {
+      updateData.isApprovedByAdmin = true;
+    }
+
     const updated = await orderModel.findByIdAndUpdate(
       orderId,
-      { status },
+      updateData, // Apply the flag update here
       { new: true }
     ).populate("buyer", "name");
 
@@ -217,7 +225,7 @@ export const orderStatusController = async (req, res) => {
 
     res.status(200).send({ 
       success: true, 
-      message: "Status updated", 
+      message: `Order marked as ${status} and approved`, 
       updated 
     });
   } catch (error) {
@@ -229,7 +237,6 @@ export const orderStatusController = async (req, res) => {
     });
   }
 };
-
 // --- UPDATE LOGISTICS (AWB & TRACKING) ---
 export const updateOrderLogisticsController = async (req, res) => {
   try {
