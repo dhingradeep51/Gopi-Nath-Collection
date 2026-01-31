@@ -177,18 +177,24 @@ const CheckOutPage = () => {
     }
   };
 
+// CheckOutPage.js -> update handleUpdateAddress
 const handleUpdateAddress = async () => {
   try {
     setLoading(true);
-    // Ensure you are sending the specific fields required by your backend
-    const { data } = await axios.put(`${BASE_URL}api/v1/auth/update-address`, {
+    
+    // Wrap the fields in an 'address' object to match your User Model
+    const updateData = {
       name: formData.name,
       phone: formData.phone,
-      address: formData.address, // Your backend might expect 'fullAddress' or 'address'
-      city: formData.city,
-      state: formData.state,
-      pincode: formData.pincode
-    });
+      address: {
+        fullAddress: formData.address,
+        city: formData.city,
+        state: formData.state,
+        pincode: formData.pincode
+      }
+    };
+
+    const { data } = await axios.put(`${BASE_URL}api/v1/auth/update-address`, updateData);
     
     if (data?.success) {
       setAuth({ ...auth, user: data.updatedUser });
