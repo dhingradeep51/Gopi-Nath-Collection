@@ -11,7 +11,8 @@ import {
   FaTimes,
   FaCheckCircle,
   FaEye,
-  FaTicketAlt
+  FaTicketAlt,
+  FaExclamationTriangle
 } from "react-icons/fa";
 import moment from "moment";
 import toast from "react-hot-toast";
@@ -158,6 +159,29 @@ const AdminNotifications = () => {
     };
   }, [logs]);
 
+  // Get cancel and return notifications
+  const criticalNotifications = useMemo(() => {
+    return logs.filter(log => 
+      log.type === "ORDER_CANCELLED" || log.type === "ORDER_RETURNED"
+    ).sort((a, b) => {
+      const dateA = new Date(`${a.date} ${a.time}`);
+      const dateB = new Date(`${b.date} ${b.time}`);
+      return dateB - dateA;
+    });
+  }, [logs]);
+
+  const handleDismissCritical = (logToRemove) => {
+    const updatedLogs = logs.filter(log => 
+      !(log.orderId === logToRemove.orderId && 
+        log.type === logToRemove.type && 
+        log.date === logToRemove.date && 
+        log.time === logToRemove.time)
+    );
+    localStorage.setItem("admin_notifications", JSON.stringify(updatedLogs));
+    setLogs(updatedLogs);
+    toast.success("Notification dismissed");
+  };
+
   return (
     <div title="Notification Registry - Gopi Nath Collection">
       <style>{`
@@ -219,6 +243,177 @@ const AdminNotifications = () => {
 
         .notifications-body {
           padding: 25px 30px;
+        }
+
+        /* Critical Notifications Container */
+        .critical-notifications-container {
+          background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
+          border: 2px solid ${colors.danger};
+          border-radius: 12px;
+          padding: 20px;
+          margin-bottom: 30px;
+          box-shadow: 0 4px 15px rgba(255, 77, 79, 0.15);
+        }
+
+        .critical-header {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 20px;
+          padding-bottom: 15px;
+          border-bottom: 2px solid ${colors.danger}33;
+        }
+
+        .critical-header-icon {
+          font-size: 1.8rem;
+          color: ${colors.danger};
+          animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .critical-header-text h3 {
+          margin: 0;
+          color: ${colors.danger};
+          font-size: 1.3rem;
+          font-weight: 700;
+        }
+
+        .critical-header-text p {
+          margin: 5px 0 0 0;
+          color: ${colors.textMuted};
+          font-size: 0.85rem;
+        }
+
+        .critical-count-badge {
+          background: ${colors.danger};
+          color: white;
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 0.85rem;
+          font-weight: 700;
+          margin-left: auto;
+        }
+
+        .critical-notifications-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 15px;
+        }
+
+        .critical-notification-card {
+          background: white;
+          border-radius: 10px;
+          padding: 15px;
+          border-left: 4px solid;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+          transition: all 0.3s;
+          position: relative;
+        }
+
+        .critical-notification-card.cancelled {
+          border-left-color: ${colors.danger};
+        }
+
+        .critical-notification-card.returned {
+          border-left-color: ${colors.warning};
+        }
+
+        .critical-notification-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .critical-card-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 12px;
+        }
+
+        .critical-type-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px 12px;
+          border-radius: 15px;
+          font-size: 0.75rem;
+          font-weight: 700;
+          text-transform: uppercase;
+        }
+
+        .critical-dismiss-btn {
+          background: transparent;
+          border: none;
+          color: ${colors.textMuted};
+          cursor: pointer;
+          padding: 5px;
+          border-radius: 4px;
+          transition: all 0.2s;
+          font-size: 1rem;
+        }
+
+        .critical-dismiss-btn:hover {
+          background: #f1f3f5;
+          color: ${colors.danger};
+        }
+
+        .critical-order-id {
+          font-weight: 700;
+          color: ${colors.deepBurgundy};
+          font-family: 'Courier New', monospace;
+          font-size: 0.95rem;
+          margin-bottom: 8px;
+        }
+
+        .critical-message {
+          color: ${colors.textMuted};
+          font-size: 0.85rem;
+          line-height: 1.5;
+          margin-bottom: 12px;
+        }
+
+        .critical-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-top: 10px;
+          border-top: 1px solid #e9ecef;
+        }
+
+        .critical-timestamp {
+          font-size: 0.75rem;
+          color: ${colors.textMuted};
+        }
+
+        .critical-view-btn {
+          background: ${colors.gold};
+          color: white;
+          border: none;
+          padding: 5px 14px;
+          border-radius: 12px;
+          cursor: pointer;
+          transition: all 0.3s;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 0.75rem;
+          font-weight: 600;
+        }
+
+        .critical-view-btn:hover {
+          background: ${colors.deepBurgundy};
+          transform: scale(1.05);
+        }
+
+        .no-critical-notifications {
+          text-align: center;
+          padding: 30px;
+          color: ${colors.textMuted};
+          font-size: 0.9rem;
         }
 
         .stats-row {
@@ -493,6 +688,10 @@ const AdminNotifications = () => {
           .stats-row {
             grid-template-columns: repeat(2, 1fr);
           }
+
+          .critical-notifications-grid {
+            grid-template-columns: 1fr;
+          }
         }
 
         @media (max-width: 768px) {
@@ -525,6 +724,20 @@ const AdminNotifications = () => {
 
           .stat-number {
             font-size: 1.6rem;
+          }
+
+          .critical-notifications-container {
+            padding: 15px;
+          }
+
+          .critical-header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .critical-count-badge {
+            margin-left: 0;
+            margin-top: 10px;
           }
 
           .filters-section {
@@ -581,6 +794,14 @@ const AdminNotifications = () => {
             font-size: 0.75rem;
           }
 
+          .critical-header-text h3 {
+            font-size: 1.1rem;
+          }
+
+          .critical-notifications-grid {
+            gap: 12px;
+          }
+
           /* Stack action buttons vertically */
           .action-buttons {
             display: flex;
@@ -618,6 +839,78 @@ const AdminNotifications = () => {
                 </div>
 
                 <div className="notifications-body">
+                  
+                  {/* Critical Notifications Container (Returns & Cancellations) */}
+                  {criticalNotifications.length > 0 && (
+                    <div className="critical-notifications-container">
+                      <div className="critical-header">
+                        <div className="critical-header-icon">
+                          <FaExclamationTriangle />
+                        </div>
+                        <div className="critical-header-text">
+                          <h3>⚠️ Action Required</h3>
+                          <p>Returns and Cancellations need your attention</p>
+                        </div>
+                        <span className="critical-count-badge">
+                          {criticalNotifications.length}
+                        </span>
+                      </div>
+                      
+                      <div className="critical-notifications-grid">
+                        {criticalNotifications.map((log, index) => (
+                          <div 
+                            key={index} 
+                            className={`critical-notification-card ${
+                              log.type === "ORDER_CANCELLED" ? "cancelled" : "returned"
+                            }`}
+                          >
+                            <div className="critical-card-header">
+                              <span 
+                                className="critical-type-badge"
+                                style={{
+                                  background: `${getTypeColor(log.type)}22`,
+                                  color: getTypeColor(log.type),
+                                  border: `1px solid ${getTypeColor(log.type)}`
+                                }}
+                              >
+                                {getTypeIcon(log.type)}
+                                {log.type === "ORDER_CANCELLED" ? "CANCELLED" : "RETURNED"}
+                              </span>
+                              <button 
+                                className="critical-dismiss-btn"
+                                onClick={() => handleDismissCritical(log)}
+                                title="Dismiss notification"
+                              >
+                                <FaTimes />
+                              </button>
+                            </div>
+                            
+                            <div className="critical-order-id">
+                              Order: {log.orderId}
+                            </div>
+                            
+                            <div className="critical-message">
+                              {log.message}
+                            </div>
+                            
+                            <div className="critical-footer">
+                              <span className="critical-timestamp">
+                                {moment(`${log.date} ${log.time}`).format("MMM DD, hh:mm A")}
+                              </span>
+                              <button 
+                                className="critical-view-btn"
+                                onClick={() => handleViewDetails(log)}
+                              >
+                                <FaEye />
+                                View
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Statistics */}
                   <div className="stats-row">
                     <div className="stat-card">
