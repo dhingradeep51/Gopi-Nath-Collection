@@ -4,6 +4,9 @@ import ProductModel from "../Models/productModel.js";
 import userModel from "../Models/userModel.js";
 
 // --- PLACE NEW ORDER WITH GST & GIFT LOGIC ---
+import { sendNotification } from "../utils/notificationUtils.js";
+
+// --- PLACE NEW ORDER WITH GST & GIFT LOGIC ---
 export const placeOrderController = async (req, res) => {
   try {
     const {
@@ -15,7 +18,6 @@ export const placeOrderController = async (req, res) => {
       subtotal,
       totalAmount,
       transactionId,
-      // Gift specific fields from frontend CheckOutPage
       couponType,
       giftProductId 
     } = req.body;
@@ -55,8 +57,7 @@ export const placeOrderController = async (req, res) => {
         });
       }
 
-      // ✅ GST Calculation Logic (Inclusive to Exclusive)
-      const pricePerUnit = product.price; // Tax-inclusive price
+      const pricePerUnit = product.price; 
       const gstPercentage = product.gstRate || 18; 
       const gstDecimal = gstPercentage / 100;
       const basePricePerUnit = pricePerUnit / (1 + gstDecimal);
@@ -85,29 +86,20 @@ export const placeOrderController = async (req, res) => {
       });
     }
 
-    // 3️⃣ ✅ GIFT INJECTION LOGIC
-    // If the applied coupon is a "gift" type, we add the product to the order at ₹0
+    // 3️⃣ GIFT INJECTION LOGIC
     if (couponType === "gift" && giftProductId) {
       const giftItem = await ProductModel.findById(giftProductId);
-      
-      if (giftItem) {
-        // Ensure gift is in stock
-        if (giftItem.quantity > 0) {
+      if (giftItem && giftItem.quantity > 0) {
           products.push({
             product: giftItem._id,
             name: `🎁 GIFT: ${giftItem.name}`,
             qty: 1,
-            price: 0, // Gift is free of charge
+            price: 0,
             gstRate: 0,
             basePrice: 0,
             gstAmount: 0
           });
-          
-          // Deduct stock for the gift item specifically
           await ProductModel.findByIdAndUpdate(giftItem._id, { $inc: { quantity: -1 } });
-        } else {
-            console.log("Gift item out of stock, skipping injection.");
-        }
       }
     }
 
@@ -119,7 +111,7 @@ export const placeOrderController = async (req, res) => {
       return res.status(400).send({ success: false, message: "Invalid order amount" });
     }
 
-    // 5️⃣ Generate Order Number (GN-YYYYMMDD-XXX)
+    // 5️⃣ Generate Order Number
     const datePart = moment().format("YYYYMMDD");
     const todayCount = await orderModel.countDocuments({
       orderNumber: { $regex: `^GN-${datePart}` }
@@ -148,6 +140,9 @@ export const placeOrderController = async (req, res) => {
       highestGstRate: highestGstRate,
       status: "Not Processed"
     });
+
+    // ✅ TRIGGER REAL-TIME NOTIFICATION FOR ADMIN
+    sendNotification(req, "NEW_ORDER", { orderId: generatedOrderNumber });
 
     // 7️⃣ Final Stock Reduction for Cart Items
     for (const item of cart) {
