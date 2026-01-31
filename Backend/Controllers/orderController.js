@@ -30,8 +30,8 @@ export const placeOrderController = async (req, res) => {
         return res.status(400).send({ success: false, message: `Only ${product.quantity} units of "${product.name}" available` });
       }
 
-      const pricePerUnit = product.price; 
-      const gstPercentage = product.gstRate || 18; 
+      const pricePerUnit = product.price;
+      const gstPercentage = product.gstRate || 18;
       const gstDecimal = gstPercentage / 100;
       const basePricePerUnit = pricePerUnit / (1 + gstDecimal);
       const gstAmountPerUnit = pricePerUnit - basePricePerUnit;
@@ -126,7 +126,7 @@ export const getAllOrdersController = async (req, res) => {
 
       // Add these to your select() call in the controller
 
-.select("orderNumber products buyer status payment isInvoiced invoiceNo createdAt cancelReason returnReason isApprovedByAdmin")
+      .select("orderNumber products buyer status payment isInvoiced invoiceNo createdAt cancelReason returnReason isApprovedByAdmin")
 
       .sort({ createdAt: -1 });
 
@@ -182,9 +182,9 @@ export const updateOrderLogisticsController = async (req, res) => {
     const { awbNumber, trackingLink } = req.body;
 
     if (req.user.role !== 1) {
-      return res.status(401).send({ 
-        success: false, 
-        message: "Admin access required" 
+      return res.status(401).send({
+        success: false,
+        message: "Admin access required"
       });
     }
 
@@ -201,17 +201,17 @@ export const updateOrderLogisticsController = async (req, res) => {
       });
     }
 
-    res.status(200).send({ 
-      success: true, 
-      message: "Logistics updated", 
-      updatedOrder 
+    res.status(200).send({
+      success: true,
+      message: "Logistics updated",
+      updatedOrder
     });
   } catch (error) {
     console.error("Update logistics error:", error);
-    res.status(500).send({ 
-      success: false, 
+    res.status(500).send({
+      success: false,
       message: "Error updating logistics",
-      error: error.message 
+      error: error.message
     });
   }
 };
@@ -275,9 +275,9 @@ export const orderInvoiceStatusController = async (req, res) => {
     const { isInvoiced, invoiceNo, invoiceDate } = req.body;
 
     if (req.user.role !== 1) {
-      return res.status(401).send({ 
-        success: false, 
-        message: "Admin access required" 
+      return res.status(401).send({
+        success: false,
+        message: "Admin access required"
       });
     }
 
@@ -294,17 +294,17 @@ export const orderInvoiceStatusController = async (req, res) => {
       });
     }
 
-    res.status(200).send({ 
-      success: true, 
-      message: "Invoice status saved", 
-      order 
+    res.status(200).send({
+      success: true,
+      message: "Invoice status saved",
+      order
     });
   } catch (error) {
     console.error("Update invoice status error:", error);
-    res.status(500).send({ 
-      success: false, 
+    res.status(500).send({
+      success: false,
       message: "Error updating invoice status",
-      error: error.message 
+      error: error.message
     });
   }
 };
@@ -338,14 +338,14 @@ export const getOrderByIdController = async (req, res) => {
 };
 export const getAdminStatsController = async (req, res) => {
   try {
-    const userCount = await userModel.countDocuments({}); 
-    const allOrders = await orderModel.find({}, "orderNumber totalPaid status isInvoiced"); 
-    const products = await ProductModel.find({}, "name quantity"); 
+    const userCount = await userModel.countDocuments({});
+    const allOrders = await orderModel.find({}, "orderNumber totalPaid status isInvoiced");
+    const products = await ProductModel.find({}, "name quantity");
 
     // Filter logic for specific lists
-    const unbilled = allOrders.filter(o => !o.isInvoiced && o.status !== "Cancel"); 
-    const requests = allOrders.filter(o => o.status.includes("Request")); 
-    const lowStock = products.filter(p => p.quantity < 5); 
+    const unbilled = allOrders.filter(o => !o.isInvoiced && o.status !== "Cancel");
+    const requests = allOrders.filter(o => o.status.includes("Request"));
+    const lowStock = products.filter(p => p.quantity < 5);
 
     res.status(200).send({
       success: true,
