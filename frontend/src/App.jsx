@@ -37,6 +37,7 @@ import AllProducts from './pages/product&search/AllProduct';
 import SearchResults from './pages/product&search/SearchResults';
 import CancellationPolicy from './pages/POLICY&CONTACT/CancellationPolicy';
 import OrderDetails from './pages/User/OrderDetail';
+import AdminOrderDetails from './pages/Admin/AdminOrderDetails';
 
 function App() {
   return (
@@ -95,6 +96,8 @@ function App() {
           <Route path="admin/product/:slug" element={<UpdateProduct />} />
           {/* ✅ Standardized path to match other admin routes */}
           <Route path="admin/invoice" element={<AdminInvoiceManager/>}/>
+          // Inside your Routes configuration
+<Route path="/dashboard/admin/orders/:orderID" element={<AdminOrderDetails />} />
         </Route>
 
         {/* 404 Route */}
