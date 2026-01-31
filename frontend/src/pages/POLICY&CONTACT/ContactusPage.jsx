@@ -52,7 +52,7 @@ const ContactusPage = () => {
             ticketData.append("userId", auth.user._id);
             if (file) ticketData.append("attachment", file);
 
-            const { data } = await axios.post( `${BASE_URL}/api/v1/contact/send-message`, ticketData);
+            const { data } = await axios.post( `${BASE_URL}api/v1/contact/send-message`, ticketData);
             if (data.success) {
                 toast.success(`Ticket #${data.ticketId} raised successfully!`);
                 setFormData({ ...formData, subject: "", message: "" });
