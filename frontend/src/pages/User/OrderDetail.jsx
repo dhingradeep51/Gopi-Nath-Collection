@@ -34,7 +34,7 @@ const OrderDetails = () => {
     try {
       setLoading(true);
       // ✅ Added a forward slash to ensure the URL is formed correctly
-      const { data } = await axios.get(`${BASE_URL}api/v1/order/order-details/${params.orderNumber}`);
+      const { data } = await axios.get(`${BASE_URL}api/v1/order/order-details/${params.orderID}`);
       if (data?.success) {
         setOrder(data.order);
       }
