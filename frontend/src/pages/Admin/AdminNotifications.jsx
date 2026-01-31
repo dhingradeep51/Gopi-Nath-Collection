@@ -42,7 +42,9 @@ const AdminNotifications = () => {
     const icons = {
       "NEW_ORDER": <FaShoppingCart />,
       "ORDER_CANCELLED": <FaTimes />,
+      "CANCEL_REQUEST": <FaTimes />,
       "ORDER_RETURNED": <FaUndo />,
+      "RETURN_REQUEST": <FaUndo />,
       "ORDER_DELIVERED": <FaCheckCircle />,
       "USER_TICKET_ALERT": <FaTicketAlt />
     };
@@ -54,7 +56,9 @@ const AdminNotifications = () => {
     const colorMap = {
       "NEW_ORDER": colors.success,
       "ORDER_CANCELLED": colors.danger,
+      "CANCEL_REQUEST": colors.danger,
       "ORDER_RETURNED": colors.warning,
+      "RETURN_REQUEST": colors.warning,
       "ORDER_DELIVERED": colors.info,
       "USER_TICKET_ALERT": "#9b59b6"
     };
@@ -153,8 +157,8 @@ const AdminNotifications = () => {
     return {
       total: logs.length,
       newOrders: logs.filter(l => l.type === "NEW_ORDER").length,
-      cancelled: logs.filter(l => l.type === "ORDER_CANCELLED").length,
-      returned: logs.filter(l => l.type === "ORDER_RETURNED").length,
+      cancelled: logs.filter(l => l.type === "ORDER_CANCELLED" || l.type === "CANCEL_REQUEST").length,
+      returned: logs.filter(l => l.type === "ORDER_RETURNED" || l.type === "RETURN_REQUEST").length,
       tickets: logs.filter(l => l.type === "USER_TICKET_ALERT").length
     };
   }, [logs]);
@@ -162,7 +166,10 @@ const AdminNotifications = () => {
   // Get cancel and return notifications
   const criticalNotifications = useMemo(() => {
     return logs.filter(log => 
-      log.type === "ORDER_CANCELLED" || log.type === "ORDER_RETURNED"
+      log.type === "ORDER_CANCELLED" || 
+      log.type === "CANCEL_REQUEST" || 
+      log.type === "ORDER_RETURNED" || 
+      log.type === "RETURN_REQUEST"
     ).sort((a, b) => {
       const dateA = new Date(`${a.date} ${a.time}`);
       const dateB = new Date(`${b.date} ${b.time}`);
@@ -951,12 +958,14 @@ const AdminNotifications = () => {
                         {criticalNotifications.map((log, index) => {
                           const logId = `${log.orderId}-${log.type}-${log.date}-${log.time}`;
                           const isNew = newCriticalIds.has(logId);
+                          const isCancelled = log.type === "ORDER_CANCELLED" || log.type === "CANCEL_REQUEST";
+                          const isReturned = log.type === "ORDER_RETURNED" || log.type === "RETURN_REQUEST";
                           
                           return (
                             <div 
                               key={index} 
                               className={`critical-notification-card ${
-                                log.type === "ORDER_CANCELLED" ? "cancelled" : "returned"
+                                isCancelled ? "cancelled" : "returned"
                               } ${isNew ? "new-notification" : ""}`}
                             >
                               <div className="critical-card-header">
@@ -969,7 +978,7 @@ const AdminNotifications = () => {
                                   }}
                                 >
                                   {getTypeIcon(log.type)}
-                                  {log.type === "ORDER_CANCELLED" ? "CANCELLED" : "RETURNED"}
+                                  {isCancelled ? "CANCELLED" : "RETURNED"}
                                 </span>
                                 <button 
                                   className="critical-dismiss-btn"
