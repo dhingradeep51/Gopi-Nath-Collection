@@ -225,7 +225,7 @@ export const userOrderStatusController = async (req, res) => {
     if (!order) return res.status(404).send({ success: false, message: "Order not found" });
 
     let newStatus;
-    let notificationType; // ✅ FIX: Declare the variable here
+    let notificationType; // ✅ FIX: Must declare with 'let' to prevent 500 crash
 
     if (status === "Cancel") {
       newStatus = "Cancel Request";
@@ -235,7 +235,7 @@ export const userOrderStatusController = async (req, res) => {
       notificationType = "RETURN_REQUEST";
     }
 
-    // Only send if we have a valid type
+    // ✅ Trigger socket ONLY if a type was assigned
     if (notificationType) {
       sendNotification(req, notificationType, { orderId: order.orderNumber });
     }
@@ -250,7 +250,7 @@ export const userOrderStatusController = async (req, res) => {
 
     res.status(200).send({ success: true, message: "Request submitted", order: updated });
   } catch (error) {
-    console.error("User Order Status Error:", error);
+    console.error("Notification Trigger Error:", error); // Logs error in Render console
     res.status(500).send({ success: false, error: error.message });
   }
 };
