@@ -6,7 +6,7 @@ import {
   getSingleCouponController,
   incrementCouponUsageController,
 } from "../Controllers/couponController.js";
-import { requireSignIn, isAdmin } from "../Middleware/authMiddleware.js";
+import { requireSignIn, isAdmin } from "../Middlewares/authMiddleware.js";
 
 const router = express.Router();
 
