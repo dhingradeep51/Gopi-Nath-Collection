@@ -250,7 +250,7 @@ const AdminCoupons = () => {
 
   // ==================== RENDER ====================
   return (
-    <Layout title="Coupon Management - GNC Admin">
+    <div title="Coupon Management - GNC Admin">
       <div className="admin-coupons-page">
         <div className="container-fluid">
           <div className="row">
@@ -721,7 +721,7 @@ const AdminCoupons = () => {
           color: ${gold} !important;
         }
       `}</style>
-    </Layout>
+    </div>
   );
 };
 
