@@ -270,13 +270,27 @@ export const updateOrderLogisticsController = async (req, res) => {
     });
   }
 };
-
 // --- USER ACTION: CANCEL OR RETURN ORDER ---
 export const userOrderStatusController = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { status } = req.body;
+    const { status, reason } = req.body;
     
+    // Validate required fields
+    if (!status) {
+      return res.status(400).send({ 
+        success: false, 
+        message: "Status is required" 
+      });
+    }
+
+    if (!reason || !reason.trim()) {
+      return res.status(400).send({ 
+        success: false, 
+        message: "Reason is required" 
+      });
+    }
+
     const order = await orderModel.findById(orderId);
 
     if (!order) {
@@ -286,6 +300,7 @@ export const userOrderStatusController = async (req, res) => {
       });
     }
 
+    // Check if user owns this order
     if (order.buyer.toString() !== req.user._id.toString()) {
       return res.status(401).send({ 
         success: false, 
@@ -293,27 +308,55 @@ export const userOrderStatusController = async (req, res) => {
       });
     }
 
-    if (status === "Cancel" && order.status !== "Not Processed") {
-      return res.status(400).send({ 
-        success: false, 
-        message: "Cannot cancel processed orders" 
-      });
+    // Validate cancel conditions
+    if (status === "Cancel") {
+      const cancellableStatuses = ["Not Processed", "Processing"];
+      if (!cancellableStatuses.includes(order.status)) {
+        return res.status(400).send({ 
+          success: false, 
+          message: `Cannot cancel order with status: ${order.status}. Only orders with status 'Not Processed' or 'Processing' can be cancelled.` 
+        });
+      }
     }
 
-    if (status === "Return" && order.status !== "Delivered") {
-      return res.status(400).send({ 
-        success: false, 
-        message: "Can only return delivered orders" 
-      });
+    // Validate return conditions
+    if (status === "Return") {
+      if (order.status !== "Delivered") {
+        return res.status(400).send({ 
+          success: false, 
+          message: "Can only return delivered orders" 
+        });
+      }
+
+      // Check if return is within 7 days of delivery
+      const deliveryDate = new Date(order.updatedAt);
+      const currentDate = new Date();
+      const daysSinceDelivery = Math.floor((currentDate - deliveryDate) / (1000 * 60 * 60 * 24));
+      
+      if (daysSinceDelivery > 7) {
+        return res.status(400).send({ 
+          success: false, 
+          message: "Return period has expired. Returns are only accepted within 7 days of delivery." 
+        });
+      }
     }
 
+    // Prepare update data
+    const updateData = {
+      status,
+      cancelReason: status === "Cancel" ? reason.trim() : order.cancelReason,
+      returnReason: status === "Return" ? reason.trim() : order.returnReason,
+      updatedAt: Date.now()
+    };
+
+    // Update order with reason
     const updated = await orderModel.findByIdAndUpdate(
       orderId, 
-      { status }, 
+      updateData, 
       { new: true }
     );
 
-    // If canceling, restore stock
+    // If canceling, restore stock to inventory
     if (status === "Cancel") {
       for (const item of order.products) {
         await ProductModel.findByIdAndUpdate(
@@ -321,18 +364,35 @@ export const userOrderStatusController = async (req, res) => {
           { $inc: { quantity: item.qty } }
         );
       }
+      
+      console.log(`Order ${orderId} cancelled. Stock restored for ${order.products.length} items.`);
     }
+
+    // If returning, you might want to handle stock differently
+    // Uncomment if you want to restore stock on returns as well
+    // if (status === "Return") {
+    //   for (const item of order.products) {
+    //     await ProductModel.findByIdAndUpdate(
+    //       item.product,
+    //       { $inc: { quantity: item.qty } }
+    //     );
+    //   }
+    //   console.log(`Order ${orderId} returned. Stock restored for ${order.products.length} items.`);
+    // }
 
     res.status(200).send({ 
       success: true, 
-      message: `Order ${status}ed successfully`, 
-      updated 
+      message: status === "Cancel" 
+        ? "Order cancelled successfully" 
+        : "Return request submitted successfully", 
+      order: updated 
     });
+
   } catch (error) {
     console.error("User order status error:", error);
     res.status(500).send({ 
       success: false, 
-      message: "Error updating status",
+      message: "Error updating order status",
       error: error.message 
     });
   }

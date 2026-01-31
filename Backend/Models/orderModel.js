@@ -138,6 +138,16 @@ const orderSchema = new mongoose.Schema(
     },
     invoiceDate: {
       type: Date
+    },
+
+    // 🚫 CANCEL/RETURN REASONS
+    cancelReason: {
+      type: String,
+      default: null
+    },
+    returnReason: {
+      type: String,
+      default: null
     }
   },
   { timestamps: true }
