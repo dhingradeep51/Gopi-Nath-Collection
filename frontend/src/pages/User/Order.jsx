@@ -156,7 +156,7 @@ const UserOrders = () => {
                 <div key={p._id} style={{ display: 'flex', gap: '15px', padding: '15px 0', borderTop: '1px solid rgba(212,175,55,0.1)' }}>
                   {/* ✅ Corrected Image URL Construction */}
                   <img 
-                    src={`${BASE_URL}api/v1/product/product-photo/${p._id}`} 
+                    src={`${BASE_URL.replace(/\/$/, "")}/api/v1/product/product-photo/${p._id}`} 
                     alt={p.name} 
                     className="product-img" 
                     onError={(e) => { e.target.src = "/logo192.png"; }}
