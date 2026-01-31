@@ -399,14 +399,12 @@ export const orderInvoiceStatusController = async (req, res) => {
 };
 
 // --- GET ORDER BY ID (BOTH USER & ADMIN) ---
-// ✅ UPDATED: Fetch order using custom Order Number to avoid BSON error
 export const getOrderByIdController = async (req, res) => {
   try {
     const { orderId } = req.params;
-    
-    // Use findOne instead of findById because orderId is a custom string (e.g., GN-...)
-    const order = await orderModel
-      .findOne({ orderNumber: orderId }) 
+
+    // Search by custom orderNumber, not _id
+    const order = await orderModel.findOne({ orderNumber: orderId })
       .populate({
         path: "products.product",
         select: "name slug photo"
@@ -414,34 +412,19 @@ export const getOrderByIdController = async (req, res) => {
       .populate("buyer", "name phone email address city state pincode");
 
     if (!order) {
-      return res.status(404).send({
-        success: false,
-        message: "Order not found"
-      });
+      return res.status(404).send({ success: false, message: "Order not found" });
     }
 
-    // Security check: Only Admin (role 1) or the actual buyer can view details
+    // Security: Only Admin or the Buyer can view
     if (req.user.role !== 1 && order.buyer._id.toString() !== req.user._id.toString()) {
-      return res.status(401).send({
-        success: false,
-        message: "Unauthorized access"
-      });
+      return res.status(401).send({ success: false, message: "Unauthorized" });
     }
 
-    res.status(200).send({
-      success: true,
-      order
-    });
+    res.status(200).send({ success: true, order });
   } catch (error) {
-    console.error("Get order by ID error:", error);
-    res.status(500).send({
-      success: false,
-      message: "Error fetching order details",
-      error: error.message
-    });
+    res.status(500).send({ success: false, error: error.message });
   }
 };
-
 export default {
   placeOrderController,
   getAllOrdersController,

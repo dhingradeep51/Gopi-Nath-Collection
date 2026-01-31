@@ -9,11 +9,10 @@ import {
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 
-// ✅ 1. GLOBAL FIX: Mirror BASE_URL to API_BASE before the component loads
-// This stops the "Uncaught ReferenceError: API_BASE is not defined" crash
+// ✅ 1. GLOBAL BASE URL CONFIG
 const BASE_URL = import.meta.env.VITE_API_URL || "";
 window.API_BASE = BASE_URL;
-window.BASE_URL=BASE_URL;
+window.BASE_URL = BASE_URL;
 
 const OrderDetails = () => {
   const params = useParams();
@@ -30,34 +29,31 @@ const OrderDetails = () => {
   };
 
   /* ================= FETCH DATA ================= */
-  /* ================= FETCH DATA ================= */
-const getOrderDetails = useCallback(async () => {
-  try {
-    setLoading(true);
-    // Ensure this matches the parameter name in your Route (e.g., :orderID)
-    const { data } = await axios.get(`${BASE_URL}api/v1/order/order-details/${params.orderID}`);
-    if (data?.success) {
-      setOrder(data.order);
+  // ✅ Synchronized with your Backend findOne({ orderNumber: orderID }) logic
+  const getOrderDetails = useCallback(async () => {
+    try {
+      setLoading(true);
+      // We use params.orderID to match the custom GN- number from the URL
+      const { data } = await axios.get(`${BASE_URL}api/v1/order/order-details/${params.orderID}`);
+      if (data?.success) {
+        setOrder(data.order);
+      }
+    } catch (error) {
+      console.error("Error fetching order details:", error);
+      toast.error("Order details not found on server");
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Error fetching order details:", error);
-    toast.error("Order details not found on server");
-  } finally {
-    setLoading(false);
-  }
-}, [params.orderID]); // Updated dependency
+  }, [params.orderID]);
 
-useEffect(() => {
-  if (params?.orderID) getOrderDetails(); // Updated check
-}, [params.orderID, getOrderDetails]); // Updated dependency
-
+  // ✅ Single, clean Effect hook to trigger data fetch
   useEffect(() => {
-    if (params?.oid) getOrderDetails();
-  }, [params.oid, getOrderDetails]);
+    if (params?.orderID) {
+      getOrderDetails();
+    }
+  }, [params.orderID, getOrderDetails]);
 
-  /* ================= 2. UPDATED LOADING STATE ================= */
-  // Matching the "Loading divine pieces..." style from your image
-  // ✅ Replace your current "if (loading)" block with this:
+  /* ================= LOADING STATE ================= */
   if (loading) {
     return (
       <Layout>
@@ -67,21 +63,14 @@ useEffect(() => {
           justifyContent: "center", 
           alignItems: "center", 
           height: "100vh", 
-          background: "#1a050b" // Deep Burgundy background matching your theme
+          background: "#1a050b"
         }}>
-          {/* ✅ The Spinner from your reference image */}
           <div className="custom-loader-container" style={{ marginBottom: "25px" }}>
              <div className="spinner-grow" role="status" style={{ width: "3.5rem", height: "3.5rem", color: "#D4AF37" }}>
                 <span className="visually-hidden">Loading...</span>
              </div>
           </div>
-          <h4 style={{ 
-            color: "#D4AF37", 
-            fontFamily: "serif", 
-            letterSpacing: "2px",
-            textTransform: "uppercase",
-            fontSize: "1.1rem"
-          }}>
+          <h4 style={{ color: "#D4AF37", fontFamily: "serif", letterSpacing: "2px", textTransform: "uppercase", fontSize: "1.1rem" }}>
             Loading divine pieces...
           </h4>
         </div>
@@ -131,33 +120,37 @@ useEffect(() => {
               </div>
             </div>
             
-            <div className="info-row"><FaInfoCircle color={colors.gold}/> <span>Invoice No:</span> <span className="info-val">{order?.invoiceNo || `GNC-${order?._id?.slice(-6).toUpperCase()}`}</span></div>
-            <div className="info-row"><FaReceipt color={colors.gold}/> <span>Payment:</span> <span className="info-val">{order?.payment?.method?.toUpperCase() || "COD"} ({order?.payment?.status || "Success"})</span></div>
+            <div className="info-row"><FaInfoCircle color={colors.gold}/> <span>Order No:</span> <span className="info-val">{order?.orderNumber}</span></div>
+            <div className="info-row"><FaReceipt color={colors.gold}/> <span>Payment:</span> <span className="info-val">{order?.payment?.method?.toUpperCase() || "COD"} ({order?.payment?.success ? "Success" : "Pending"})</span></div>
           </div>
 
           <div className="section-card">
             <h3 style={{color: colors.gold, marginBottom: '15px', fontSize: '16px', letterSpacing: '1px'}}><FaTruck /> LOGISTICS</h3>
-            <div className="info-row"><FaMapMarkerAlt color={colors.gold}/> <span>Destination:</span> <span className="info-val">{order?.buyer?.address || "Registered Divine Address"}</span></div>
+            {/* ✅ FIX: Prevents React Error #31 by rendering specific object properties */}
+            <div className="info-row">
+                <FaMapMarkerAlt color={colors.gold}/> 
+                <span>Destination:</span> 
+                <span className="info-val">
+                    {order?.address || "No Address Provided"}
+                </span>
+            </div>
           </div>
 
           <div className="section-card">
             <h3 style={{color: colors.gold, marginBottom: '15px', fontSize: '16px', letterSpacing: '1px'}}><FaBoxOpen /> DIVINE PIECES</h3>
             {order?.products?.map((p) => (
               <div key={p._id} className="product-item">
-                {/* ✅ Improved Image Loading: prevents the "undefined" network error */}
-                {p?.product?._id ? (
-                    <img 
-                        src={`${BASE_URL}api/v1/product/product-photo/${p.product._id}`} 
-                        alt={p.name} 
-                        className="product-img" 
-                        onError={(e) => { e.target.src = "/logo192.png"; }}
-                    />
-                ) : (
-                    <div className="product-img" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: colors.gold }}>IMAGE</div>
-                )}
+                {/* ✅ Prevents "undefined" image crashes */}
+                <img 
+                    src={`${BASE_URL}api/v1/product/product-photo/${p.product?._id || p.product}`} 
+                    alt={p.name} 
+                    className="product-img" 
+                    onError={(e) => { e.target.src = "/logo192.png"; }}
+                />
                 <div>
                   <div style={{fontWeight: 'bold', fontSize: '1.1rem', color: '#fff'}}>{p.name}</div>
                   <div style={{color: colors.gold, marginTop: '5px'}}>₹{p.price}</div>
+                  <div style={{fontSize: '12px', color: colors.textMuted}}>Qty: {p.qty}</div>
                 </div>
               </div>
             ))}
@@ -166,7 +159,7 @@ useEffect(() => {
           <div className="section-card" style={{border: `1px solid ${colors.gold}`}}>
             <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '10px', color: colors.textMuted}}>
               <span>Subtotal</span>
-              <span>₹{order?.totalPaid - (order?.shippingFee || 0) + (order?.discount || 0)}</span>
+              <span>₹{order?.subtotal}</span>
             </div>
             <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '10px', color: colors.textMuted}}>
               <span>Shipping Logistics</span>

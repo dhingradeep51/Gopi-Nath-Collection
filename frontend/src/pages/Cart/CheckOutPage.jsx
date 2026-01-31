@@ -177,15 +177,12 @@ const CheckOutPage = () => {
     }
   };
 
-// CheckOutPage.js -> update handleUpdateAddress
+// Frontend: CheckOutPage.js (Updated handleUpdateAddress)
 const handleUpdateAddress = async () => {
   try {
     setLoading(true);
-    
-    // Wrap the fields in an 'address' object to match your User Model
+    // Nesting fields to match the User Schema
     const updateData = {
-      name: formData.name,
-      phone: formData.phone,
       address: {
         fullAddress: formData.address,
         city: formData.city,
@@ -195,15 +192,13 @@ const handleUpdateAddress = async () => {
     };
 
     const { data } = await axios.put(`${BASE_URL}api/v1/auth/update-address`, updateData);
-    
     if (data?.success) {
       setAuth({ ...auth, user: data.updatedUser });
-      localStorage.setItem("auth", JSON.stringify({ ...auth, user: data.updatedUser }));
       setShowAddressForm(false);
-      toast.success("Shipping address synchronized!");
+      toast.success("Divine Address Updated!");
     }
   } catch (error) {
-    toast.error("Failed to update address.");
+    toast.error("Failed to sync address");
   } finally {
     setLoading(false);
   }
