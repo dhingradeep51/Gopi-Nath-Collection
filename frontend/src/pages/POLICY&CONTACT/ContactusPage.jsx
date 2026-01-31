@@ -19,6 +19,8 @@ const ContactusPage = () => {
     const [file, setFile] = useState(null); 
     const [loading, setLoading] = useState(false);
 
+    const BASE_URL = import.meta.env.VITE_API_URL;
+
     // ✅ Theme Colors
     const gold = "#D4AF37";
     const darkBurgundy = "#2D0A14";
@@ -50,7 +52,7 @@ const ContactusPage = () => {
             ticketData.append("userId", auth.user._id);
             if (file) ticketData.append("attachment", file);
 
-            const { data } = await axios.post("/api/v1/contact/send-message", ticketData);
+            const { data } = await axios.post( `${BASE_URL}/api/v1/contact/send-message`, ticketData);
             if (data.success) {
                 toast.success(`Ticket #${data.ticketId} raised successfully!`);
                 setFormData({ ...formData, subject: "", message: "" });
