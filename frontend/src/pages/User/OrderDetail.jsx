@@ -171,6 +171,11 @@ const OrderDetails = () => {
     }
   }, [order, fetchInvoice]);
 
+  // Debug modal states
+  useEffect(() => {
+    console.log("Modal states changed - Cancel:", cancelModalVisible, "Return:", returnModalVisible);
+  }, [cancelModalVisible, returnModalVisible]);
+
   const canCancel = () => {
     const cancellableStatuses = ["Not Processed", "Processing"];
     const result = cancellableStatuses.includes(order?.status);
@@ -811,7 +816,9 @@ const OrderDetails = () => {
                     e.preventDefault();
                     e.stopPropagation();
                     console.log("Cancel button clicked");
+                    console.log("Current cancelModalVisible state:", cancelModalVisible);
                     setCancelModalVisible(true);
+                    console.log("Setting cancelModalVisible to true");
                   }}
                   type="button"
                 >
@@ -826,7 +833,9 @@ const OrderDetails = () => {
                     e.preventDefault();
                     e.stopPropagation();
                     console.log("Return button clicked");
+                    console.log("Current returnModalVisible state:", returnModalVisible);
                     setReturnModalVisible(true);
+                    console.log("Setting returnModalVisible to true");
                   }}
                   type="button"
                 >
@@ -914,6 +923,7 @@ const OrderDetails = () => {
             Cancel Order
           </span>
         }
+        open={cancelModalVisible}
         visible={cancelModalVisible}
         onCancel={() => {
           setCancelModalVisible(false);
@@ -929,6 +939,7 @@ const OrderDetails = () => {
           borderBottom: `1px solid ${colors.gold}33`
         }}
         centered
+        destroyOnClose={true}
       >
         <div>
           <p className="modal-text">
@@ -985,6 +996,7 @@ const OrderDetails = () => {
             Return Order
           </span>
         }
+        open={returnModalVisible}
         visible={returnModalVisible}
         onCancel={() => {
           setReturnModalVisible(false);
@@ -1000,6 +1012,7 @@ const OrderDetails = () => {
           borderBottom: `1px solid ${colors.gold}33`
         }}
         centered
+        destroyOnClose={true}
       >
         <div>
           <p className="modal-text">
