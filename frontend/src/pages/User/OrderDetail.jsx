@@ -28,8 +28,6 @@ const OrderDetails = () => {
   const [returnReason, setReturnReason] = useState("");
   const [processingAction, setProcessingAction] = useState(false);
 
-  const BASE_URL = import.meta.env.VITE_API_URL || "/";
-
   const colors = {
     deepBurgundy: "#2D0A14",
     richBurgundy: "#3D0E1C",
@@ -43,7 +41,7 @@ const OrderDetails = () => {
   const getOrderDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`${BASE_URL}api/v1/order/order-details/${params.orderID}`);
+      const { data } = await axios.get(`/api/v1/order/order-details/${params.orderID}`);
       if (data?.success) {
         setOrder(data.order);
       }
@@ -59,7 +57,7 @@ const OrderDetails = () => {
   const fetchInvoice = useCallback(async () => {
     try {
       setLoadingInvoice(true);
-      const { data } = await axios.get(`${BASE_URL}api/v1/invoice/order/${order._id}`);
+      const { data } = await axios.get(`/api/v1/invoice/order/${order._id}`);
       if (data?.success) {
         setInvoice(data.invoice);
       }
@@ -75,7 +73,7 @@ const OrderDetails = () => {
     try {
       toast.loading("Downloading invoice...");
       const response = await axios.get(
-        `${BASE_URL}api/v1/invoice/download/${invoice._id}`,
+        `/api/v1/invoice/download/${invoice._id}`,
         { responseType: 'blob' }
       );
       
@@ -104,7 +102,7 @@ const OrderDetails = () => {
 
     try {
       setProcessingAction(true);
-      const { data } = await axios.put(`${BASE_URL}api/v1/order/user-order-status/${order._id}`, {
+      const { data } = await axios.put(`/api/v1/order/user-order-status/${order._id}`, {
         status: "Cancel",
         reason: cancelReason
       });
@@ -131,7 +129,7 @@ const OrderDetails = () => {
 
     try {
       setProcessingAction(true);
-      const { data } = await axios.put(`${BASE_URL}api/v1/order/user-order-status/${order._id}`, {
+      const { data } = await axios.put(`/api/v1/order/user-order-status/${order._id}`, {
         status: "Return",
         reason: returnReason
       });
@@ -163,8 +161,11 @@ const OrderDetails = () => {
   }, [order, fetchInvoice]);
 
   /* ================= HELPER FUNCTIONS ================= */
-  // ✅ Check if order can be cancelled (only if Not Processed)
-  const canCancel = order?.status === "Not Processed";
+  // ✅ Check if order can be cancelled (only if Not Processed or Processing - NOT Shipped/Delivered)
+  const canCancel = () => {
+    const cancellableStatuses = ["Not Processed", "Processing"];
+    return cancellableStatuses.includes(order?.status);
+  };
 
   // ✅ Check if order can be returned (only if Delivered and within 7 days)
   const canReturn = () => {
@@ -225,7 +226,7 @@ const OrderDetails = () => {
         .status-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(212, 175, 55, 0.2); padding-bottom: 15px; margin-bottom: 15px; }
         .product-item { display: flex; gap: 15px; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .product-img { width: 85px; height: 85px; border-radius: 8px; object-fit: cover; border: 1px solid ${colors.gold}22; background: #000; }
-        .info-row { display: flex; gap: 12px; margin-bottom: 10px; font-size: 14px; color: ${colors.textMuted}; }
+        .info-row { display: flex; gap: 12px; margin-bottom: 10px; font-size: 14px; color: ${colors.textMuted}; align-items: flex-start; }
         .info-val { color: white; }
         .action-buttons { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
         .btn-action { 
@@ -240,7 +241,7 @@ const OrderDetails = () => {
           transition: all 0.3s;
           font-size: 14px;
         }
-        .btn-action:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+        .btn-action:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
         .btn-invoice { background: ${colors.gold}; color: ${colors.deepBurgundy}; }
         .btn-cancel { background: ${colors.danger}; color: white; }
         .btn-return { background: #ff9800; color: white; }
@@ -301,12 +302,12 @@ const OrderDetails = () => {
             </div>
             
             <div className="info-row">
-              <FaInfoCircle color={colors.gold}/> 
+              <FaInfoCircle color={colors.gold} style={{ flexShrink: 0, marginTop: '2px' }}/> 
               <span>Order No:</span> 
               <span className="info-val">{order?.orderNumber}</span>
             </div>
             <div className="info-row">
-              <FaReceipt color={colors.gold}/> 
+              <FaReceipt color={colors.gold} style={{ flexShrink: 0, marginTop: '2px' }}/> 
               <span>Payment:</span> 
               <span className="info-val">
                 {order?.payment?.method?.toUpperCase() || "COD"} 
@@ -316,7 +317,7 @@ const OrderDetails = () => {
 
             {/* ✅ ACTION BUTTONS */}
             <div className="action-buttons">
-              {/* Invoice Download Button */}
+              {/* Invoice Download Button - Only when Delivered */}
               {showInvoice && (
                 <button 
                   className="btn-action btn-invoice"
@@ -328,8 +329,8 @@ const OrderDetails = () => {
                 </button>
               )}
 
-              {/* Cancel Button */}
-              {canCancel && (
+              {/* Cancel Button - Only when Not Processed or Processing (NOT Delivered/Shipped) */}
+              {canCancel() && (
                 <button 
                   className="btn-action btn-cancel"
                   onClick={() => setCancelModalVisible(true)}
@@ -338,7 +339,7 @@ const OrderDetails = () => {
                 </button>
               )}
 
-              {/* Return Button */}
+              {/* Return Button - Only when Delivered and within 7 days */}
               {canReturn() && (
                 <button 
                   className="btn-action btn-return"
@@ -355,9 +356,9 @@ const OrderDetails = () => {
               <FaTruck /> SHIPPING DETAILS
             </h3>
             <div className="info-row">
-              <FaMapMarkerAlt color={colors.gold}/> 
-              <span>Destination:</span> 
-              <span className="info-val">{order?.address || "No Address Provided"}</span>
+              <FaMapMarkerAlt color={colors.gold} style={{ flexShrink: 0, marginTop: '2px' }}/> 
+              <span style={{ minWidth: '90px' }}>Destination:</span> 
+              <span className="info-val" style={{ flex: 1 }}>{order?.address || "No Address Provided"}</span>
             </div>
           </div>
 
@@ -368,7 +369,7 @@ const OrderDetails = () => {
             {order?.products?.map((p, index) => (
               <div key={index} className="product-item">
                 <img 
-                  src={`${BASE_URL}api/v1/product/product-photo/${p.product?._id || p.product}`} 
+                  src={`/api/v1/product/product-photo/${p.product?._id || p.product}`} 
                   alt={p.name} 
                   className="product-img" 
                   onError={(e) => { e.target.src = "/logo192.png"; }}
@@ -510,6 +511,9 @@ const OrderDetails = () => {
         <div style={{ padding: '20px 0' }}>
           <p style={{ color: 'white', marginBottom: '15px' }}>
             Please provide a reason for returning this order:
+          </p>
+          <p style={{ color: colors.textMuted, fontSize: '12px', marginBottom: '15px' }}>
+            Note: Return requests can only be submitted within 7 days of delivery.
           </p>
           <TextArea
             rows={4}
