@@ -177,23 +177,31 @@ const CheckOutPage = () => {
     }
   };
 
-  const handleUpdateAddress = async () => {
-    try {
-      setLoading(true);
-      const { data } = await axios.put(`${BASE_URL}api/v1/auth/update-address`, formData);
-      if (data?.success) {
-        setAuth({ ...auth, user: data.updatedUser });
-        localStorage.setItem("auth", JSON.stringify({ ...auth, user: data.updatedUser }));
-        setShowAddressForm(false);
-        toast.success("Shipping address synchronized!");
-      }
-    } catch (error) {
-      toast.error("Failed to update address. Please try again.");
-    } finally {
-      setLoading(false);
+const handleUpdateAddress = async () => {
+  try {
+    setLoading(true);
+    // Ensure you are sending the specific fields required by your backend
+    const { data } = await axios.put(`${BASE_URL}api/v1/auth/update-address`, {
+      name: formData.name,
+      phone: formData.phone,
+      address: formData.address, // Your backend might expect 'fullAddress' or 'address'
+      city: formData.city,
+      state: formData.state,
+      pincode: formData.pincode
+    });
+    
+    if (data?.success) {
+      setAuth({ ...auth, user: data.updatedUser });
+      localStorage.setItem("auth", JSON.stringify({ ...auth, user: data.updatedUser }));
+      setShowAddressForm(false);
+      toast.success("Shipping address synchronized!");
     }
-  };
-
+  } catch (error) {
+    toast.error("Failed to update address.");
+  } finally {
+    setLoading(false);
+  }
+};
   const handlePlaceOrder = async () => {
     if (!formData.phone || !formData.address || !formData.city || !formData.state) {
       return toast.error("Please provide complete delivery details including State");
