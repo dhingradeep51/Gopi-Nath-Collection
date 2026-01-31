@@ -28,6 +28,8 @@ const OrderDetails = () => {
   const [returnReason, setReturnReason] = useState("");
   const [processingAction, setProcessingAction] = useState(false);
 
+  const BASE_URL = import.meta.env.VITE_API_URL || "/";
+
   const colors = {
     deepBurgundy: "#2D0A14",
     richBurgundy: "#3D0E1C",
@@ -41,7 +43,7 @@ const OrderDetails = () => {
   const getOrderDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`/api/v1/order/order-details/${params.orderID}`);
+      const { data } = await axios.get(`${BASE_URL}api/v1/order/order-details/${params.orderID}`);
       if (data?.success) {
         setOrder(data.order);
       }
@@ -57,7 +59,7 @@ const OrderDetails = () => {
   const fetchInvoice = useCallback(async () => {
     try {
       setLoadingInvoice(true);
-      const { data } = await axios.get(`/api/v1/invoice/order/${order._id}`);
+      const { data } = await axios.get(`${BASE_URL}api/v1/invoice/order/${order._id}`);
       if (data?.success) {
         setInvoice(data.invoice);
       }
@@ -73,7 +75,7 @@ const OrderDetails = () => {
     try {
       toast.loading("Downloading invoice...");
       const response = await axios.get(
-        `/api/v1/invoice/download/${invoice._id}`,
+        `${BASE_URL}api/v1/invoice/download/${invoice._id}`,
         { responseType: 'blob' }
       );
       
@@ -102,7 +104,7 @@ const OrderDetails = () => {
 
     try {
       setProcessingAction(true);
-      const { data } = await axios.put(`/api/v1/order/user-order-status/${order._id}`, {
+      const { data } = await axios.put(`${BASE_URL}api/v1/order/user-order-status/${order._id}`, {
         status: "Cancel",
         reason: cancelReason
       });
@@ -129,7 +131,7 @@ const OrderDetails = () => {
 
     try {
       setProcessingAction(true);
-      const { data } = await axios.put(`/api/v1/order/user-order-status/${order._id}`, {
+      const { data } = await axios.put(`${BASE_URL}api/v1/order/user-order-status/${order._id}`, {
         status: "Return",
         reason: returnReason
       });
@@ -366,7 +368,7 @@ const OrderDetails = () => {
             {order?.products?.map((p, index) => (
               <div key={index} className="product-item">
                 <img 
-                  src={`/api/v1/product/product-photo/${p.product?._id || p.product}`} 
+                  src={`${BASE_URL}api/v1/product/product-photo/${p.product?._id || p.product}`} 
                   alt={p.name} 
                   className="product-img" 
                   onError={(e) => { e.target.src = "/logo192.png"; }}
