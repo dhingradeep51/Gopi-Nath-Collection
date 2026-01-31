@@ -90,35 +90,41 @@ const AdminCoupons = () => {
     setSelectedProduct(null);
   };
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
   e.preventDefault();
 
-  // If type is gift, discountValue isn't needed
+  // New conditional check for Gift types
   const isGift = discountType === "gift";
 
-  if (!name || !expiry || (!isGift && !discountValue)) {
-    return message.error("Please fill all required fields");
+  // Check name, expiry, and either discountValue (for fixed/percentage) OR selectedProduct (for gifts)
+  if (!name || !expiry || (!isGift && !discountValue) || (isGift && !selectedProduct)) {
+    return message.error("Please fill all required fields correctly");
   }
 
   try {
     setLoading(true);
+
     const couponData = {
       name: name.toUpperCase(),
       expiry: expiry,
       discountType,
-      discountValue: isGift ? 0 : discountValue, // Set to 0 if gift
+      // For gifts, we pass a value of 0 to the backend
+      discountValue: isGift ? 0 : discountValue,
       maxDiscount: discountType === "percentage" ? maxDiscount : 0,
       minPurchase,
       usageLimit,
       giftProductId: isGift ? selectedProduct : null,
     };
 
-    const { data } = await axios.post(`${BASE_URL}api/v1/coupon/create-coupon`, couponData);
-    
+    const { data } = await axios.post(
+      `${BASE_URL}api/v1/coupon/create-coupon`,
+      couponData
+    );
+
     if (data.success) {
       message.success("Divine Coupon Created Successfully!");
       resetForm();
-      getAllCoupons();
+      getAllCoupons(); // This will now work because the 500 error is fixed
     }
     setLoading(false);
   } catch (error) {
@@ -126,7 +132,6 @@ const AdminCoupons = () => {
     message.error(error.response?.data?.message || "Failed to create coupon");
   }
 };
-
   const handleDelete = async (id) => {
     try {
       const { data } = await axios.delete(
