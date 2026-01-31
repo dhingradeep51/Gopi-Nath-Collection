@@ -30,22 +30,26 @@ const OrderDetails = () => {
   };
 
   /* ================= FETCH DATA ================= */
-  const getOrderDetails = useCallback(async () => {
-    try {
-      setLoading(true);
-      // ✅ Added a forward slash to ensure the URL is formed correctly
-      const { data } = await axios.get(`${BASE_URL}api/v1/order/order-details/${params.orderID}`);
-      if (data?.success) {
-        setOrder(data.order);
-      }
-    } catch (error) {
-      console.error("Error fetching order details:", error);
-      // The 404 error usually means the backend route isn't deployed yet
-      toast.error("Order details not found on server");
-    } finally {
-      setLoading(false);
+  /* ================= FETCH DATA ================= */
+const getOrderDetails = useCallback(async () => {
+  try {
+    setLoading(true);
+    // Ensure this matches the parameter name in your Route (e.g., :orderID)
+    const { data } = await axios.get(`${BASE_URL}api/v1/order/order-details/${params.orderID}`);
+    if (data?.success) {
+      setOrder(data.order);
     }
-  }, [params.oid]);
+  } catch (error) {
+    console.error("Error fetching order details:", error);
+    toast.error("Order details not found on server");
+  } finally {
+    setLoading(false);
+  }
+}, [params.orderID]); // Updated dependency
+
+useEffect(() => {
+  if (params?.orderID) getOrderDetails(); // Updated check
+}, [params.orderID, getOrderDetails]); // Updated dependency
 
   useEffect(() => {
     if (params?.oid) getOrderDetails();
