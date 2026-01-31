@@ -9,35 +9,31 @@ const AdminNotification = ({ setUnreadCount, role }) => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Only run for Admin role (role === 1)
         if (role === 1) {
             socket.emit("join_admin_room");
 
             socket.on("admin_alert", (data) => {
-                // 1. Update the bubble count in the menu
+                console.log("🔔 New Alert Received:", data); // DEBUG LOG
+                
+                // 1. Update the bubble count
                 setUnreadCount(prev => prev + 1);
 
-                // 2. ✅ SAVE TO LOCALSTORAGE (This makes the data show on your Registry Page)
+                // 2. ✅ SAVE TO LOCALSTORAGE
                 try {
                     const existingLogs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
-                    // Add new data to the top of the array
-                    const updatedLogs = [data, ...existingLogs].slice(0, 50); // Keep last 50 alerts
+                    const updatedLogs = [data, ...existingLogs].slice(0, 50); 
                     localStorage.setItem("admin_notifications", JSON.stringify(updatedLogs));
-                } catch (error) {
-                    console.error("Error saving notification to storage:", error);
+                    console.log("✅ Data saved to Registry");
+                } catch (err) {
+                    console.error("❌ Storage Error:", err);
                 }
 
-                // 3. Configure the Toast appearance
+                // 3. Show the Toast
                 toast.info(data.message, {
                     position: "bottom-right",
-                    autoClose: 5000, 
-                    hideProgressBar: false,
-                    closeOnClick: true,
-                    pauseOnHover: true,
-                    draggable: true,
+                    autoClose: 5000,
                     theme: "dark",
                     onClick: () => {
-                        // Clicking the toast still takes you to orders
                         navigate(`/dashboard/admin/orders`);
                         setUnreadCount(0);
                     }
@@ -45,10 +41,7 @@ const AdminNotification = ({ setUnreadCount, role }) => {
             });
         }
 
-        // Cleanup on unmount
-        return () => {
-            socket.off("admin_alert");
-        };
+        return () => socket.off("admin_alert");
     }, [role, navigate, setUnreadCount]);
 
     return null; 
