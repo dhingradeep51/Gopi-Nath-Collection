@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import AdminMenu from "../../components/Menus/AdminMenu";
-import Layout from "../../components/Layout/Layout";
+
 
 const AdminNotifications = () => {
   const [logs, setLogs] = useState([]);
@@ -27,7 +27,7 @@ const AdminNotifications = () => {
   };
 
   return (
-    <Layout title={"Notification Registry - Gopi Nath Collection"}>
+    <div title={"Notification Registry - Gopi Nath Collection"}>
       <div className="container-fluid m-3 p-3">
         <div className="row">
           <div className="col-md-3">
@@ -65,7 +65,7 @@ const AdminNotifications = () => {
           </div>
         </div>
       </div>
-    </Layout>
+    </div>
   );
 };
 
