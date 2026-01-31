@@ -100,12 +100,12 @@ const AdminOrderDetails = () => {
   }
 
   const isRequest = order?.status?.includes("Request");
-  const payMethod = order?.payment?.method?.toUpperCase() || "COD";
+  const hasReason = order?.cancelReason || order?.returnReason;
 
   return (
     <Layout title={`Order Details - Admin`}>
       <div style={{ background: darkBurgundy, minHeight: "100vh", color: "#fff", padding: "40px 20px" }}>
-        <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
           
           <div 
             onClick={() => navigate("/dashboard/admin/orders")} 
@@ -114,9 +114,9 @@ const AdminOrderDetails = () => {
             <FaArrowLeft /> BACK TO REGISTRY
           </div>
 
-          <div style={{ border: `1px solid ${gold}44`, borderRadius: "12px", background: 'rgba(255,255,255,0.03)', padding: '40px' }}>
+          <div style={{ border: `1px solid ${gold}44`, borderRadius: "12px", background: 'rgba(255,255,255,0.03)', padding: '30px' }}>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px' }}>
               <div>
                 <h2 style={{ color: gold, fontFamily: 'serif', margin: 0 }}>ORDER {order?.orderNumber}</h2>
                 <p style={{ opacity: 0.6 }}>Placed on {moment(order?.createdAt).format("LLLL")}</p>
@@ -126,15 +126,23 @@ const AdminOrderDetails = () => {
               </Tag>
             </div>
 
-            {/* ✅ REQUEST ALERT BOX */}
-            {isRequest && (
-                <div style={{ background: 'rgba(250, 173, 20, 0.1)', border: `1px solid #faad14`, padding: '20px', borderRadius: '8px', marginBottom: '30px', display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <FaExclamationTriangle color="#faad14" size={30} />
+            {/* ✅ DYNAMIC REASON & APPROVAL BOX */}
+            {(isRequest || hasReason) && (
+                <div style={{ 
+                  background: isRequest ? 'rgba(250, 173, 20, 0.1)' : 'rgba(255, 77, 79, 0.05)', 
+                  border: `1px solid ${isRequest ? '#faad14' : gold + '44'}`, 
+                  padding: '20px', borderRadius: '8px', marginBottom: '30px', display: 'flex', alignItems: 'center', gap: '20px' 
+                }}>
+                    <FaExclamationTriangle color={isRequest ? "#faad14" : gold} size={30} />
                     <div style={{ flex: 1 }}>
-                        <h5 style={{ color: '#faad14', margin: 0, fontWeight: 'bold' }}>{order?.status?.toUpperCase()}</h5>
-                        <p style={{ color: '#fff', margin: '5px 0 0 0' }}>Reason: {order?.status?.includes("Cancel") ? order.cancelReason : order.returnReason}</p>
+                        <h5 style={{ color: isRequest ? '#faad14' : gold, margin: 0, fontWeight: 'bold', textTransform: 'uppercase' }}>
+                          {isRequest ? "Action Required: " + order?.status : "Order History Reason"}
+                        </h5>
+                        <p style={{ color: '#fff', margin: '5px 0 0 0', fontSize: '15px' }}>
+                          <strong>Reason Provided:</strong> {order.cancelReason || order.returnReason || "N/A"}
+                        </p>
                     </div>
-                    {!order.isApprovedByAdmin && (
+                    {isRequest && !order.isApprovedByAdmin && (
                         <Button 
                           type="primary" 
                           loading={actionLoading}
@@ -147,74 +155,100 @@ const AdminOrderDetails = () => {
                 </div>
             )}
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "30px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 350px", gap: "30px" }}>
               
-              {/* Divine Items */}
-              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '25px', borderRadius: '10px', gridColumn: 'span 2' }}>
-                <h6 style={{ color: gold, marginBottom: "20px" }}><FaShoppingBag /> DIVINE ITEMS</h6>
+              {/* LEFT SIDE: DIVINE ITEMS */}
+              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '25px', borderRadius: '10px' }}>
+                <h6 style={{ color: gold, marginBottom: "25px", borderBottom: `1px solid ${gold}22`, paddingBottom: '10px' }}>
+                  <FaShoppingBag /> ORDERED ITEMS
+                </h6>
                 {order?.products?.map((p) => (
-                  <div key={p._id} style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div style={{ display: 'flex', gap: '15px' }}>
-                        {p.price === 0 ? <FaGift color={gold} size={18} /> : <div style={{width: 18}}></div>}
-                        <span>
-                          {p.name} 
-                          {p.price === 0 && <Tag color="gold" style={{ marginLeft: '10px' }}>PROMO GIFT</Tag>}
-                          <span style={{ color: gold, marginLeft: '15px' }}>x{p.qty}</span>
+                  <div key={p._id} style={{ 
+                    display: 'flex', gap: '20px', padding: '15px 0', 
+                    borderBottom: '1px solid rgba(255,255,255,0.05)',
+                    background: p.price === 0 ? 'rgba(212, 175, 55, 0.03)' : 'transparent'
+                  }}>
+                    {/* Product Image */}
+                    <img 
+                      src={`${BASE_URL}/api/v1/product/product-photo/${p.product?._id || p.product}`} 
+                      alt={p.name}
+                      style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: `1px solid ${gold}33` }}
+                      onError={(e) => { e.target.src = "/logo192.png"; }}
+                    />
+
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontWeight: 'bold', fontSize: '16px' }}>
+                          {p.name} {p.price === 0 && <Tag color="gold" style={{ marginLeft: '10px' }}>GIFT</Tag>}
                         </span>
+                        <span style={{ color: gold, fontWeight: 'bold' }}>
+                          {p.price === 0 ? "FREE" : `₹${(p.price * p.qty).toLocaleString()}`}
+                        </span>
+                      </div>
+                      
+                      {/* Detailed Price Labels */}
+                      <div style={{ marginTop: '8px', fontSize: '12px', display: 'flex', gap: '15px', opacity: 0.7 }}>
+                        <span><strong>Base:</strong> ₹{p.basePrice || "N/A"}</span>
+                        <span><strong>GST:</strong> {p.gstRate || 0}%</span>
+                        <span><strong>Qty:</strong> {p.qty}</span>
+                      </div>
                     </div>
-                    <span style={{ color: gold }}>{p.price === 0 ? "FREE" : `₹${p.price}`}</span>
                   </div>
                 ))}
               </div>
 
-              {/* Totals Section */}
-              <div style={{ background: 'rgba(212, 175, 55, 0.05)', padding: '25px', borderRadius: '10px', border: `1px solid ${gold}33` }}>
-                <h6 style={{ color: gold, marginBottom: "20px" }}><FaReceipt /> FINANCIALS</h6>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span>Subtotal:</span><span>₹{order?.subtotal}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                  <span>Shipping:</span><span>{order?.shippingFee > 0 ? `₹${order.shippingFee}` : "FREE"}</span>
-                </div>
-                {order?.discount > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#4BB543', marginBottom: '10px' }}>
-                    <span>Discount:</span><span>-₹{order.discount}</span>
+              {/* RIGHT SIDE: FINANCIALS & CUSTOMER */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                
+                {/* Financial Summary */}
+                <div style={{ background: 'rgba(212, 175, 55, 0.05)', padding: '25px', borderRadius: '10px', border: `1px solid ${gold}33` }}>
+                  <h6 style={{ color: gold, marginBottom: "20px" }}><FaReceipt /> FINANCIALS</h6>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '14px' }}>
+                    <span>Subtotal:</span><span>₹{order?.subtotal?.toLocaleString()}</span>
                   </div>
-                )}
-                <Divider style={{ background: `${gold}22` }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', color: gold, fontWeight: 'bold', fontSize: '20px' }}>
-                  <span>Total:</span><span>₹{order?.totalPaid}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '14px' }}>
+                    <span>Shipping:</span><span>{order?.shippingFee > 0 ? `₹${order.shippingFee}` : "FREE"}</span>
+                  </div>
+                  {order?.discount > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#4BB543', marginBottom: '10px', fontSize: '14px' }}>
+                      <span>Discount:</span><span>-₹{order.discount?.toLocaleString()}</span>
+                    </div>
+                  )}
+                  <Divider style={{ background: `${gold}22`, margin: '15px 0' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', color: gold, fontWeight: 'bold', fontSize: '22px' }}>
+                    <span>Total:</span><span>₹{order?.totalPaid?.toLocaleString()}</span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Customer Details */}
-              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '25px', borderRadius: '10px' }}>
-                <h6 style={{ color: gold, marginBottom: "20px" }}><FaUser /> CUSTOMER</h6>
-                <p style={{ margin: '0 0 5px 0', fontSize: '16px' }}>{order?.buyer?.name}</p>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
-                  <span style={{ opacity: 0.7 }}>{order?.buyer?.phone}</span>
-                  <FaCopy style={{ cursor: 'pointer', color: gold }} onClick={() => copyToClipboard(order?.buyer?.phone)} />
+                {/* Customer Details */}
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '25px', borderRadius: '10px' }}>
+                  <h6 style={{ color: gold, marginBottom: "20px" }}><FaUser /> CUSTOMER</h6>
+                  <p style={{ margin: '0 0 5px 0', fontSize: '16px', fontWeight: 'bold' }}>{order?.buyer?.name}</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+                    <span style={{ opacity: 0.7 }}>{order?.buyer?.phone}</span>
+                    <FaCopy style={{ cursor: 'pointer', color: gold }} onClick={() => copyToClipboard(order?.buyer?.phone)} />
+                  </div>
+                  <Divider style={{ background: `${gold}22`, margin: '15px 0' }} />
+                  <h6 style={{ color: gold, fontSize: '12px' }}><FaMapMarkerAlt /> DELIVERY ADDRESS</h6>
+                  <p style={{ fontSize: '13px', lineHeight: '1.6', color: '#ccc' }}>{order?.address}</p>
                 </div>
-                <Divider style={{ background: `${gold}22` }} />
-                <h6 style={{ color: gold, fontSize: '12px' }}><FaMapMarkerAlt /> DELIVERY ADDRESS</h6>
-                <p style={{ fontSize: '14px', lineHeight: '1.6' }}>{order?.address}</p>
+
+                {/* Logistics Control */}
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '25px', borderRadius: '10px' }}>
+                  <h6 style={{ color: gold, marginBottom: "20px" }}><FaEdit /> MANAGEMENT</h6>
+                  <Dropdown disabled={actionLoading} menu={{ items: statusList.map(s => ({ key: s, label: s.toUpperCase(), disabled: order?.status === s })), onClick: ({ key }) => handleStatusChange(key) }}>
+                    <Button block style={{ background: 'transparent', color: gold, borderColor: gold, marginBottom: '20px', height: '40px' }}>
+                      STATUS: {order?.status?.toUpperCase()} <FaChevronDown size={12} />
+                    </Button>
+                  </Dropdown>
+
+                  <h6 style={{ color: gold, marginBottom: "15px", fontSize: '11px' }}><FaTruck /> LOGISTICS</h6>
+                  <Input placeholder="AWB Number" value={logisticData.awb} onChange={(e) => setLogisticData({...logisticData, awb: e.target.value})} style={{ marginBottom: "10px", background: 'rgba(255,255,255,0.05)', color: '#fff', borderColor: `${gold}44` }} />
+                  <Input placeholder="Tracking Link" value={logisticData.link} onChange={(e) => setLogisticData({...logisticData, link: e.target.value})} style={{ marginBottom: "15px", background: 'rgba(255,255,255,0.05)', color: '#fff', borderColor: `${gold}44` }} />
+                  <Button loading={actionLoading} onClick={handleLogisticsUpdate} block style={{ background: gold, color: darkBurgundy, fontWeight: 'bold' }}>UPDATE TRACKING</Button>
+                </div>
+
               </div>
-
-              {/* Management & Logistics */}
-              <div style={{ background: 'rgba(255,255,255,0.02)', padding: '25px', borderRadius: '10px' }}>
-                <h6 style={{ color: gold, marginBottom: "20px" }}><FaEdit /> MANAGEMENT</h6>
-                <Dropdown disabled={actionLoading} menu={{ items: statusList.map(s => ({ key: s, label: s.toUpperCase(), disabled: order?.status === s })), onClick: ({ key }) => handleStatusChange(key) }}>
-                  <Button block style={{ background: 'transparent', color: gold, borderColor: gold, marginBottom: '20px', height: '40px' }}>
-                    STATUS: {order?.status?.toUpperCase()} <FaChevronDown size={12} />
-                  </Button>
-                </Dropdown>
-
-                <h6 style={{ color: gold, marginBottom: "15px", fontSize: '12px' }}><FaTruck /> LOGISTICS</h6>
-                <Input placeholder="AWB / Tracking Number" value={logisticData.awb} onChange={(e) => setLogisticData({...logisticData, awb: e.target.value})} style={{ marginBottom: "10px", background: 'rgba(255,255,255,0.05)', color: '#fff', borderColor: `${gold}44` }} />
-                <Input placeholder="Tracking URL" value={logisticData.link} onChange={(e) => setLogisticData({...logisticData, link: e.target.value})} style={{ marginBottom: "15px", background: 'rgba(255,255,255,0.05)', color: '#fff', borderColor: `${gold}44` }} />
-                <Button loading={actionLoading} onClick={handleLogisticsUpdate} block style={{ background: gold, color: darkBurgundy, fontWeight: 'bold' }}>UPDATE TRACKING</Button>
-              </div>
-
             </div>
           </div>
         </div>
