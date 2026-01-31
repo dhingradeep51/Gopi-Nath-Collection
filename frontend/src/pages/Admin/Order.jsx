@@ -1,12 +1,17 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import Layout from "../../components/Layout";
 import axios from "axios";
-import AdminMenu from "../../components/Menus/AdminMenu";
-import { useAuth } from "../../context/auth";
+import moment from "moment";
 import { Input, Button, Dropdown, Tag, Divider, Spin } from "antd";
 import { 
   FaChevronDown, FaChevronUp, FaSearch, FaTruck, 
-  FaEdit, FaUser, FaMapMarkerAlt, FaCopy, FaBarcode, FaFileInvoice, FaInfoCircle, FaTag, FaCreditCard, FaExternalLinkAlt
+  FaEdit, FaUser, FaMapMarkerAlt, FaCopy, FaBarcode, 
+  FaFileInvoice, FaInfoCircle, FaTag, FaCreditCard, 
+  FaExternalLinkAlt, FaExclamationTriangle 
 } from "react-icons/fa";
+import AdminMenu from "../../components/Menus/AdminMenu";
+import { useAuth } from "../../context/auth";
 import toast from "react-hot-toast";
 
 const AdminOrders = () => {
@@ -57,7 +62,7 @@ const AdminOrders = () => {
   /* ================= HANDLERS ================= */
   const handleStatusChange = async (orderId, value) => {
     setActionLoading(true);
-    const loadToast = toast.loading(`Updating status...`);
+    const loadToast = toast.loading(`Updating status to ${value}...`);
     try {
       await axios.put(`${BASE_URL}api/v1/order/order-status/${orderId}`, { status: value });
       toast.success(`Marked as ${value}`, { id: loadToast });
@@ -85,44 +90,34 @@ const AdminOrders = () => {
   };
 
   const handleDownloadPDF = async (type, order) => {
-  if (type !== "BILL") return;
-  setActionLoading(true);
-  
-  try {
-    // 1. Fetch the invoice details to get the invoice record ID
-    const { data } = await axios.get(`${BASE_URL}api/v1/invoice/order/${order._id}`);
-    
-    if (!data?.invoice?._id) {
-      toast.error("Invoice record not found. Please click Generate first.");
-      return;
+    if (type !== "BILL") return;
+    setActionLoading(true);
+    try {
+      const { data } = await axios.get(`${BASE_URL}api/v1/invoice/order/${order._id}`);
+      if (!data?.invoice?._id) {
+        toast.error("Invoice record not found. Please click Generate first.");
+        return;
+      }
+      const response = await axios({
+        url: `${BASE_URL}api/v1/invoice/download/${data.invoice._id}`,
+        method: "GET",
+        responseType: "blob",
+      });
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const link = document.createElement("a");
+      link.href = window.URL.createObjectURL(blob);
+      link.download = `Invoice-${order.orderNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("Download started");
+    } catch (error) {
+      toast.error("Failed to download invoice");
+    } finally {
+      setActionLoading(false);
     }
+  };
 
-    // 2. Request the PDF as a Blob
-    const response = await axios({
-      url: `${BASE_URL}api/v1/invoice/download/${data.invoice._id}`,
-      method: "GET",
-      responseType: "blob", // Required for binary data like PDFs
-    });
-
-    // 3. Create a download link for the browser
-    const blob = new Blob([response.data], { type: "application/pdf" });
-    const link = document.createElement("a");
-    link.href = window.URL.createObjectURL(blob);
-    link.download = `Invoice-${order.orderNumber}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast.success("Download started");
-  } catch (error) {
-    console.error("PDF Download Error:", error);
-    toast.error(error.response?.data?.message || "Failed to download invoice");
-  } finally {
-    setActionLoading(false);
-  }
-};
-
-  /* ================= UTILS ================= */
   const copyToClipboard = (text) => {
     if (!text) return;
     navigator.clipboard.writeText(text).then(() => toast.success("Copied!"));
@@ -165,7 +160,7 @@ const AdminOrders = () => {
             return (
               <div key={o._id} style={{ marginBottom: "20px", border: `1px solid ${isOpen ? gold : gold + "44"}`, borderRadius: "12px", background: 'rgba(255,255,255,0.03)', overflow: 'hidden' }}>
                 
-                {/* Accordion Header */}
+                {/* Header Section */}
                 <div 
                   style={{ padding: "20px 30px", display: "flex", justifyContent: "space-between", alignItems: 'center', cursor: "pointer", background: isOpen ? 'rgba(212, 175, 55, 0.05)' : 'transparent' }}
                   onClick={() => setExpandedOrder(isOpen ? null : o._id)}
@@ -187,9 +182,35 @@ const AdminOrders = () => {
 
                 {isOpen && (
                   <div style={{ padding: "40px", background: 'rgba(0,0,0,0.4)', borderTop: `1px solid ${gold}33` }}>
+                    
+                    {/* ✅ DISPLAY REASONS FOR CANCEL OR RETURN */}
+                    {(o.status === "Cancel" || o.status === "Return") && (
+                        <div style={{ 
+                            background: 'rgba(255, 77, 79, 0.1)', 
+                            border: '1px solid #ff4d4f', 
+                            padding: '15px 25px', 
+                            borderRadius: '8px', 
+                            marginBottom: '30px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '15px'
+                        }}>
+                            <FaExclamationTriangle color="#ff4d4f" size={24} />
+                            <div>
+                                <h5 style={{ color: '#ff4d4f', margin: 0, fontSize: '14px', fontWeight: 'bold' }}>
+                                    {o.status === "Cancel" ? "CANCELLATION REASON" : "RETURN REASON"}
+                                </h5>
+                                <p style={{ color: '#fff', margin: '5px 0 0 0', fontSize: '16px' }}>
+                                    {/* Maps directly to the schema fields */}
+                                    {o.status === "Cancel" ? (o.cancelReason || "No reason provided") : (o.returnReason || "No reason provided")}
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "40px" }}>
                       
-                      {/* Customer Details */}
+                      {/* Customer Info */}
                       <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '10px' }}>
                         <h6 style={{ color: gold, marginBottom: "20px" }}><FaUser /> CUSTOMER DETAILS</h6>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
@@ -201,7 +222,7 @@ const AdminOrders = () => {
                         <p style={{ fontSize: '14px', lineHeight: '1.6', color: '#fff' }}>{o.address}</p>
                       </div>
 
-                      {/* Management Panel */}
+                      {/* Management Tools */}
                       <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '10px' }}>
                         <h6 style={{ color: gold, marginBottom: "20px" }}><FaEdit /> MANAGEMENT</h6>
                         <Dropdown disabled={actionLoading} menu={{ items: statusList.map(s => ({ key: s, label: s.toUpperCase(), disabled: o.status === s })), onClick: ({ key }) => handleStatusChange(o._id, key) }}>
@@ -240,7 +261,7 @@ const AdminOrders = () => {
                         </div>
                       </div>
 
-                      {/* Financial Summary */}
+                      {/* Payment Summary */}
                       <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '10px', border: `1px solid ${gold}22` }}>
                         <h6 style={{ color: gold, marginBottom: "20px" }}><FaInfoCircle /> FINANCIAL SUMMARY</h6>
                         <div style={{ fontSize: '14px' }}>

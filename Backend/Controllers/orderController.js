@@ -162,6 +162,7 @@ export const placeOrderController = async (req, res) => {
 };
 
 // --- GET ALL ORDERS (ADMIN REGISTRY) ---
+// --- GET ALL ORDERS (ADMIN REGISTRY) ---
 export const getAllOrdersController = async (req, res) => {
   try {
     const orders = await orderModel
@@ -171,10 +172,9 @@ export const getAllOrdersController = async (req, res) => {
         select: "name slug photo",
       })
       .populate("buyer", "name phone email state address")
-      // 🔥 IMPORTANT: return invoice-related fields
-      .select(
-        "orderNumber products buyer status payment isInvoiced invoiceNo createdAt"
-      )
+      // ✅ ADDED: cancelReason and returnReason to the selection
+      // Add these to your select() call in the controller
+.select("orderNumber products buyer status payment isInvoiced invoiceNo createdAt cancelReason returnReason")
       .sort({ createdAt: -1 });
 
     res.status(200).json(orders);
@@ -186,7 +186,7 @@ export const getAllOrdersController = async (req, res) => {
       error: error.message,
     });
   }
-}
+};
 
 
 // --- UPDATE ORDER STATUS (ADMIN ONLY) ---
