@@ -170,7 +170,7 @@ const AdminOrderDetails = () => {
                   }}>
                     {/* Product Image */}
                     <img 
-                      src={`${BASE_URL}/api/v1/product/product-photo/${p.product?._id || p.product}`} 
+                      src={`${BASE_URL}api/v1/product/product-photo/${p.product?._id || p.product}`} 
                       alt={p.name}
                       style={{ width: '80px', height: '80px', objectFit: 'cover', borderRadius: '8px', border: `1px solid ${gold}33` }}
                       onError={(e) => { e.target.src = "/logo192.png"; }}
