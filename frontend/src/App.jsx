@@ -31,21 +31,22 @@ import ReturnPolicy from './pages/POLICY&CONTACT/ReturnPolicy';
 import RefundPolicy from './pages/POLICY&CONTACT/RefundPolicy';
 import TermsOfService from './pages/POLICY&CONTACT/TermofServicePage';
 import PrivacyPolicy from './pages/POLICY&CONTACT/PrivacyPolicy';
-import AdminCoupons from './pages/Admin/AdminCoupons'; 
+import AdminCoupons from './pages/Admin/AdminCoupons';
 import AdminInvoiceManager from './pages/Admin/AdminInvoiceManager';
 import AllProducts from './pages/product&search/AllProduct';
 import SearchResults from './pages/product&search/SearchResults';
 import CancellationPolicy from './pages/POLICY&CONTACT/CancellationPolicy';
 import OrderDetails from './pages/User/OrderDetail';
 import AdminOrderDetails from './pages/Admin/AdminOrderDetails';
+import AdminNotifications from './pages/Admin/AdminNotifications';
 
 function App() {
   return (
     <>
-      <Toaster 
+      <Toaster
         position="top-center"
         toastOptions={{
-          duration: 2000, 
+          duration: 2000,
           style: {
             background: '#2D0A14',
             color: '#D4AF37',
@@ -66,12 +67,12 @@ function App() {
         <Route path='/cart' element={<CartPage />} />
         <Route path='/checkout' element={<CheckOutPage />} />
         <Route path='/shipping' element={<ShippingPolicy />} />
-        <Route path='/return' element={<ReturnPolicy/>}/>
-        <Route path='/refund' element={<RefundPolicy/>}/>
-        <Route path='/term-service' element={<TermsOfService/>}/>
-        <Route path='all-products' element={<AllProducts/>}/>
-        <Route path='/privacy' element={<PrivacyPolicy/>}/>
-        <Route path='cancel-policy' element={<CancellationPolicy/>}/> 
+        <Route path='/return' element={<ReturnPolicy />} />
+        <Route path='/refund' element={<RefundPolicy />} />
+        <Route path='/term-service' element={<TermsOfService />} />
+        <Route path='all-products' element={<AllProducts />} />
+        <Route path='/privacy' element={<PrivacyPolicy />} />
+        <Route path='cancel-policy' element={<CancellationPolicy />} />
         <Route path="/search-results/:keyword" element={<SearchResults />} />
 
         {/* USER PRIVATE routes*/}
@@ -92,12 +93,13 @@ function App() {
           <Route path="admin/users" element={<Users />} />
           <Route path="admin/orders" element={<AdminOrders />} />
           <Route path="admin/help-center" element={<HelpCenter />} />
-          <Route path="admin/coupons" element={<AdminCoupons />} /> 
+          <Route path="admin/coupons" element={<AdminCoupons />} />
           <Route path="admin/product/:slug" element={<UpdateProduct />} />
           {/* ✅ Standardized path to match other admin routes */}
-          <Route path="admin/invoice" element={<AdminInvoiceManager/>}/>
+          <Route path="admin/notififcation" element={<AdminNotifications/>}/>
+          <Route path="admin/invoice" element={<AdminInvoiceManager />} />
           // Inside your Routes configuration
-<Route path="/dashboard/admin/orders/:orderID" element={<AdminOrderDetails />} />
+          <Route path="/dashboard/admin/orders/:orderID" element={<AdminOrderDetails />} />
         </Route>
 
         {/* 404 Route */}

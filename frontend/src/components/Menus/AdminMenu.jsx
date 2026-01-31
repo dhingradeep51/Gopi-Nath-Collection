@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { NavLink } from "react-router-dom";
-import AdminNotification from "../AdminNotification"; // Ensure this file exists in the same folder
+import { NavLink, useNavigate } from "react-router-dom"; // ✅ Added useNavigate
+import AdminNotification from "../AdminNotification";
 import { 
   FaChartLine, 
   FaBoxOpen, 
@@ -10,14 +10,14 @@ import {
   FaThList,
   FaQuestionCircle,
   FaTicketAlt,
-  FaBell // ✅ Notification Bell Icon
+  FaBell 
 } from "react-icons/fa";
 
 const AdminMenu = () => {
-  const [unreadCount, setUnreadCount] = useState(0); // State to track new alerts
+  const navigate = useNavigate(); // ✅ Initialize navigate
+  const [unreadCount, setUnreadCount] = useState(0);
   const gold = "#D4AF37";
 
-  // Mock role check - this should ideally come from your Auth Context/Hook
   const userRole = 1; 
 
   const linkStyle = ({ isActive }) => ({
@@ -52,17 +52,12 @@ const AdminMenu = () => {
       top: 0,
       zIndex: 1000
     }}>
-      {/* 1. BACKGROUND LOGIC COMPONENT 
-          This listens for Socket.io events and updates the unreadCount state.
-      */}
       <AdminNotification setUnreadCount={setUnreadCount} role={userRole} />
 
-      {/* Brand/Label */}
       <div style={{ color: gold, fontSize: "14px", fontWeight: "bold", fontFamily: 'serif', marginRight: "20px" }}>
         ADMIN PANEL
       </div>
 
-      {/* 2. MAIN NAVIGATION LINKS */}
       <div style={{ display: "flex", height: "100%" }}>
         <NavLink to="/dashboard/admin" end style={linkStyle}>
           <FaChartLine size={14} /> Dashboard
@@ -97,13 +92,16 @@ const AdminMenu = () => {
         </NavLink>
       </div>
 
-      {/* 3. QUICK ACTIONS & NOTIFICATION BELL */}
       <div style={{ display: "flex", alignItems: "center", gap: "20px", marginLeft: "20px" }}>
           
-          {/* ✅ Notification Bell with Dynamic Badge */}
+          {/* ✅ Bell Icon with Navigation Logic */}
           <div 
             style={{ position: "relative", cursor: "pointer", color: gold }} 
-            onClick={() => setUnreadCount(0)} // Resets bubble when you click it
+            onClick={() => {
+              setUnreadCount(0); 
+              // ✅ Navigates to the path defined in your App.js
+              navigate("/dashboard/admin/notififcation"); 
+            }}
           >
             <FaBell size={18} />
             {unreadCount > 0 && (
@@ -127,7 +125,6 @@ const AdminMenu = () => {
             )}
           </div>
 
-          {/* View Store Button */}
           <NavLink to="/" style={{ 
             color: gold, 
             fontSize: "12px", 
