@@ -3,12 +3,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
 import axios from "axios";
 import moment from "moment";
-import { Input, Button, Dropdown, Tag, Divider, Spin } from "antd";
+import { Input, Button, Dropdown, Tag, Divider, Spin, Tooltip } from "antd";
 import { 
   FaChevronDown, FaChevronUp, FaSearch, FaTruck, 
   FaEdit, FaUser, FaMapMarkerAlt, FaCopy, FaBarcode, 
   FaFileInvoice, FaInfoCircle, FaTag, FaCreditCard, 
-  FaExternalLinkAlt, FaExclamationTriangle 
+  FaExternalLinkAlt, FaExclamationTriangle, FaCheckCircle
 } from "react-icons/fa";
 import AdminMenu from "../../components/Menus/AdminMenu";
 import { useAuth } from "../../context/auth";
@@ -25,6 +25,7 @@ const AdminOrders = () => {
 
   const BASE_URL = import.meta.env.VITE_API_URL;
 
+  // Added logic for status lifecycle management
   const statusList = ["Not Processed", "Processing", "Shipped", "Delivered", "Cancel", "Return"];
   const burgundy = "#2D0A14";
   const darkBurgundy = "#1a050b";
@@ -64,8 +65,9 @@ const AdminOrders = () => {
     setActionLoading(true);
     const loadToast = toast.loading(`Updating status to ${value}...`);
     try {
+      // Logic for admin to approve/update status
       await axios.put(`${BASE_URL}api/v1/order/order-status/${orderId}`, { status: value });
-      toast.success(`Marked as ${value}`, { id: loadToast });
+      toast.success(`Order marked as ${value}`, { id: loadToast });
       getAllOrders(); 
     } catch (error) {
       toast.error("Status update failed", { id: loadToast });
@@ -183,7 +185,7 @@ const AdminOrders = () => {
                 {isOpen && (
                   <div style={{ padding: "40px", background: 'rgba(0,0,0,0.4)', borderTop: `1px solid ${gold}33` }}>
                     
-                    {/* ✅ DISPLAY REASONS FOR CANCEL OR RETURN */}
+                    {/* Display Reasons for Cancel or Return */}
                     {(o.status === "Cancel" || o.status === "Return") && (
                         <div style={{ 
                             background: 'rgba(255, 77, 79, 0.1)', 
@@ -196,15 +198,27 @@ const AdminOrders = () => {
                             gap: '15px'
                         }}>
                             <FaExclamationTriangle color="#ff4d4f" size={24} />
-                            <div>
+                            <div style={{ flex: 1 }}>
                                 <h5 style={{ color: '#ff4d4f', margin: 0, fontSize: '14px', fontWeight: 'bold' }}>
-                                    {o.status === "Cancel" ? "CANCELLATION REASON" : "RETURN REASON"}
+                                    {o.status === "Cancel" ? "CANCELLATION REQUEST" : "RETURN REQUEST"}
                                 </h5>
                                 <p style={{ color: '#fff', margin: '5px 0 0 0', fontSize: '16px' }}>
-                                    {/* Maps directly to the schema fields */}
                                     {o.status === "Cancel" ? (o.cancelReason || "No reason provided") : (o.returnReason || "No reason provided")}
                                 </p>
                             </div>
+                            
+                            {/* ✅ QUICK APPROVAL BUTTONS */}
+                            <Tooltip title={`Approve ${o.status} Request`}>
+                                <Button 
+                                    type="primary" 
+                                    danger 
+                                    icon={<FaCheckCircle />} 
+                                    onClick={() => handleStatusChange(o._id, o.status)}
+                                    style={{ height: '45px', fontWeight: 'bold' }}
+                                >
+                                    APPROVE
+                                </Button>
+                            </Tooltip>
                         </div>
                     )}
 
@@ -225,7 +239,17 @@ const AdminOrders = () => {
                       {/* Management Tools */}
                       <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '10px' }}>
                         <h6 style={{ color: gold, marginBottom: "20px" }}><FaEdit /> MANAGEMENT</h6>
-                        <Dropdown disabled={actionLoading} menu={{ items: statusList.map(s => ({ key: s, label: s.toUpperCase(), disabled: o.status === s })), onClick: ({ key }) => handleStatusChange(o._id, key) }}>
+                        <Dropdown 
+                            disabled={actionLoading} 
+                            menu={{ 
+                                items: statusList.map(s => ({ 
+                                    key: s, 
+                                    label: s.toUpperCase(), 
+                                    disabled: o.status === s 
+                                })), 
+                                onClick: ({ key }) => handleStatusChange(o._id, key) 
+                            }}
+                        >
                           <Button block style={{ background: 'transparent', color: gold, borderColor: gold, marginBottom: '20px', height: '45px' }}>
                             STATUS: {o.status?.toUpperCase()} <FaChevronDown size={14} />
                           </Button>
