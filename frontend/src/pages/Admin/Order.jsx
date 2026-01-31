@@ -30,7 +30,6 @@ const AdminOrders = () => {
   const darkBurgundy = "#1a050b";
   const gold = "#D4AF37";
 
-  /* ================= FETCH DATA ================= */
   const getAllOrders = useCallback(async () => {
     try {
       setLoading(true);
@@ -59,17 +58,16 @@ const AdminOrders = () => {
     if (auth?.token) getAllOrders(); 
   }, [auth?.token, getAllOrders]);
 
-  /* ================= HANDLERS ================= */
   const handleStatusChange = async (orderId, value) => {
     setActionLoading(true);
     const loadToast = toast.loading(`Processing ${value}...`);
     try {
-      // Logic for admin to finalize status and set the approved flag
+      // ✅ We send the finalized status (Cancel or Return) to approve the request
       await axios.put(`${BASE_URL}api/v1/order/order-status/${orderId}`, { 
-        status: value,
-        isApprovedByAdmin: true // Flag to hide the button after approval
+        status: value.replace(" Request", ""), // Removes " Request" if present
+        isApprovedByAdmin: true 
       });
-      toast.success(`Order ${value} successfully`, { id: loadToast });
+      toast.success(`Order updated successfully`, { id: loadToast });
       getAllOrders(); 
     } catch (error) {
       toast.error("Action failed", { id: loadToast });
@@ -160,6 +158,10 @@ const AdminOrders = () => {
             const subtotal = o.products?.reduce((acc, curr) => acc + (curr.price * (curr.qty || 1)), 0) || 0;
             const currentLogistics = logisticData[o._id] || { awb: "", link: "" };
             const payMethod = o.payment?.method?.toUpperCase() || "COD";
+            
+            // ✅ FIX: Match status strings that contain "Request" or "Cancel/Return"
+            const isRequest = o.status?.includes("Request");
+            const isFinalized = o.status === "Cancel" || o.status === "Return";
 
             return (
               <div key={o._id} style={{ marginBottom: "20px", border: `1px solid ${isOpen ? gold : gold + "44"}`, borderRadius: "12px", background: 'rgba(255,255,255,0.03)', overflow: 'hidden' }}>
@@ -178,7 +180,9 @@ const AdminOrders = () => {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '25px' }}>
                     <Tag color={o.isInvoiced ? "cyan" : "default"}>{o.isInvoiced ? "INVOICED" : "UNBILLED"}</Tag>
-                    <Tag color={o.status === "Delivered" ? "green" : o.status === "Cancel" ? "red" : "gold"}>{o.status?.toUpperCase()}</Tag>
+                    <Tag color={o.status?.includes("Cancel") ? "red" : o.status?.includes("Return") ? "orange" : o.status === "Delivered" ? "green" : "gold"}>
+                        {o.status?.toUpperCase()}
+                    </Tag>
                     <span style={{ color: gold }}>{isOpen ? <FaChevronUp /> : <FaChevronDown />}</span>
                   </div>
                 </div>
@@ -186,11 +190,11 @@ const AdminOrders = () => {
                 {isOpen && (
                   <div style={{ padding: "40px", background: 'rgba(0,0,0,0.4)', borderTop: `1px solid ${gold}33` }}>
                     
-                    {/* Display Reasons for Cancel or Return */}
-                    {(o.status === "Cancel" || o.status === "Return") && (
+                    {/* ✅ FIXED CONDITION: Now shows if status is "Cancel Request" or finalized "Cancel" */}
+                    {(isRequest || isFinalized) && (
                         <div style={{ 
-                            background: 'rgba(255, 77, 79, 0.1)', 
-                            border: '1px solid #ff4d4f', 
+                            background: isRequest ? 'rgba(250, 173, 20, 0.1)' : 'rgba(255, 77, 79, 0.1)', 
+                            border: `1px solid ${isRequest ? '#faad14' : '#ff4d4f'}`, 
                             padding: '15px 25px', 
                             borderRadius: '8px', 
                             marginBottom: '30px',
@@ -198,28 +202,28 @@ const AdminOrders = () => {
                             alignItems: 'center',
                             gap: '15px'
                         }}>
-                            <FaExclamationTriangle color="#ff4d4f" size={24} />
+                            <FaExclamationTriangle color={isRequest ? "#faad14" : "#ff4d4f"} size={24} />
                             <div style={{ flex: 1 }}>
-                                <h5 style={{ color: '#ff4d4f', margin: 0, fontSize: '14px', fontWeight: 'bold' }}>
-                                    {o.status === "Cancel" ? "CANCELLATION REQUEST" : "RETURN REQUEST"}
+                                <h5 style={{ color: isRequest ? '#faad14' : '#ff4d4f', margin: 0, fontSize: '14px', fontWeight: 'bold' }}>
+                                    {o.status?.toUpperCase()} REASON
                                 </h5>
                                 <p style={{ color: '#fff', margin: '5px 0 0 0', fontSize: '16px' }}>
-                                    {o.status === "Cancel" ? (o.cancelReason || "No reason provided") : (o.returnReason || "No reason provided")}
+                                    {o.status?.includes("Cancel") ? (o.cancelReason || "No reason provided") : (o.returnReason || "No reason provided")}
                                 </p>
                             </div>
                             
-                            {/* ✅ APPROVE BUTTON: Only shows if the order is NOT yet approved by admin */}
-                            {!o.isApprovedByAdmin && (
-                                <Tooltip title={`Finalize ${o.status} Request`}>
+                            {/* ✅ APPROVE BUTTON: Hides permanently if isApprovedByAdmin is true */}
+                            {isRequest && !o.isApprovedByAdmin && (
+                                <Tooltip title={`Approve and mark as ${o.status.replace(" Request", "")}`}>
                                     <Button 
                                         type="primary" 
-                                        danger 
+                                        danger={o.status.includes("Cancel")}
                                         loading={actionLoading}
                                         icon={<FaCheckCircle />} 
-                                        onClick={() => handleStatusChange(o._id, o.status)}
-                                        style={{ height: '45px', fontWeight: 'bold' }}
+                                        onClick={() => handleStatusChange(o._id, o.status.replace(" Request", ""))}
+                                        style={{ height: '45px', fontWeight: 'bold', background: o.status.includes("Return") ? '#faad14' : '', borderColor: o.status.includes("Return") ? '#faad14' : '' }}
                                     >
-                                        APPROVE
+                                        APPROVE REQUEST
                                     </Button>
                                 </Tooltip>
                             )}
@@ -227,8 +231,7 @@ const AdminOrders = () => {
                     )}
 
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "40px" }}>
-                      
-                      {/* Customer Info */}
+                      {/* Customer Details */}
                       <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '10px' }}>
                         <h6 style={{ color: gold, marginBottom: "20px" }}><FaUser /> CUSTOMER DETAILS</h6>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
@@ -314,7 +317,6 @@ const AdminOrders = () => {
                           </div>
                         </div>
                       </div>
-
                     </div>
                   </div>
                 )}

@@ -4,8 +4,7 @@ import axios from "axios";
 import { useAuth } from "../../context/auth";
 import moment from "moment";
 import { 
-  FaCircle, FaTruck, FaDownload, FaExternalLinkAlt, 
-  FaTimesCircle, FaUndo, FaStar, FaPen, FaCamera, FaTag, FaInfoCircle, FaShoppingBag, FaReceipt 
+  FaStar, FaPen, FaInfoCircle, FaShoppingBag, FaReceipt 
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -16,7 +15,6 @@ const UserOrders = () => {
   const navigate = useNavigate();
   
   // ✅ 1. BASE_URL & GLOBAL SAFETY NET
-  // This ensures images load correctly and kills "ReferenceError: API_BASE is not defined"
   const BASE_URL = import.meta.env.VITE_API_URL || "";
   window.API_BASE = BASE_URL;
   window.BASE_URL = BASE_URL;
@@ -78,23 +76,6 @@ const UserOrders = () => {
     }
   };
 
-  const handleStatusUpdate = async (e, orderId, newStatus) => {
-    e.stopPropagation(); // 🛑 Prevent navigation to details page
-    if (!window.confirm(`Confirm ${newStatus}?`)) return;
-
-    try {
-      const { data } = await axios.put(`${BASE_URL}api/v1/order/user-order-status/${orderId}`, {
-        status: newStatus,
-      });
-      if (data?.success) {
-        toast.success(`Order ${newStatus}ed`);
-        getOrders();
-      }
-    } catch (error) {
-      toast.error("Action failed");
-    }
-  };
-
   return (
     <Layout title={"My Orders - Gopi Nath Collection"}>
       <style>{`
@@ -122,14 +103,14 @@ const UserOrders = () => {
               <div className="review-modal" style={{ background: colors.richBurgundy, width: '90%', maxWidth: '400px', border: `1px solid ${colors.gold}`, borderRadius: '12px', padding: '25px' }} onClick={(e) => e.stopPropagation()}>
                 <h3 style={{ color: colors.gold, textAlign: 'center', marginBottom: '20px' }}>Divine Review</h3>
                 <form onSubmit={handleReviewSubmit}>
-                   <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '20px' }}>
+                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '20px' }}>
                       {[...Array(5)].map((_, i) => (
                         <FaStar key={i} size={35} onClick={() => setRating(i+1)} color={(i+1) <= (hover || rating) ? colors.gold : colors.disabled} style={{cursor: 'pointer'}} />
                       ))}
-                   </div>
-                   <textarea style={{ width: '100%', background: '#222', color: 'white', border: '1px solid #444', padding: '10px', borderRadius: '4px' }} placeholder="Your experience..." onChange={(e) => setComment(e.target.value)} required />
-                   <button type="submit" style={{ width: '100%', marginTop: '20px', background: colors.gold, border: 'none', padding: '12px', fontWeight: 'bold' }}>SUBMIT</button>
-                   <button type="button" onClick={() => setSelectedProduct(null)} style={{ width: '100%', marginTop: '10px', background: 'none', border: '1px solid #555', color: '#888', padding: '8px' }}>CANCEL</button>
+                    </div>
+                    <textarea style={{ width: '100%', background: '#222', color: 'white', border: '1px solid #444', padding: '10px', borderRadius: '4px' }} placeholder="Your experience..." onChange={(e) => setComment(e.target.value)} required />
+                    <button type="submit" style={{ width: '100%', marginTop: '20px', background: colors.gold, border: 'none', padding: '12px', fontWeight: 'bold' }}>SUBMIT</button>
+                    <button type="button" onClick={() => setSelectedProduct(null)} style={{ width: '100%', marginTop: '10px', background: 'none', border: '1px solid #555', color: '#888', padding: '8px' }}>CANCEL</button>
                 </form>
               </div>
             </div>
@@ -142,19 +123,10 @@ const UserOrders = () => {
                   <div style={{ color: colors.gold, fontWeight: 'bold', fontSize: '14px' }}>ID: {o.orderNumber}</div>
                   <div style={{ color: '#888', fontSize: '11px' }}>{moment(o.createdAt).format("DD MMM YYYY, h:mm A")}</div>
                 </div>
-                <div>
-                  {o.status === "Not Processed" && (
-                    <button 
-                      style={{ color: colors.error, background: 'none', border: `1px solid ${colors.error}`, padding: '4px 12px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}
-                      onClick={(e) => handleStatusUpdate(e, o._id, "Cancel")}
-                    >CANCEL ORDER</button>
-                  )}
-                </div>
               </div>
 
               {o.products?.map((p) => (
                 <div key={p._id} style={{ display: 'flex', gap: '15px', padding: '15px 0', borderTop: '1px solid rgba(212,175,55,0.1)' }}>
-                  {/* ✅ Corrected Image URL Construction */}
                   <img 
                     src={`${BASE_URL.replace(/\/$/, "")}/api/v1/product/product-photo/${p.product?._id||p._id}`} 
                     alt={p.name} 
@@ -174,7 +146,12 @@ const UserOrders = () => {
 
               <div className="price-summary-box">
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontSize: '13px' }}>
-                  <span>Status: <strong style={{color: colors.gold}}>{o.status.toUpperCase()}</strong></span>
+                  {/* Updated Status Display Logic */}
+                  <span>Status: <strong style={{
+                    color: o.status?.includes("Request") ? "#faad14" : colors.gold
+                  }}>
+                    {o.status?.includes("Request") ? "UNDER REVIEW" : o.status?.toUpperCase()}
+                  </strong></span>
                   <span style={{ fontWeight: 'bold', color: colors.gold, fontSize: '15px' }}>Total Paid: ₹{o.totalPaid}</span>
                 </div>
               </div>
