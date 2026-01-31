@@ -46,18 +46,19 @@ const AdminCoupons = () => {
     setLoading(true);
     const { data } = await axios.get(`${BASE_URL}api/v1/coupon/get-coupons`);
     
-    // Check if the data itself is the array or if it's inside a property
-    if (data?.success && Array.isArray(data.coupons)) {
+    // Now data.success will be true and data.coupons will be the array
+    if (data?.success) {
       setCoupons(data.coupons);
-    } else if (Array.isArray(data)) {
-      setCoupons(data);
+    } else {
+      // Fallback if you don't change the backend:
+      // setCoupons(data); 
+      message.error("Failed to fetch coupons");
     }
-    
     setLoading(false);
   } catch (error) {
     setLoading(false);
-    console.error("Fetch Error:", error);
-    message.error("Failed to load coupons");
+    console.log("Fetch Error:", error);
+    message.error("Something went wrong while fetching coupons");
   }
 };
 

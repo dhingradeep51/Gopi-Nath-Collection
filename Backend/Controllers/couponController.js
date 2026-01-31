@@ -97,13 +97,18 @@ export const createCouponController = async (req, res) => {
 };
 
 // ==================== GET ALL COUPONS ====================
+// ==================== GET ALL COUPONS ====================
 export const getCouponsController = async (req, res) => {
   try {
     const coupons = await Coupon.find({})
-      .populate("giftProductId", "name price") // Populate gift product details
+      .populate("giftProductId", "name price")
       .sort({ createdAt: -1 });
 
-    res.status(200).send(coupons);
+    // Send as an object so frontend can check data.success
+    res.status(200).send({
+      success: true,
+      coupons,
+    });
   } catch (error) {
     console.error("Error fetching coupons:", error);
     res.status(500).send({
