@@ -136,10 +136,10 @@ const UserOrders = () => {
           )}
 
           {orders?.map((o) => (
-            <div key={o._id} className="order-card" onClick={() => navigate(`/dashboard/user/orders/${o._id}`)}>
+            <div key={o._id} className="order-card" onClick={() => navigate(`/dashboard/user/orders/${o.orderNumber}`)}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
                 <div>
-                  <div style={{ color: colors.gold, fontWeight: 'bold', fontSize: '14px' }}>ID: {o._id}</div>
+                  <div style={{ color: colors.gold, fontWeight: 'bold', fontSize: '14px' }}>ID: {o.orderNumber}</div>
                   <div style={{ color: '#888', fontSize: '11px' }}>{moment(o.createdAt).format("DD MMM YYYY, h:mm A")}</div>
                 </div>
                 <div>
