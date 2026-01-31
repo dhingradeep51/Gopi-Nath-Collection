@@ -79,7 +79,7 @@ function App() {
           <Route path="user/orders" element={<Orders />} />
           <Route path="user/profile" element={<Profile />} />
           <Route path="user/tickets" element={<UserTickets />} />
-          <Route path="user/orders/:oid" element={<OrderDetails />} />
+          <Route path="user/orders/:orderID" element={<OrderDetails />} />
         </Route>
 
         {/* ADMIN PRIVATE ROUTES */}
