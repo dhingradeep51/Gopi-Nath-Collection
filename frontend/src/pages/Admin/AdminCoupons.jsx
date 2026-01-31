@@ -46,19 +46,19 @@ const AdminCoupons = () => {
     setLoading(true);
     const { data } = await axios.get(`${BASE_URL}api/v1/coupon/get-coupons`);
     
-    // Now data.success will be true and data.coupons will be the array
-    if (data?.success) {
+    // If backend sends: res.send(coupons)
+    if (Array.isArray(data)) {
+      setCoupons(data);
+    } 
+    // If backend sends: res.send({ success: true, coupons })
+    else if (data?.success) {
       setCoupons(data.coupons);
-    } else {
-      // Fallback if you don't change the backend:
-      // setCoupons(data); 
-      message.error("Failed to fetch coupons");
     }
+    
     setLoading(false);
   } catch (error) {
     setLoading(false);
     console.log("Fetch Error:", error);
-    message.error("Something went wrong while fetching coupons");
   }
 };
 
@@ -93,7 +93,7 @@ const AdminCoupons = () => {
   const handleSubmit = async (e) => {
   e.preventDefault();
 
-  // New check: if it's a gift, we don't need a discountValue
+  // If type is gift, discountValue isn't needed
   const isGift = discountType === "gift";
 
   if (!name || !expiry || (!isGift && !discountValue)) {
@@ -106,7 +106,7 @@ const AdminCoupons = () => {
       name: name.toUpperCase(),
       expiry: expiry,
       discountType,
-      discountValue: isGift ? 0 : discountValue, // Send 0 if it's a gift
+      discountValue: isGift ? 0 : discountValue, // Set to 0 if gift
       maxDiscount: discountType === "percentage" ? maxDiscount : 0,
       minPurchase,
       usageLimit,
@@ -116,14 +116,14 @@ const AdminCoupons = () => {
     const { data } = await axios.post(`${BASE_URL}api/v1/coupon/create-coupon`, couponData);
     
     if (data.success) {
-      message.success("Divine Coupon Created!");
+      message.success("Divine Coupon Created Successfully!");
       resetForm();
       getAllCoupons();
     }
     setLoading(false);
   } catch (error) {
     setLoading(false);
-    message.error(error.response?.data?.message || "Creation Failed");
+    message.error(error.response?.data?.message || "Failed to create coupon");
   }
 };
 
