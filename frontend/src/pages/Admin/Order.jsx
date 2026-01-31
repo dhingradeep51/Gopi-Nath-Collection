@@ -8,7 +8,7 @@ import {
   FaChevronDown, FaChevronUp, FaSearch, FaTruck, 
   FaEdit, FaUser, FaMapMarkerAlt, FaCopy, FaBarcode, 
   FaFileInvoice, FaInfoCircle, FaTag, FaCreditCard, 
-  FaExternalLinkAlt, FaExclamationTriangle, FaCheckCircle
+  FaExternalLinkAlt, FaExclamationTriangle, FaCheckCircle, FaInbox
 } from "react-icons/fa";
 import AdminMenu from "../../components/Menus/AdminMenu";
 import { useAuth } from "../../context/auth";
@@ -20,7 +20,7 @@ const AdminOrders = () => {
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [logisticData, setLogisticData] = useState({}); 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // ✅ Initialized as true
   const [actionLoading, setActionLoading] = useState(false);
 
   const BASE_URL = import.meta.env.VITE_API_URL;
@@ -30,6 +30,7 @@ const AdminOrders = () => {
   const darkBurgundy = "#1a050b";
   const gold = "#D4AF37";
 
+  /* ================= FETCH DATA ================= */
   const getAllOrders = useCallback(async () => {
     try {
       setLoading(true);
@@ -48,7 +49,8 @@ const AdminOrders = () => {
       });
       setLogisticData(initialLogistics);
     } catch (error) { 
-      toast.error("Error fetching orders"); 
+      console.error(error);
+      toast.error("Error fetching registry data"); 
     } finally {
       setLoading(false);
     }
@@ -58,13 +60,13 @@ const AdminOrders = () => {
     if (auth?.token) getAllOrders(); 
   }, [auth?.token, getAllOrders]);
 
+  /* ================= HANDLERS ================= */
   const handleStatusChange = async (orderId, value) => {
     setActionLoading(true);
     const loadToast = toast.loading(`Processing ${value}...`);
     try {
-      // ✅ We send the finalized status (Cancel or Return) to approve the request
       await axios.put(`${BASE_URL}api/v1/order/order-status/${orderId}`, { 
-        status: value.replace(" Request", ""), // Removes " Request" if present
+        status: value.replace(" Request", ""),
         isApprovedByAdmin: true 
       });
       toast.success(`Order updated successfully`, { id: loadToast });
@@ -150,8 +152,36 @@ const AdminOrders = () => {
           />
         </header>
 
+        {/* ✅ IMPROVED LOADING STATE */}
         {loading ? (
-          <div style={{ textAlign: 'center', marginTop: '100px' }}><Spin size="large" tip="Loading Registry..." /></div>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            minHeight: '50vh' 
+          }}>
+            <div className="spinner-grow" role="status" style={{ width: "4rem", height: "4rem", color: gold }}>
+              <span className="visually-hidden">Loading...</span>
+            </div>
+            <h4 style={{ color: gold, fontFamily: 'serif', marginTop: '20px', letterSpacing: '2px' }}>
+              ACCESSING DIVINE REGISTRY...
+            </h4>
+          </div>
+        ) : filteredOrders.length === 0 ? (
+          /* ✅ IMPROVED EMPTY STATE */
+          <div style={{ 
+            textAlign: 'center', 
+            padding: '100px 20px', 
+            background: 'rgba(255,255,255,0.02)', 
+            borderRadius: '15px', 
+            border: `1px dashed ${gold}44` 
+          }}>
+            <FaInbox size={60} color={gold} style={{ opacity: 0.3, marginBottom: '20px' }} />
+            <h2 style={{ color: gold, fontFamily: 'serif' }}>No Orders Found</h2>
+            <p style={{ color: '#888' }}>The registry is currently empty or no orders match your search.</p>
+            {searchText && <Button onClick={() => setSearchText("")} style={{ marginTop: '10px', background: gold, border: 'none' }}>Clear Search</Button>}
+          </div>
         ) : (
           filteredOrders.map((o) => {
             const isOpen = expandedOrder === o._id;
@@ -159,7 +189,6 @@ const AdminOrders = () => {
             const currentLogistics = logisticData[o._id] || { awb: "", link: "" };
             const payMethod = o.payment?.method?.toUpperCase() || "COD";
             
-            // ✅ FIX: Match status strings that contain "Request" or "Cancel/Return"
             const isRequest = o.status?.includes("Request");
             const isFinalized = o.status === "Cancel" || o.status === "Return";
 
@@ -190,7 +219,7 @@ const AdminOrders = () => {
                 {isOpen && (
                   <div style={{ padding: "40px", background: 'rgba(0,0,0,0.4)', borderTop: `1px solid ${gold}33` }}>
                     
-                    {/* ✅ FIXED CONDITION: Now shows if status is "Cancel Request" or finalized "Cancel" */}
+                    {/* Reason Section */}
                     {(isRequest || isFinalized) && (
                         <div style={{ 
                             background: isRequest ? 'rgba(250, 173, 20, 0.1)' : 'rgba(255, 77, 79, 0.1)', 
@@ -212,7 +241,6 @@ const AdminOrders = () => {
                                 </p>
                             </div>
                             
-                            {/* ✅ APPROVE BUTTON: Hides permanently if isApprovedByAdmin is true */}
                             {isRequest && !o.isApprovedByAdmin && (
                                 <Tooltip title={`Approve and mark as ${o.status.replace(" Request", "")}`}>
                                     <Button 
@@ -231,7 +259,7 @@ const AdminOrders = () => {
                     )}
 
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "40px" }}>
-                      {/* Customer Details */}
+                      {/* Customer Info */}
                       <div style={{ background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '10px' }}>
                         <h6 style={{ color: gold, marginBottom: "20px" }}><FaUser /> CUSTOMER DETAILS</h6>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
