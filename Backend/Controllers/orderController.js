@@ -174,7 +174,7 @@ export const getAllOrdersController = async (req, res) => {
       .populate("buyer", "name phone email state address")
       // ✅ ADDED: cancelReason and returnReason to the selection
       // Add these to your select() call in the controller
-.select("orderNumber products buyer status payment isInvoiced invoiceNo createdAt cancelReason returnReason")
+.select("orderNumber products buyer status payment isInvoiced invoiceNo createdAt cancelReason returnReason isApprovedByAdmin")
       .sort({ createdAt: -1 });
 
     res.status(200).json(orders);
