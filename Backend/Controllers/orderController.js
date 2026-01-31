@@ -3,7 +3,7 @@ import moment from "moment";
 import ProductModel from "../Models/productModel.js";
 import userModel from "../Models/userModel.js";
 // ✅ Ensure the import path and filename match your utils folder exactly
-import { sendNotification } from "../utils/notificationUtil.js";
+import { sendNotification } from "../utils/notificationUtils.js";
 
 // --- PLACE NEW ORDER ---
 export const placeOrderController = async (req, res) => {
