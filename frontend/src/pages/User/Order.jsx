@@ -139,7 +139,7 @@ const UserOrders = () => {
             <div key={o._id} className="order-card" onClick={() => navigate(`/dashboard/user/orders/${o._id}`)}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
                 <div>
-                  <div style={{ color: colors.gold, fontWeight: 'bold', fontSize: '14px' }}>ID: {o.invoiceNo || o._id.slice(-6).toUpperCase()}</div>
+                  <div style={{ color: colors.gold, fontWeight: 'bold', fontSize: '14px' }}>ID: {o._id}</div>
                   <div style={{ color: '#888', fontSize: '11px' }}>{moment(o.createdAt).format("DD MMM YYYY, h:mm A")}</div>
                 </div>
                 <div>
