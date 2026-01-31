@@ -34,6 +34,7 @@ const AdminDashboard = () => {
   const gold = "#D4AF37";
   const darkBg = "#120307";
 
+  // Fetch Live Statistics & Notifications from backend
   const getStats = async () => {
     try {
       setLoading(true);
@@ -53,6 +54,7 @@ const AdminDashboard = () => {
     if (auth?.token) getStats();
   }, [auth?.token]);
 
+  // Luxury UI Styles
   const cardStyle = {
     background: "rgba(255, 255, 255, 0.03)",
     border: `1px solid ${gold}22`,
@@ -124,15 +126,15 @@ const AdminDashboard = () => {
     justifyContent: 'space-between',
     cursor: 'pointer',
     transition: '0.3s',
-    marginBottom: '8px',
-    fontSize: '13px'
+    marginBottom: '10px'
   };
 
+  // ✅ NEW: Sub-header style for sidebar categories
   const categoryHeaderStyle = (color) => ({
     color: color,
     fontSize: '11px',
     letterSpacing: '2px',
-    marginBottom: '10px',
+    marginBottom: '12px',
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
@@ -143,6 +145,7 @@ const AdminDashboard = () => {
     <div style={{ backgroundColor: darkBg, minHeight: "100vh", paddingBottom: "50px", color: "white", overflowX: 'hidden' }}>
       <AdminMenu />
 
+      {/* ✅ NOTIFICATION SIDEBAR */}
       {showSidebar && (
         <div 
           onClick={() => setShowSidebar(false)} 
@@ -151,8 +154,8 @@ const AdminDashboard = () => {
       )}
 
       <div style={sidebarStyle}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-          <h3 style={{ color: gold, fontFamily: 'serif', margin: 0 }}>Divine Alerts</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+          <h3 style={{ color: gold, fontFamily: 'serif', margin: 0 }}>Action Items</h3>
           <X onClick={() => setShowSidebar(false)} style={{ cursor: 'pointer' }} color={gold} />
         </div>
 
@@ -160,40 +163,43 @@ const AdminDashboard = () => {
           <p style={{ opacity: 0.5, textAlign: 'center', marginTop: '50px' }}>Registry is clear.</p>
         ) : (
           <div>
-            {/* --- SECTION: RETURN/CANCEL REQUESTS --- */}
+            {/* ✅ CATEGORY: REQUESTS */}
             {stats.notifications.requestOrders?.length > 0 && (
               <>
                 <h6 style={categoryHeaderStyle('#ff4d4f')}><AlertTriangle size={14} /> REQUESTS</h6>
                 {stats.notifications.requestOrders.map(order => (
                   <div key={order.id} onClick={() => { navigate(`/dashboard/admin/orders/${order.num}`); setShowSidebar(false); }} style={notifItemStyle}>
-                    <span>Order <strong>#{order.num}</strong></span>
-                    <ArrowRight size={14} color="#ff4d4f" />
+                    <div>
+                      <div style={{ fontWeight: 'bold' }}>Order #{order.num}</div>
+                      <div style={{ fontSize: '10px', color: '#ff4d4f' }}>{order.status.toUpperCase()}</div>
+                    </div>
+                    <ArrowRight size={14} />
                   </div>
                 ))}
               </>
             )}
 
-            {/* --- SECTION: UNBILLED ORDERS --- */}
+            {/* ✅ CATEGORY: UNBILLED */}
             {stats.notifications.unbilledOrders?.length > 0 && (
               <>
                 <h6 style={categoryHeaderStyle(gold)}><FileText size={14} /> PENDING BILLS</h6>
                 {stats.notifications.unbilledOrders.map(order => (
                   <div key={order.id} onClick={() => { navigate(`/dashboard/admin/orders/${order.num}`); setShowSidebar(false); }} style={notifItemStyle}>
-                    <span>Order <strong>#{order.num}</strong></span>
-                    <ArrowRight size={14} color={gold} />
+                    <div style={{ fontWeight: 'bold' }}>Order #{order.num}</div>
+                    <ArrowRight size={14} />
                   </div>
                 ))}
               </>
             )}
 
-            {/* --- SECTION: LOW STOCK --- */}
+            {/* ✅ CATEGORY: LOW STOCK */}
             {stats.notifications.lowStockItems?.length > 0 && (
               <>
                 <h6 style={categoryHeaderStyle('#faad14')}><Package size={14} /> LOW STOCK</h6>
                 {stats.notifications.lowStockItems.map(item => (
                   <div key={item.name} onClick={() => { navigate("/dashboard/admin/products"); setShowSidebar(false); }} style={notifItemStyle}>
-                    <span style={{ fontSize: '12px' }}>{item.name}</span>
-                    <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>Qty: {item.qty}</span>
+                    <div style={{ fontSize: '12px' }}>{item.name}</div>
+                    <div style={{ color: '#ff4d4f', fontWeight: 'bold' }}>Qty: {item.qty}</div>
                   </div>
                 ))}
               </>
@@ -204,45 +210,71 @@ const AdminDashboard = () => {
 
       <div style={{ padding: "30px 40px", maxWidth: "1400px", margin: "0 auto" }}>
         
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "40px", paddingBottom: "20px", borderBottom: `1px solid ${gold}22` }}>
+        {/* Header Section with Notification Bell */}
+        <div style={{ 
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "flex-end", 
+          marginBottom: "40px", 
+          paddingBottom: "20px", 
+          borderBottom: `1px solid ${gold}22` 
+        }}>
           <div>
-            <h1 style={{ color: gold, fontFamily: "'Playfair Display', serif", fontSize: "2.5rem", margin: "0 0 8px 0" }}>Divine Dashboard</h1>
+            <h1 style={{ color: gold, fontFamily: "'Playfair Display', serif", fontSize: "2.5rem", margin: "0 0 8px 0" }}>
+              Divine Dashboard
+            </h1>
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                 <p style={{ margin: 0, opacity: 0.7, fontSize: "14px", display: "flex", alignItems: "center" }}>
                   System status: <span style={{ color: "#4CAF50", marginLeft: "5px" }}>Operational</span> 
                   <span style={{ margin: "0 10px" }}>|</span> Welcome, {auth?.user?.name}
                 </p>
 
+                {/* ✅ NOTIFICATION BELL */}
                 <div onClick={() => setShowSidebar(true)} style={{ position: 'relative', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                   <Bell size={22} color={stats.notifications?.total > 0 ? gold : "rgba(255,255,255,0.3)"} />
                   {stats.notifications?.total > 0 && (
-                    <span style={{ position: 'absolute', top: '-8px', right: '-8px', background: '#ff4d4f', color: 'white', borderRadius: '50%', padding: '2px 6px', fontSize: '10px', fontWeight: 'bold', border: `2px solid ${darkBg}` }}>
+                    <span style={{
+                      position: 'absolute', top: '-8px', right: '-8px',
+                      background: '#ff4d4f', color: 'white', borderRadius: '50%',
+                      padding: '2px 6px', fontSize: '10px', fontWeight: 'bold',
+                      border: `2px solid ${darkBg}`
+                    }}>
                       {stats.notifications.total}
                     </span>
                   )}
                 </div>
             </div>
           </div>
-          <button onClick={() => navigate("/dashboard/admin/orders")} style={{ background: "transparent", border: `1px solid ${gold}`, color: gold, padding: "10px 20px", borderRadius: "4px", fontWeight: "bold", fontSize: "12px", cursor: "pointer" }}>MANAGE REGISTRY</button>
+          <button onClick={() => navigate("/dashboard/admin/orders")} style={{ background: "transparent", border: `1px solid ${gold}`, color: gold, padding: "10px 20px", borderRadius: "4px", fontWeight: "bold", fontSize: "12px", cursor: "pointer" }}>
+            MANAGE REGISTRY
+          </button>
         </div>
 
+        {/* ✅ ACTION CENTER BARS */}
         {(stats.notifications?.requests > 0 || stats.notifications?.unbilled > 0) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', marginBottom: '10px' }}>
             {stats.notifications.requests > 0 && (
               <div onClick={() => setShowSidebar(true)} style={alertBoxStyle('#ff4d4f')}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><AlertTriangle size={18} /><span>{stats.notifications.requests} PENDING RETURN/CANCEL REQUESTS</span></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <AlertTriangle size={18} />
+                  <span>{stats.notifications.requests} PENDING RETURN/CANCEL REQUESTS</span>
+                </div>
                 <ArrowRight size={14} />
               </div>
             )}
             {stats.notifications.unbilled > 0 && (
               <div onClick={() => setShowSidebar(true)} style={alertBoxStyle(gold)}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}><FileText size={18} /><span>{stats.notifications.unbilled} UNBILLED ORDERS</span></div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <FileText size={18} />
+                  <span>{stats.notifications.unbilled} UNBILLED ORDERS</span>
+                </div>
                 <ArrowRight size={14} />
               </div>
             )}
           </div>
         )}
 
+        {/* Live Stats Row */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "20px", marginBottom: "40px" }}>
           <div style={{ flex: "1", minWidth: "250px" }}><div style={cardStyle}><TrendingUp size={20} style={{ color: gold, marginBottom: "15px" }} /><p style={{ color: gold, fontSize: "10px", textTransform: "uppercase", letterSpacing: "2px", margin: "0 0 5px 0" }}>Total Revenue</p><h2 style={{ margin: 0 }}>₹{stats.totalRevenue.toLocaleString()}</h2></div></div>
           <div style={{ flex: "1", minWidth: "250px" }}><div style={cardStyle}><Users size={20} style={{ color: gold, marginBottom: "15px" }} /><p style={{ color: gold, fontSize: "10px", textTransform: "uppercase", letterSpacing: "2px", margin: "0 0 5px 0" }}>Clientele</p><h2 style={{ margin: 0 }}>{stats.userCount}</h2></div></div>
@@ -250,6 +282,7 @@ const AdminDashboard = () => {
           <div style={{ flex: "1", minWidth: "250px" }}><div style={{ ...cardStyle, border: stats.lowStockItems > 0 ? "1px solid #ff4d4f66" : `1px solid ${gold}22` }}><Package size={20} style={{ color: stats.lowStockItems > 0 ? "#ff4d4f" : gold, marginBottom: "15px" }} /><p style={{ color: gold, fontSize: "10px", textTransform: "uppercase", letterSpacing: "2px", margin: "0 0 5px 0" }}>Stock Alerts</p><h2 style={{ margin: 0 }}>{stats.lowStockItems} Items</h2></div></div>
         </div>
 
+        {/* Bottom Section: Profile & Management */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "30px" }}>
           <div style={{ flex: "1", minWidth: "400px" }}>
             <div style={{ ...cardStyle, background: "rgba(255,255,255,0.01)" }}>

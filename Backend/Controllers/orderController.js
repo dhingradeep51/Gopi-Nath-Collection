@@ -446,7 +446,7 @@ export const getAdminStatsController = async (req, res) => {
     const allOrders = await orderModel.find({}, "orderNumber totalPaid status isInvoiced"); 
     const products = await ProductModel.find({}, "name quantity"); 
 
-    // Filter Logic for Category Sections
+    // Filter logic for specific lists
     const unbilled = allOrders.filter(o => !o.isInvoiced && o.status !== "Cancel"); 
     const requests = allOrders.filter(o => o.status.includes("Request")); 
     const lowStock = products.filter(p => p.quantity < 5); 
@@ -460,7 +460,7 @@ export const getAdminStatsController = async (req, res) => {
         lowStockItems: lowStock.length,
         notifications: {
           total: unbilled.length + requests.length + lowStock.length,
-          // Detailed arrays for the sidebar
+          // Sending detailed arrays for the sidebar
           unbilledOrders: unbilled.map(o => ({ id: o._id, num: o.orderNumber })),
           requestOrders: requests.map(o => ({ id: o._id, num: o.orderNumber, status: o.status })),
           lowStockItems: lowStock.map(p => ({ name: p.name, qty: p.quantity })),
