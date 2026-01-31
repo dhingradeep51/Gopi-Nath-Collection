@@ -124,55 +124,58 @@ const AdminDashboard = () => {
           </div>
 
           {/* ✅ FULL MANAGEMENT SUITE */}
-          <div className="col-md-6">
-            <div style={cardStyle}>
-              <h5 style={{ color: gold, fontFamily: "serif", marginBottom: "20px" }}>Management Suite</h5>
-              <div className="row g-2">
-                {/* Orders & Invoices */}
-                <div className="col-6">
-                   <button onClick={() => navigate("/dashboard/admin/orders")} style={quickLinkStyle}>
-                      <ShoppingBag size={16} color={gold} /> Orders Registry
-                   </button>
-                </div>
-                <div className="col-6">
-                   <button onClick={() => navigate("/dashboard/admin/invoice")} style={quickLinkStyle}>
-                      <FileText size={16} color={gold} /> Billing/Invoices
-                   </button>
-                </div>
+          {/* ✅ FULL MANAGEMENT SUITE */}
+<div className="col-md-6">
+  <div style={cardStyle}>
+    <h5 style={{ color: gold, fontFamily: "serif", marginBottom: "25px", borderBottom: `1px solid ${gold}22`, paddingBottom: '10px' }}>
+      Management Suite
+    </h5>
+    <div className="row g-3">
+      {/* --- ORDERS & REVENUE --- */}
+      <div className="col-6">
+         <button onClick={() => navigate("/dashboard/admin/orders")} style={quickLinkStyle}>
+            <ShoppingBag size={16} color={gold} /> Order Registry
+         </button>
+      </div>
+      <div className="col-6">
+         <button onClick={() => navigate("/dashboard/admin/invoice")} style={quickLinkStyle}>
+            <FileText size={16} color={gold} /> Divine Billing
+         </button>
+      </div>
 
-                {/* Inventory Management */}
-                <div className="col-6">
-                   <button onClick={() => navigate("/dashboard/admin/create-product")} style={quickLinkStyle}>
-                      <PlusCircle size={16} color={gold} /> Add Product
-                   </button>
-                </div>
-                <div className="col-6">
-                   <button onClick={() => navigate("/dashboard/admin/products")} style={quickLinkStyle}>
-                      <Package size={16} color={gold} /> All Products
-                   </button>
-                </div>
+      {/* --- INVENTORY CONTROL --- */}
+      <div className="col-6">
+         <button onClick={() => navigate("/dashboard/admin/products")} style={quickLinkStyle}>
+            <Package size={16} color={gold} /> Product Hub
+         </button>
+      </div>
+      <div className="col-6">
+         <button onClick={() => navigate("/dashboard/admin/create-product")} style={quickLinkStyle}>
+            <PlusCircle size={16} color={gold} /> New Product
+         </button>
+      </div>
 
-                {/* Categories & Coupons */}
-                <div className="col-6">
-                   <button onClick={() => navigate("/dashboard/admin/create-category")} style={quickLinkStyle}>
-                      <Layers size={16} color={gold} /> Categories
-                   </button>
-                </div>
-                <div className="col-6">
-                   <button onClick={() => navigate("/dashboard/admin/coupons")} style={quickLinkStyle}>
-                      <Ticket size={16} color={gold} /> Gift Coupons
-                   </button>
-                </div>
+      {/* --- CATEGORIES & MARKETING --- */}
+      <div className="col-6">
+         <button onClick={() => navigate("/dashboard/admin/create-category")} style={quickLinkStyle}>
+            <Layers size={16} color={gold} /> Categories
+         </button>
+      </div>
+      <div className="col-6">
+         <button onClick={() => navigate("/dashboard/admin/coupons")} style={quickLinkStyle}>
+            <Ticket size={16} color={gold} /> Gift Coupons
+         </button>
+      </div>
 
-                {/* Users */}
-                <div className="col-12">
-                   <button onClick={() => navigate("/dashboard/admin/users")} style={quickLinkStyle}>
-                      <UserCheck size={16} color={gold} /> User Management
-                   </button>
-                </div>
-              </div>
-            </div>
-          </div>
+      {/* --- USER REGISTRY --- */}
+      <div className="col-12">
+         <button onClick={() => navigate("/dashboard/admin/users")} style={quickLinkStyle}>
+            <UserCheck size={16} color={gold} /> Devotee (User) Registry
+         </button>
+      </div>
+    </div>
+  </div>
+</div>
         </div>
 
       </div>
