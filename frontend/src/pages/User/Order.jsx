@@ -4,14 +4,14 @@ import axios from "axios";
 import { useAuth } from "../../context/auth";
 import moment from "moment";
 import { 
-  FaStar, FaPen, FaInfoCircle, FaShoppingBag, FaReceipt, FaHome, FaArrowLeft 
+  FaStar, FaPen, FaInfoCircle, FaShoppingBag, FaReceipt, FaHome, FaGift 
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
 const UserOrders = () => {
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true); // ✅ Loading State
+  const [loading, setLoading] = useState(true);
   const [auth] = useAuth();
   const navigate = useNavigate();
   
@@ -19,7 +19,6 @@ const UserOrders = () => {
   window.API_BASE = BASE_URL;
   window.BASE_URL = BASE_URL;
 
-  // Review Form States
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -35,17 +34,16 @@ const UserOrders = () => {
     error: "#ff4d4f"
   };
 
-  /* ================= FETCH DATA ================= */
   const getOrders = async () => {
     try {
-      setLoading(true); // ✅ Start Loading
+      setLoading(true);
       const { data } = await axios.get(`${BASE_URL}api/v1/order/orders`);
       setOrders(data);
     } catch (error) {
       console.error("Error fetching orders:", error);
       toast.error("Failed to load your divine registry");
     } finally {
-      setLoading(false); // ✅ Stop Loading
+      setLoading(false);
     }
   };
 
@@ -53,7 +51,6 @@ const UserOrders = () => {
     if (auth?.token) getOrders();
   }, [auth?.token]);
 
-  /* ================= HANDLERS ================= */
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -74,29 +71,14 @@ const UserOrders = () => {
     }
   };
 
-  // ✅ 2. PROPER LOADING STATE (Matches Home Page design)
   if (loading) {
     return (
       <Layout>
-        <div style={{
-          display: "flex", 
-          flexDirection: "column",
-          justifyContent: "center", 
-          alignItems: "center", 
-          height: "80vh", 
-          background: colors.deepBurgundy 
-        }}>
+        <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "80vh", background: colors.deepBurgundy }}>
           <div className="spinner-grow" role="status" style={{ width: "3.5rem", height: "3.5rem", color: colors.gold }}>
             <span className="visually-hidden">Loading...</span>
           </div>
-          <h4 style={{ 
-            color: colors.gold, 
-            fontFamily: "serif", 
-            letterSpacing: "2px",
-            textTransform: "uppercase",
-            marginTop: "20px",
-            fontSize: "1.1rem"
-          }}>
+          <h4 style={{ color: colors.gold, fontFamily: "serif", letterSpacing: "2px", textTransform: "uppercase", marginTop: "20px", fontSize: "1.1rem" }}>
             Fetching your divine history...
           </h4>
         </div>
@@ -108,26 +90,17 @@ const UserOrders = () => {
     <Layout title={"My Orders - Gopi Nath Collection"}>
       <style>{`
         .orders-page-wrapper { background-color: ${colors.deepBurgundy}; min-height: 100vh; padding: 20px; font-family: 'Segoe UI', sans-serif; }
-        .order-card { 
-          background: ${colors.richBurgundy}; 
-          border: 1px solid ${colors.gold}44; 
-          border-radius: 12px; 
-          padding: 20px; 
-          margin-bottom: 25px; 
-          cursor: pointer; 
-          transition: 0.3s ease;
-        }
+        .order-card { background: ${colors.richBurgundy}; border: 1px solid ${colors.gold}44; border-radius: 12px; padding: 20px; margin-bottom: 25px; cursor: pointer; transition: 0.3s ease; }
         .order-card:hover { border-color: ${colors.gold}; transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
         .product-img { width: 75px; height: 75px; object-fit: cover; border-radius: 8px; border: 1px solid ${colors.gold}33; background: #000; }
         .price-summary-box { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid rgba(212,175,55,0.1); }
         .nav-header { display: flex; justify-content: space-between; align-items: center; max-width: 800px; margin: 0 auto 30px auto; }
         .btn-shop { background: transparent; border: 1px solid ${colors.gold}; color: ${colors.gold}; padding: 10px 20px; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
         .btn-shop:hover { background: ${colors.gold}; color: ${colors.deepBurgundy}; }
+        .gift-tag { color: ${colors.gold}; background: rgba(212,175,55,0.1); padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid ${colors.gold}44; display: inline-flex; align-items: center; gap: 4px; }
       `}</style>
 
       <div className="orders-page-wrapper">
-        
-        {/* ✅ 3. NAVIGATION HEADER WITH BACK BUTTON */}
         <div className="nav-header">
           <h2 style={{ color: colors.gold, fontFamily: "serif", margin: 0 }}>My Orders</h2>
           <button className="btn-shop" onClick={() => navigate("/")}>
@@ -136,8 +109,6 @@ const UserOrders = () => {
         </div>
 
         <div style={{ maxWidth: "800px", margin: "0 auto" }}>
-          
-          {/* ✅ REVIEW MODAL */}
           {selectedProduct && (
             <div className="review-modal-overlay" style={{ position: 'fixed', top:0, left:0, width:'100%', height:'100%', background: 'rgba(0,0,0,0.9)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               <div className="review-modal" style={{ background: colors.richBurgundy, width: '90%', maxWidth: '400px', border: `1px solid ${colors.gold}`, borderRadius: '12px', padding: '25px' }} onClick={(e) => e.stopPropagation()}>
@@ -173,7 +144,13 @@ const UserOrders = () => {
                 </div>
 
                 {o.products?.map((p) => (
-                  <div key={p._id} style={{ display: 'flex', gap: '15px', padding: '15px 0', borderTop: '1px solid rgba(212,175,55,0.1)' }}>
+                  <div key={p._id} style={{ 
+                    display: 'flex', 
+                    gap: '15px', 
+                    padding: '15px 0', 
+                    borderTop: '1px solid rgba(212,175,55,0.1)',
+                    background: p.price === 0 ? 'rgba(212, 175, 55, 0.03)' : 'transparent' 
+                  }}>
                     <img 
                       src={`${BASE_URL.replace(/\/$/, "")}/api/v1/product/product-photo/${p.product?._id||p._id}`} 
                       alt={p.name} 
@@ -181,21 +158,33 @@ const UserOrders = () => {
                       onError={(e) => { e.target.src = "/logo192.png"; }}
                     />
                     <div style={{ flex: 1 }}>
-                      <div style={{ color: 'white', fontWeight: 'bold', fontSize: '15px' }}>{p.name}</div>
-                      <div style={{ color: colors.gold, fontWeight: 'bold', marginTop: '4px' }}>₹{p.price}</div>
-                      <button 
-                        style={{ marginTop: '8px', background: 'none', border: `1px solid ${colors.gold}`, color: colors.gold, fontSize: '10px', padding: '4px 12px', borderRadius: '4px' }}
-                        onClick={(e) => { e.stopPropagation(); setSelectedProduct(p.product?._id || p._id); }}
-                      ><FaPen size={10} /> RATE PRODUCT</button>
+                      <div style={{ color: 'white', fontWeight: 'bold', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {p.name}
+                        {/* ✅ ADDED: FREE GIFT UI LOGIC */}
+                        {p.price === 0 && (
+                          <span className="gift-tag">
+                            <FaGift size={10} /> FREE GIFT
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ color: p.price === 0 ? colors.success : colors.gold, fontWeight: 'bold', marginTop: '4px' }}>
+                        {p.price === 0 ? "BLESSED GIFT (FREE)" : `₹${p.price}`}
+                      </div>
+                      
+                      {/* Hide Rate button for free gifts to keep it professional */}
+                      {p.price > 0 && (
+                        <button 
+                          style={{ marginTop: '8px', background: 'none', border: `1px solid ${colors.gold}`, color: colors.gold, fontSize: '10px', padding: '4px 12px', borderRadius: '4px' }}
+                          onClick={(e) => { e.stopPropagation(); setSelectedProduct(p.product?._id || p._id); }}
+                        ><FaPen size={10} /> RATE PRODUCT</button>
+                      )}
                     </div>
                   </div>
                 ))}
 
                 <div className="price-summary-box">
                   <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontSize: '13px' }}>
-                    <span>Status: <strong style={{
-                      color: o.status?.includes("Request") ? "#faad14" : colors.gold
-                    }}>
+                    <span>Status: <strong style={{ color: o.status?.includes("Request") ? "#faad14" : colors.gold }}>
                       {o.status?.includes("Request") ? "UNDER REVIEW" : o.status?.toUpperCase()}
                     </strong></span>
                     <span style={{ fontWeight: 'bold', color: colors.gold, fontSize: '15px' }}>Total Paid: ₹{o.totalPaid}</span>
