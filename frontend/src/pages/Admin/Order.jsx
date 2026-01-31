@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Input, Tag, Spin, Button } from "antd";
 import { 
-  FaSearch, FaTruck, FaChevronRight, FaInbox, FaGift, FaClock 
+  FaSearch, FaTruck, FaChevronRight, FaInbox, FaGift, FaClock, FaMoneyBillWave 
 } from "react-icons/fa";
 import AdminMenu from "../../components/Menus/AdminMenu";
 import { useAuth } from "../../context/auth";
@@ -47,6 +47,12 @@ const AdminOrders = () => {
     );
   });
 
+  // ✅ ADDED: VALUE CALCULATIONS
+  const totalRevenue = orders.reduce((acc, curr) => acc + (curr.totalPaid || 0), 0);
+  const pendingValue = orders
+    .filter(o => o.status.includes("Request") || o.status === "Not Processed")
+    .reduce((acc, curr) => acc + (curr.totalPaid || 0), 0);
+
   return (
     <div style={{ background: darkBurgundy, minHeight: "100vh", color: "#fff" }}>
       <AdminMenu />
@@ -63,23 +69,26 @@ const AdminOrders = () => {
           />
         </header>
 
-        {/* STATUS SUMMARY BAR */}
+        {/* ✅ UPDATED: STATUS SUMMARY BAR WITH PRICES */}
         {!loading && orders.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' }}>
             <div style={{ background: 'rgba(212,175,55,0.05)', padding: '15px', borderRadius: '10px', border: `1px solid ${gold}33`, textAlign: 'center' }}>
               <FaClock color={gold} style={{ marginBottom: '5px' }} />
-              <div style={{ fontSize: '12px', opacity: 0.7 }}>PENDING REQUESTS</div>
-              <div style={{ fontSize: '20px', fontWeight: 'bold', color: gold }}>{orders.filter(o => o.status.includes("Request")).length}</div>
+              <div style={{ fontSize: '10px', opacity: 0.7 }}>PENDING VALUE</div>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', color: gold }}>₹{pendingValue.toLocaleString()}</div>
+              <div style={{ fontSize: '11px', opacity: 0.5 }}>{orders.filter(o => o.status.includes("Request")).length} Requests</div>
+            </div>
+            <div style={{ background: 'rgba(212,175,55,0.05)', padding: '15px', borderRadius: '10px', border: `1px solid ${gold}33`, textAlign: 'center' }}>
+              <FaMoneyBillWave color={gold} style={{ marginBottom: '5px' }} />
+              <div style={{ fontSize: '10px', opacity: 0.7 }}>TOTAL REVENUE</div>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', color: gold }}>₹{totalRevenue.toLocaleString()}</div>
+              <div style={{ fontSize: '11px', opacity: 0.5 }}>From {orders.length} Orders</div>
             </div>
             <div style={{ background: 'rgba(212,175,55,0.05)', padding: '15px', borderRadius: '10px', border: `1px solid ${gold}33`, textAlign: 'center' }}>
               <FaTruck color={gold} style={{ marginBottom: '5px' }} />
-              <div style={{ fontSize: '12px', opacity: 0.7 }}>SHIPPED</div>
-              <div style={{ fontSize: '20px', fontWeight: 'bold', color: gold }}>{orders.filter(o => o.status === "Shipped").length}</div>
-            </div>
-            <div style={{ background: 'rgba(212,175,55,0.05)', padding: '15px', borderRadius: '10px', border: `1px solid ${gold}33`, textAlign: 'center' }}>
-              <FaGift color={gold} style={{ marginBottom: '5px' }} />
-              <div style={{ fontSize: '12px', opacity: 0.7 }}>TOTAL ORDERS</div>
-              <div style={{ fontSize: '20px', fontWeight: 'bold', color: gold }}>{orders.length}</div>
+              <div style={{ fontSize: '10px', opacity: 0.7 }}>SHIPPED COUNT</div>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', color: gold }}>{orders.filter(o => o.status === "Shipped").length}</div>
+              <div style={{ fontSize: '11px', opacity: 0.5 }}>In Transit</div>
             </div>
           </div>
         )}

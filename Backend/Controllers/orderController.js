@@ -439,6 +439,39 @@ export const getOrderByIdController = async (req, res) => {
     res.status(500).send({ success: false, error: error.message });
   }
 };
+export const getAdminStatsController = async (req, res) => {
+  try {
+    // 1. Get Total User Count
+    const userCount = await userModel.countDocuments({});
+
+    // 2. Get Order Analytics & Revenue
+    // We fetch only totalPaid to keep memory usage low
+    const allOrders = await orderModel.find({}, "totalPaid status");
+    const orderCount = allOrders.length;
+    const totalRevenue = allOrders.reduce((acc, curr) => acc + (curr.totalPaid || 0), 0);
+
+    // 3. Get Inventory Health (Items with stock less than 5)
+    const lowStockItems = await ProductModel.countDocuments({ quantity: { $lt: 5 } });
+
+    res.status(200).send({
+      success: true,
+      message: "Divine insights fetched successfully",
+      stats: {
+        totalRevenue,
+        orderCount,
+        userCount,
+        lowStockItems,
+      },
+    });
+  } catch (error) {
+    console.error("Admin Stats Error:", error);
+    res.status(500).send({
+      success: false,
+      message: "Error while fetching admin statistics",
+      error: error.message,
+    });
+  }
+};
 export default {
   placeOrderController,
   getAllOrdersController,
@@ -447,5 +480,6 @@ export default {
   updateOrderLogisticsController,
   userOrderStatusController,
   orderInvoiceStatusController,
-  getOrderByIdController
+  getOrderByIdController,
+  getAdminStatsController
 };

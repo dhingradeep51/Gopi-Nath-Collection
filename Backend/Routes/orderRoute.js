@@ -8,7 +8,8 @@ import {
   updateOrderLogisticsController,
   userOrderStatusController,
   orderInvoiceStatusController,
-  getOrderByIdController, // ✅ Import the missing controller
+  getOrderByIdController,
+  getAdminStatsController
 } from "../Controllers/orderController.js";
 
 const router = express.Router();
@@ -26,5 +27,5 @@ router.get("/all-orders", requireSignIn, isAdmin, getAllOrdersController);
 router.put("/order-status/:orderId", requireSignIn, isAdmin, orderStatusController);
 router.put("/order-logistic-update/:orderId", requireSignIn, isAdmin, updateOrderLogisticsController);
 router.put("/order-invoice-status/:orderId", requireSignIn, isAdmin, orderInvoiceStatusController);
-
+router.get("/admin-stats", requireSignIn, isAdmin, getAdminStatsController);
 export default router;
