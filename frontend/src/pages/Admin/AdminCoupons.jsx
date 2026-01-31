@@ -91,30 +91,30 @@ const AdminCoupons = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!name || !expiry || !discountValue) {
-      return message.error("Please fill all required fields");
-    }
+  // Updated validation logic
+  const isGift = discountType === "gift";
+  if (!name || !expiry || (!isGift && !discountValue) || (isGift && !selectedProduct)) {
+    return message.error("Please fill all required fields");
+  }
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
+    const couponData = {
+      name: name.toUpperCase(),
+      expiry: expiry,
+      discountType,
+      // Send 0 for value if it's a gift type
+      discountValue: isGift ? 0 : discountValue, 
+      maxDiscount: discountType === "percentage" ? maxDiscount : 0,
+      minPurchase,
+      usageLimit,
+      giftProductId: isGift ? selectedProduct : null,
+    };
 
-      const couponData = {
-        name: name.toUpperCase(),
-        expiry: expiry,
-        discountType,
-        discountValue,
-        maxDiscount: discountType === "percentage" ? maxDiscount : 0,
-        minPurchase,
-        usageLimit,
-        giftProductId: discountType === "gift" ? selectedProduct : null,
-      };
-
-      const { data } = await axios.post(
-        `${BASE_URL}api/v1/coupon/create-coupon`,
-        couponData
-      );
+    const { data } = await axios.post(`${BASE_URL}api/v1/coupon/create-coupon`, couponData);
+    // ... rest of your logic
 
       if (data.success) {
         message.success("Divine Coupon Created Successfully!");
