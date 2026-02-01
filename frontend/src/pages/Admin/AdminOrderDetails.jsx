@@ -1,3 +1,6 @@
+// AdminOrderDetails.jsx - Mobile Optimized Version with Loading State
+// Key fixes: Button sizes, loading state, input heights, touch targets
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
@@ -100,9 +103,25 @@ const AdminOrderDetails = () => {
   if (loading) {
     return (
       <Layout>
-        <div style={{ background: colors.darkBurgundy, height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column' }}>
+        <div style={{ 
+          background: colors.darkBurgundy, 
+          minHeight: '100vh', 
+          display: 'flex', 
+          justifyContent: 'center', 
+          alignItems: 'center', 
+          flexDirection: 'column',
+          gap: '20px',
+          padding: '40px 20px'
+        }}>
           <Spin size="large" />
-          <p style={{ color: colors.gold, marginTop: '20px' }}>Loading order details...</p>
+          <p style={{ 
+            color: colors.gold, 
+            fontSize: '1.1rem',
+            fontWeight: 300,
+            letterSpacing: '2px'
+          }}>
+            Loading order details...
+          </p>
         </div>
       </Layout>
     );
@@ -119,6 +138,9 @@ const AdminOrderDetails = () => {
           min-height: 100vh;
           color: #fff;
           padding: 40px 20px;
+          padding-left: max(20px, env(safe-area-inset-left));
+          padding-right: max(20px, env(safe-area-inset-right));
+          padding-bottom: max(60px, env(safe-area-inset-bottom));
         }
 
         .order-details-container {
@@ -135,10 +157,16 @@ const AdminOrderDetails = () => {
           gap: 8px;
           font-weight: bold;
           transition: all 0.3s;
+          padding: 8px;
+          border-radius: 8px;
+          width: fit-content;
+          min-height: 44px;
+          touch-action: manipulation;
         }
 
         .back-link:hover {
           transform: translateX(-5px);
+          background: rgba(212, 175, 55, 0.1);
         }
 
         .main-card {
@@ -179,6 +207,7 @@ const AdminOrderDetails = () => {
           display: flex;
           align-items: center;
           gap: 20px;
+          flex-wrap: wrap;
         }
 
         .reason-alert.history {
@@ -188,6 +217,7 @@ const AdminOrderDetails = () => {
 
         .reason-content {
           flex: 1;
+          min-width: 200px;
         }
 
         .reason-title {
@@ -339,10 +369,19 @@ const AdminOrderDetails = () => {
           cursor: pointer;
           color: ${colors.gold};
           transition: all 0.3s;
+          padding: 8px;
+          border-radius: 8px;
+          min-width: 40px;
+          min-height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          touch-action: manipulation;
         }
 
         .copy-icon:hover {
           transform: scale(1.2);
+          background: rgba(212, 175, 55, 0.1);
         }
 
         .address-text {
@@ -356,11 +395,14 @@ const AdminOrderDetails = () => {
           background: rgba(255,255,255,0.05);
           color: #fff;
           border-color: ${colors.gold}44;
+          height: 50px;
+          font-size: 16px;
         }
 
         .logistics-input input {
           background: transparent !important;
           color: #fff !important;
+          font-size: 16px !important;
         }
 
         .logistics-input input::placeholder {
@@ -373,8 +415,14 @@ const AdminOrderDetails = () => {
           color: ${colors.gold};
           border-color: ${colors.gold};
           margin-bottom: 20px;
-          height: 40px;
+          height: 50px;
           font-weight: 600;
+          font-size: 0.9rem;
+          touch-action: manipulation;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
         }
 
         .btn-status:hover {
@@ -387,8 +435,10 @@ const AdminOrderDetails = () => {
           background: ${colors.gold};
           color: ${colors.darkBurgundy};
           font-weight: bold;
-          height: 40px;
+          height: 50px;
           border: none;
+          font-size: 0.95rem;
+          touch-action: manipulation;
         }
 
         .btn-update:hover {
@@ -396,18 +446,24 @@ const AdminOrderDetails = () => {
         }
 
         .btn-approve {
-          height: 45px;
+          height: 50px;
           background: ${colors.warning};
           border-color: ${colors.warning};
           font-weight: bold;
           padding: 0 25px;
+          font-size: 0.95rem;
+          min-width: 180px;
+          touch-action: manipulation;
         }
 
         .btn-approve:hover {
           background: ${colors.warning}dd;
         }
 
-        /* Mobile Responsive */
+        /* ══════════════════════════════════════════════
+           MOBILE OPTIMIZATIONS
+        ══════════════════════════════════════════════ */
+
         @media (max-width: 1024px) {
           .content-grid {
             grid-template-columns: 1fr;
@@ -420,7 +476,7 @@ const AdminOrderDetails = () => {
 
         @media (max-width: 768px) {
           .order-details-wrapper {
-            padding: 20px 10px;
+            padding: 20px 16px;
           }
 
           .main-card {
@@ -438,20 +494,25 @@ const AdminOrderDetails = () => {
           .reason-alert {
             flex-direction: column;
             align-items: flex-start;
-            padding: 15px;
+            padding: 18px 16px;
           }
 
+          /* CRITICAL: Full width approve button on mobile */
           .btn-approve {
             width: 100%;
+            min-width: unset;
+            height: 52px;
           }
 
           .products-section,
           .sidebar-card {
-            padding: 18px;
+            padding: 20px 18px;
           }
 
+          /* CRITICAL: Better product layout */
           .product-item {
             flex-direction: column;
+            gap: 15px;
           }
 
           .product-image {
@@ -467,24 +528,134 @@ const AdminOrderDetails = () => {
           .financial-total {
             font-size: 1.2rem;
           }
+
+          /* CRITICAL: Ensure consistent input heights */
+          .logistics-input {
+            height: 52px;
+          }
+
+          .logistics-input input {
+            font-size: 16px !important;
+          }
+
+          .btn-status,
+          .btn-update {
+            height: 52px;
+            font-size: 1rem;
+          }
         }
 
         @media (max-width: 480px) {
+          .order-details-wrapper {
+            padding: 16px 12px;
+            padding-bottom: max(60px, env(safe-area-inset-bottom));
+          }
+
           .order-title {
             font-size: 1.2rem;
           }
 
           .main-card {
-            padding: 15px;
+            padding: 16px;
           }
 
           .products-section,
           .sidebar-card {
-            padding: 15px;
+            padding: 16px;
           }
 
           .financial-total {
             font-size: 1.1rem;
+          }
+
+          /* CRITICAL: Maximum comfort on small screens */
+          .back-link {
+            padding: 10px;
+            min-height: 46px;
+          }
+
+          .copy-icon {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+          }
+
+          .btn-approve {
+            height: 54px;
+            font-size: 1rem;
+          }
+
+          .btn-status,
+          .btn-update {
+            height: 54px;
+            font-size: 1rem;
+          }
+
+          .logistics-input {
+            height: 54px;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .order-title {
+            font-size: 1.1rem;
+          }
+
+          .btn-approve,
+          .btn-status,
+          .btn-update {
+            height: 56px;
+          }
+
+          .logistics-input {
+            height: 56px;
+          }
+        }
+
+        /* ══════════════════════════════════════════════
+           TOUCH ENHANCEMENTS
+        ══════════════════════════════════════════════ */
+
+        @media (hover: none) and (pointer: coarse) {
+          .back-link,
+          .copy-icon,
+          .btn-status,
+          .btn-update,
+          .btn-approve {
+            -webkit-tap-highlight-color: rgba(212, 175, 55, 0.15);
+          }
+
+          .back-link:active {
+            transform: translateX(-3px) scale(0.98);
+          }
+
+          .copy-icon:active {
+            transform: scale(0.92);
+          }
+
+          .btn-status:active,
+          .btn-update:active,
+          .btn-approve:active {
+            transform: scale(0.97);
+          }
+        }
+
+        /* Focus indicators */
+        .back-link:focus-visible,
+        .copy-icon:focus-visible,
+        .btn-status:focus-visible,
+        .btn-update:focus-visible,
+        .btn-approve:focus-visible {
+          outline: 3px solid ${colors.gold};
+          outline-offset: 2px;
+        }
+
+        /* Prevent iOS zoom */
+        @media (max-width: 768px) {
+          input,
+          select,
+          textarea {
+            font-size: 16px !important;
           }
         }
       `}</style>
@@ -492,7 +663,17 @@ const AdminOrderDetails = () => {
       <div className="order-details-wrapper">
         <div className="order-details-container">
           
-          <div className="back-link" onClick={() => navigate("/dashboard/admin/orders")}>
+          <div 
+            className="back-link" 
+            onClick={() => navigate("/dashboard/admin/orders")}
+            role="button"
+            tabIndex={0}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                navigate("/dashboard/admin/orders");
+              }
+            }}
+          >
             <FaArrowLeft /> BACK TO REGISTRY
           </div>
 
@@ -512,7 +693,7 @@ const AdminOrderDetails = () => {
                   order?.status?.includes("Return") ? "orange" : 
                   "gold"
                 } 
-                style={{ padding: '5px 15px', fontSize: '14px', height: 'fit-content' }}
+                style={{ padding: '8px 16px', fontSize: '14px', height: 'fit-content' }}
               >
                 {order?.status?.toUpperCase()}
               </Tag>
@@ -627,10 +808,20 @@ const AdminOrderDetails = () => {
                   <p className="customer-name">{order?.buyer?.name}</p>
                   <div className="customer-phone">
                     <span style={{ opacity: 0.7 }}>{order?.buyer?.phone}</span>
-                    <FaCopy 
+                    <div
                       className="copy-icon"
-                      onClick={() => copyToClipboard(order?.buyer?.phone)} 
-                    />
+                      onClick={() => copyToClipboard(order?.buyer?.phone)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          copyToClipboard(order?.buyer?.phone);
+                        }
+                      }}
+                      aria-label="Copy phone number"
+                    >
+                      <FaCopy />
+                    </div>
                   </div>
                   <Divider style={{ background: `${colors.gold}22`, margin: '15px 0' }} />
                   <h6 className="section-title" style={{ fontSize: '0.85rem', marginBottom: '10px' }}>

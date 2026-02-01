@@ -1,3 +1,6 @@
+// AdminOrders.jsx - Mobile Optimized Version
+// Key fixes: Search/filter inputs, order cards, touch targets, safe areas
+
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -36,7 +39,7 @@ const AdminOrders = () => {
     if (auth?.token) getAllOrders();
   }, [auth?.token, getAllOrders]);
 
-  const filteredOrders = orders.filter((o) => {
+  const filteredOrders = orders.filter((o) => { 
     const search = searchText.toLowerCase();
     const matchesSearch =
       (o?.orderNumber || "").toLowerCase().includes(search) ||
@@ -93,6 +96,9 @@ const AdminOrders = () => {
           max-width: 1400px;
           margin: 0 auto;
           padding: 60px 30px;
+          padding-left: max(30px, env(safe-area-inset-left));
+          padding-right: max(30px, env(safe-area-inset-right));
+          padding-bottom: max(60px, env(safe-area-inset-bottom));
         }
 
         .page-header {
@@ -146,7 +152,7 @@ const AdminOrders = () => {
 
         .search-input {
           width: 100%;
-          height: 50px;
+          height: 52px;
           background: rgba(255, 255, 255, 0.08) !important;
           border: 1px solid rgba(212, 175, 55, 0.3) !important;
           border-radius: 12px !important;
@@ -164,7 +170,7 @@ const AdminOrders = () => {
         .search-input input {
           color: #fff !important;
           background: transparent !important;
-          font-size: 15px;
+          font-size: 16px !important;
         }
 
         .search-input input::placeholder {
@@ -189,7 +195,7 @@ const AdminOrders = () => {
         .filter-select .ant-select-selector {
           background: rgba(255, 255, 255, 0.08) !important;
           border: 1px solid rgba(212, 175, 55, 0.3) !important;
-          height: 50px !important;
+          height: 52px !important;
           border-radius: 12px !important;
           backdrop-filter: blur(10px);
           transition: all 0.3s ease;
@@ -203,7 +209,8 @@ const AdminOrders = () => {
 
         .filter-select .ant-select-selection-item {
           color: #fff !important;
-          line-height: 48px !important;
+          line-height: 50px !important;
+          font-size: 16px !important;
         }
 
         .filter-select .ant-select-arrow {
@@ -322,6 +329,8 @@ const AdminOrders = () => {
           gap: 25px;
           position: relative;
           overflow: hidden;
+          min-height: 90px;
+          touch-action: manipulation;
         }
 
         .order-card::before {
@@ -378,12 +387,13 @@ const AdminOrders = () => {
 
         .payment-badge {
           display: inline-block;
-          padding: 4px 12px;
+          padding: 5px 14px;
           border-radius: 20px;
           font-size: 0.75rem;
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.5px;
+          width: fit-content;
         }
 
         .payment-cod {
@@ -415,7 +425,7 @@ const AdminOrders = () => {
 
         .status-badge {
           display: inline-block;
-          padding: 6px 14px;
+          padding: 7px 16px;
           border-radius: 20px;
           font-size: 0.75rem;
           font-weight: 600;
@@ -478,6 +488,10 @@ const AdminOrders = () => {
           letter-spacing: 2px;
         }
 
+        /* ══════════════════════════════════════════════
+           MOBILE OPTIMIZATIONS
+        ══════════════════════════════════════════════ */
+
         @media (max-width: 1024px) {
           .page-title {
             font-size: 2.5rem;
@@ -494,7 +508,9 @@ const AdminOrders = () => {
 
         @media (max-width: 768px) {
           .orders-container {
-            padding: 30px 16px;
+            padding: 30px 18px;
+            padding-left: max(18px, env(safe-area-inset-left));
+            padding-right: max(18px, env(safe-area-inset-right));
           }
 
           .page-header {
@@ -526,8 +542,13 @@ const AdminOrders = () => {
             min-width: unset;
           }
 
+          /* CRITICAL: Consistent input heights */
           .search-input {
-            height: 48px;
+            height: 52px;
+          }
+
+          .search-input input {
+            font-size: 16px !important;
           }
 
           .filter-group {
@@ -542,11 +563,12 @@ const AdminOrders = () => {
           }
 
           .filter-select .ant-select-selector {
-            height: 48px !important;
+            height: 52px !important;
           }
 
           .filter-select .ant-select-selection-item {
-            line-height: 46px !important;
+            line-height: 50px !important;
+            font-size: 16px !important;
           }
 
           .stats-grid {
@@ -583,10 +605,12 @@ const AdminOrders = () => {
             gap: 15px;
           }
 
+          /* CRITICAL: Mobile card layout */
           .order-card {
             grid-template-columns: 1fr;
             padding: 20px 18px;
-            gap: 18px;
+            gap: 16px;
+            min-height: auto;
           }
 
           .order-card:hover {
@@ -618,7 +642,7 @@ const AdminOrders = () => {
 
           .payment-badge {
             font-size: 0.7rem;
-            padding: 3px 10px;
+            padding: 4px 12px;
           }
 
           .order-summary {
@@ -636,7 +660,7 @@ const AdminOrders = () => {
 
           .status-badge {
             font-size: 0.7rem;
-            padding: 5px 12px;
+            padding: 6px 14px;
           }
 
           .empty-state {
@@ -658,7 +682,8 @@ const AdminOrders = () => {
 
         @media (max-width: 480px) {
           .orders-container {
-            padding: 25px 12px;
+            padding: 25px 14px;
+            padding-bottom: max(60px, env(safe-area-inset-bottom));
           }
 
           .page-title {
@@ -670,14 +695,19 @@ const AdminOrders = () => {
             font-size: 0.8rem;
           }
 
+          /* CRITICAL: Optimized for small screens */
           .search-input,
           .filter-select .ant-select-selector {
-            height: 46px !important;
+            height: 54px !important;
+          }
+
+          .search-input input,
+          .filter-select .ant-select-selection-item {
+            font-size: 16px !important;
           }
 
           .filter-select .ant-select-selection-item {
-            line-height: 44px !important;
-            font-size: 0.9rem;
+            line-height: 52px !important;
           }
 
           .stats-grid {
@@ -712,7 +742,7 @@ const AdminOrders = () => {
           }
 
           .order-card {
-            padding: 16px 14px;
+            padding: 18px 16px;
             gap: 14px;
             border-radius: 12px;
           }
@@ -776,6 +806,52 @@ const AdminOrders = () => {
 
           .order-amount {
             font-size: 1rem;
+          }
+
+          /* CRITICAL: Maximum comfort on smallest screens */
+          .search-input,
+          .filter-select .ant-select-selector {
+            height: 56px !important;
+          }
+
+          .filter-select .ant-select-selection-item {
+            line-height: 54px !important;
+          }
+        }
+
+        /* ══════════════════════════════════════════════
+           TOUCH ENHANCEMENTS
+        ══════════════════════════════════════════════ */
+
+        @media (hover: none) and (pointer: coarse) {
+          .order-card,
+          .stat-card {
+            -webkit-tap-highlight-color: rgba(212, 175, 55, 0.15);
+          }
+
+          .order-card:active {
+            transform: translateX(3px) scale(0.98);
+          }
+
+          .stat-card:active {
+            transform: translateY(-4px) scale(0.98);
+          }
+        }
+
+        /* Focus indicators for accessibility */
+        .order-card:focus-visible {
+          outline: 3px solid #D4AF37;
+          outline-offset: 2px;
+        }
+
+        /* Prevent iOS zoom on input focus */
+        @media (max-width: 768px) {
+          input,
+          select,
+          textarea,
+          .ant-input,
+          .ant-select-selector {
+            font-size: 16px !important;
           }
         }
       `}</style>
@@ -908,6 +984,13 @@ const AdminOrders = () => {
                     key={order._id}
                     className="order-card"
                     onClick={() => navigate(`/dashboard/admin/orders/${order.orderNumber}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        navigate(`/dashboard/admin/orders/${order.orderNumber}`);
+                      }
+                    }}
                   >
                     <div className="order-id">
                       <div className="order-number">{order.orderNumber}</div>

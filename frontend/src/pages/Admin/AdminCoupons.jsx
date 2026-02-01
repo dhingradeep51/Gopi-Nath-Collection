@@ -1,3 +1,6 @@
+// AdminCoupons.jsx - Mobile Optimized Version
+// Key fixes: Form inputs, table actions, submit button, touch targets
+
 import React, { useState, useEffect } from "react";
 import AdminMenu from "../../components/Menus/AdminMenu";
 import axios from "axios";
@@ -207,18 +210,24 @@ const AdminCoupons = () => {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
-        <div style={{ display: "flex", gap: "10px" }}>
-          <FaEye
-            style={{ color: "#D4AF37", cursor: "pointer", fontSize: "18px" }}
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <div
+            className="action-icon-wrapper"
             onClick={() => handleView(record)}
-          />
+            role="button"
+            tabIndex={0}
+          >
+            <FaEye className="action-icon view-icon" />
+          </div>
           <Popconfirm
             title="Are you sure you want to delete this coupon?"
             onConfirm={() => handleDelete(record._id)}
             okText="Yes"
             cancelText="No"
           >
-            <FaTrash style={{ color: "#ff4d4f", cursor: "pointer", fontSize: "18px" }} />
+            <div className="action-icon-wrapper" role="button" tabIndex={0}>
+              <FaTrash className="action-icon delete-icon" />
+            </div>
           </Popconfirm>
         </div>
       ),
@@ -248,6 +257,9 @@ const AdminCoupons = () => {
           max-width: 1400px;
           margin: 0 auto;
           padding: 60px 30px;
+          padding-left: max(30px, env(safe-area-inset-left));
+          padding-right: max(30px, env(safe-area-inset-right));
+          padding-bottom: max(50px, env(safe-area-inset-bottom));
         }
 
         .page-header {
@@ -325,9 +337,10 @@ const AdminCoupons = () => {
           color: #fff !important;
           padding: 12px 16px !important;
           border-radius: 10px !important;
-          font-size: 0.95rem !important;
+          font-size: 16px !important;
           transition: all 0.3s ease !important;
-          height: 50px !important;
+          height: 52px !important;
+          touch-action: manipulation;
         }
 
         .form-input:hover,
@@ -350,7 +363,7 @@ const AdminCoupons = () => {
           background: rgba(0, 0, 0, 0.3) !important;
           border: 1px solid rgba(212, 175, 55, 0.3) !important;
           color: #fff !important;
-          height: 50px !important;
+          height: 52px !important;
           border-radius: 10px !important;
           padding: 0 16px !important;
         }
@@ -363,7 +376,8 @@ const AdminCoupons = () => {
 
         .custom-select .ant-select-selection-item {
           color: #fff !important;
-          line-height: 48px !important;
+          line-height: 50px !important;
+          font-size: 16px !important;
         }
 
         .custom-select .ant-select-arrow {
@@ -374,7 +388,7 @@ const AdminCoupons = () => {
           background: linear-gradient(135deg, #D4AF37, #FFD700);
           color: #0f0c29;
           border: none;
-          padding: 14px 35px;
+          padding: 16px 35px;
           border-radius: 10px;
           font-size: 0.95rem;
           font-weight: 700;
@@ -384,8 +398,11 @@ const AdminCoupons = () => {
           transition: all 0.3s ease;
           display: flex;
           align-items: center;
+          justify-content: center;
           gap: 12px;
           box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+          min-height: 54px;
+          touch-action: manipulation;
         }
 
         .submit-btn:hover:not(:disabled) {
@@ -432,6 +449,39 @@ const AdminCoupons = () => {
           font-weight: 700;
           color: #D4AF37;
           font-size: 1rem;
+        }
+
+        /* CRITICAL: Action Icon Wrappers for Mobile Touch */
+        .action-icon-wrapper {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 40px;
+          min-height: 40px;
+          padding: 8px;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          background: rgba(255, 255, 255, 0.05);
+          touch-action: manipulation;
+        }
+
+        .action-icon-wrapper:hover {
+          background: rgba(255, 255, 255, 0.1);
+          transform: scale(1.05);
+        }
+
+        .action-icon {
+          font-size: 18px;
+          transition: all 0.3s ease;
+        }
+
+        .view-icon {
+          color: #D4AF37;
+        }
+
+        .delete-icon {
+          color: #ff4d4f;
         }
 
         /* Ant Design Overrides */
@@ -487,7 +537,7 @@ const AdminCoupons = () => {
         .ant-picker {
           background: rgba(0, 0, 0, 0.3) !important;
           border: 1px solid rgba(212, 175, 55, 0.3) !important;
-          height: 50px !important;
+          height: 52px !important;
           border-radius: 10px !important;
         }
 
@@ -499,6 +549,7 @@ const AdminCoupons = () => {
 
         .ant-picker-input > input {
           color: #fff !important;
+          font-size: 16px !important;
         }
 
         .ant-picker-suffix {
@@ -509,6 +560,7 @@ const AdminCoupons = () => {
           background: rgba(0, 0, 0, 0.3) !important;
           border: 1px solid rgba(212, 175, 55, 0.3) !important;
           border-radius: 10px !important;
+          width: 100% !important;
         }
 
         .ant-input-number:hover,
@@ -519,10 +571,20 @@ const AdminCoupons = () => {
 
         .ant-input-number-input {
           color: #fff !important;
-          height: 48px !important;
+          height: 50px !important;
+          font-size: 16px !important;
         }
 
-        /* Responsive Design */
+        /* Popconfirm buttons */
+        .ant-popconfirm .ant-btn {
+          min-height: 40px;
+          font-size: 0.9rem;
+        }
+
+        /* ══════════════════════════════════════════════
+           MOBILE OPTIMIZATIONS
+        ══════════════════════════════════════════════ */
+
         @media (max-width: 1024px) {
           .page-title {
             font-size: 2.5rem;
@@ -536,6 +598,8 @@ const AdminCoupons = () => {
         @media (max-width: 768px) {
           .coupons-container {
             padding: 40px 20px;
+            padding-left: max(20px, env(safe-area-inset-left));
+            padding-right: max(20px, env(safe-area-inset-right));
           }
 
           .page-title {
@@ -551,14 +615,48 @@ const AdminCoupons = () => {
             grid-template-columns: 1fr;
           }
 
+          /* CRITICAL: Ensure all inputs are consistent height */
+          .form-input,
+          .custom-select .ant-select-selector,
+          .ant-picker,
+          .ant-input-number {
+            height: 52px !important;
+          }
+
+          .custom-select .ant-select-selection-item {
+            line-height: 50px !important;
+          }
+
+          .ant-input-number-input {
+            height: 50px !important;
+          }
+
+          /* CRITICAL: Full width submit button */
+          .submit-btn {
+            width: 100%;
+            min-height: 54px;
+          }
+
           .ant-table {
             font-size: 0.85rem !important;
+          }
+
+          /* CRITICAL: Larger action icons on mobile */
+          .action-icon-wrapper {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+          }
+
+          .action-icon {
+            font-size: 20px;
           }
         }
 
         @media (max-width: 480px) {
           .coupons-container {
-            padding: 30px 15px;
+            padding: 30px 16px;
+            padding-bottom: max(60px, env(safe-area-inset-bottom));
           }
 
           .page-title {
@@ -580,15 +678,33 @@ const AdminCoupons = () => {
             font-size: 1.3rem;
           }
 
+          /* CRITICAL: Optimized input heights for mobile */
           .form-input,
           .custom-select .ant-select-selector,
-          .ant-picker {
-            height: 46px !important;
+          .ant-picker,
+          .ant-input-number {
+            height: 54px !important;
+          }
+
+          .custom-select .ant-select-selection-item {
+            line-height: 52px !important;
+          }
+
+          .ant-input-number-input {
+            height: 52px !important;
           }
 
           .submit-btn {
             width: 100%;
+            min-height: 56px;
             justify-content: center;
+            font-size: 1rem;
+          }
+
+          /* CRITICAL: Maximum touch comfort */
+          .action-icon-wrapper {
+            min-width: 46px;
+            min-height: 46px;
           }
         }
 
@@ -596,18 +712,52 @@ const AdminCoupons = () => {
           .page-title {
             font-size: 1.5rem;
           }
+
+          .submit-btn {
+            min-height: 58px;
+            padding: 18px 24px;
+          }
         }
 
-        /* Touch-friendly enhancements */
+        /* ══════════════════════════════════════════════
+           TOUCH ENHANCEMENTS
+        ══════════════════════════════════════════════ */
+
         @media (hover: none) and (pointer: coarse) {
           .submit-btn,
           .form-input,
-          .custom-select {
-            -webkit-tap-highlight-color: rgba(212, 175, 55, 0.1);
+          .custom-select,
+          .action-icon-wrapper {
+            -webkit-tap-highlight-color: rgba(212, 175, 55, 0.15);
           }
 
           .submit-btn:active {
             transform: scale(0.97);
+          }
+
+          .action-icon-wrapper:active {
+            transform: scale(0.92);
+            background: rgba(255, 255, 255, 0.15);
+          }
+        }
+
+        /* Focus indicators for accessibility */
+        .submit-btn:focus-visible,
+        .action-icon-wrapper:focus-visible,
+        .form-input:focus-visible {
+          outline: 3px solid #D4AF37;
+          outline-offset: 2px;
+        }
+
+        /* Prevent iOS zoom */
+        @media (max-width: 768px) {
+          input,
+          select,
+          textarea,
+          .ant-input,
+          .ant-select-selector,
+          .ant-picker-input {
+            font-size: 16px !important;
           }
         }
       `}</style>

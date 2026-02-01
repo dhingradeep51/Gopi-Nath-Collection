@@ -1,21 +1,15 @@
+// AdminDashboard.jsx - Mobile Optimized Version
+// Key fixes: Sidebar width, button sizes, touch targets, and mobile layout
+
 import React, { useState, useEffect } from "react";
 import AdminMenu from "../../components/Menus/AdminMenu";
 import { useAuth } from "../../context/auth";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
-  TrendingUp,
-  Users,
-  Package,
-  FileText,
-  ArrowRight,
-  ShoppingBag,
-  Layers,
-  PlusCircle,
-  Ticket,
-  UserCheck,
-  AlertTriangle,
-  X,
+  TrendingUp, Users, Package, FileText, ArrowRight,
+  ShoppingBag, Layers, PlusCircle, Ticket, UserCheck,
+  AlertTriangle, X,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -81,6 +75,9 @@ const AdminDashboard = () => {
           max-width: 1400px;
           margin: 0 auto;
           padding: 60px 30px;
+          padding-left: max(30px, env(safe-area-inset-left));
+          padding-right: max(30px, env(safe-area-inset-right));
+          padding-bottom: max(60px, env(safe-area-inset-bottom));
         }
 
         .page-header {
@@ -114,8 +111,8 @@ const AdminDashboard = () => {
           background: linear-gradient(135deg, #D4AF37, #FFD700);
           color: #0f0c29;
           border: none;
-          padding: 12px 28px;
-          border-radius: 8px;
+          padding: 14px 32px;
+          border-radius: 10px;
           font-size: 0.85rem;
           font-weight: 700;
           text-transform: uppercase;
@@ -123,6 +120,8 @@ const AdminDashboard = () => {
           cursor: pointer;
           transition: all 0.3s ease;
           box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+          min-height: 50px;
+          touch-action: manipulation;
         }
 
         .manage-btn:hover {
@@ -167,6 +166,8 @@ const AdminDashboard = () => {
           transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
           overflow: hidden;
+          min-height: 70px;
+          touch-action: manipulation;
         }
 
         .alert-card::before {
@@ -381,6 +382,8 @@ const AdminDashboard = () => {
           transition: all 0.3s ease;
           text-transform: uppercase;
           letter-spacing: 0.5px;
+          min-height: 56px;
+          touch-action: manipulation;
         }
 
         .quick-link:hover {
@@ -444,7 +447,7 @@ const AdminDashboard = () => {
         .notification-sidebar {
           position: fixed;
           top: 0;
-          right: -400px;
+          right: -450px;
           width: 400px;
           max-width: 90vw;
           height: 100vh;
@@ -455,6 +458,7 @@ const AdminDashboard = () => {
           padding: 30px;
           overflow-y: auto;
           transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          -webkit-overflow-scrolling: touch;
         }
 
         .notification-sidebar.show {
@@ -480,9 +484,15 @@ const AdminDashboard = () => {
           cursor: pointer;
           color: #D4AF37;
           transition: all 0.3s ease;
-          padding: 5px;
+          padding: 8px;
           border-radius: 50%;
           background: rgba(212, 175, 55, 0.1);
+          min-width: 40px;
+          min-height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          touch-action: manipulation;
         }
 
         .close-btn:hover {
@@ -506,13 +516,15 @@ const AdminDashboard = () => {
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(212, 175, 55, 0.15);
           border-radius: 10px;
-          padding: 15px;
+          padding: 16px;
           margin-bottom: 12px;
           display: flex;
           align-items: center;
           justify-content: space-between;
           cursor: pointer;
           transition: all 0.3s ease;
+          min-height: 60px;
+          touch-action: manipulation;
         }
 
         .notif-item:hover {
@@ -544,7 +556,10 @@ const AdminDashboard = () => {
           font-size: 0.95rem;
         }
 
-        /* Responsive Design */
+        /* ══════════════════════════════════════════════
+           MOBILE OPTIMIZATIONS - CRITICAL FIXES
+        ══════════════════════════════════════════════ */
+        
         @media (max-width: 1024px) {
           .page-title {
             font-size: 2.5rem;
@@ -558,6 +573,8 @@ const AdminDashboard = () => {
         @media (max-width: 768px) {
           .dashboard-content {
             padding: 40px 20px;
+            padding-left: max(20px, env(safe-area-inset-left));
+            padding-right: max(20px, env(safe-area-inset-right));
           }
 
           .page-title {
@@ -569,12 +586,22 @@ const AdminDashboard = () => {
             align-items: flex-start;
           }
 
+          /* CRITICAL: Full width button on mobile */
           .manage-btn {
             width: 100%;
+            justify-content: center;
+            min-height: 52px;
+            font-size: 0.9rem;
           }
 
           .alerts-container {
             grid-template-columns: 1fr;
+          }
+
+          /* CRITICAL: Better touch targets for alerts */
+          .alert-card {
+            padding: 20px 18px;
+            min-height: 75px;
           }
 
           .stats-grid {
@@ -585,22 +612,46 @@ const AdminDashboard = () => {
             grid-template-columns: 1fr;
           }
 
+          /* CRITICAL: Full width quick links on mobile */
           .quick-links-grid {
             grid-template-columns: 1fr;
+          }
+
+          .quick-link {
+            min-height: 58px;
+            padding: 16px;
+            font-size: 0.9rem;
           }
 
           .quick-link.full-width {
             grid-column: auto;
           }
 
+          /* CRITICAL: Full screen sidebar on mobile */
           .notification-sidebar {
             width: 100vw;
+            right: -100vw;
+            max-width: 100vw;
+          }
+
+          /* CRITICAL: Larger close button */
+          .close-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+          }
+
+          /* CRITICAL: Better notification items */
+          .notif-item {
+            padding: 18px;
+            min-height: 65px;
           }
         }
 
         @media (max-width: 480px) {
           .dashboard-content {
-            padding: 30px 15px;
+            padding: 30px 16px;
+            padding-bottom: max(60px, env(safe-area-inset-bottom));
           }
 
           .page-title {
@@ -620,12 +671,46 @@ const AdminDashboard = () => {
             font-size: 1rem;
           }
 
+          /* CRITICAL: Comfortable button size */
+          .manage-btn {
+            min-height: 54px;
+            padding: 16px 24px;
+          }
+
+          /* CRITICAL: Optimized quick links */
+          .quick-link {
+            min-height: 60px;
+            padding: 18px 16px;
+            justify-content: flex-start;
+          }
+
+          /* CRITICAL: Alert cards */
+          .alert-card {
+            padding: 18px 16px;
+            min-height: 70px;
+          }
+
+          .alert-text {
+            font-size: 0.85rem;
+          }
+
           .sidebar-header {
-            padding: 20px;
+            padding: 0;
+            margin-bottom: 25px;
           }
 
           .sidebar-title {
             font-size: 1.3rem;
+          }
+
+          /* CRITICAL: Notification items */
+          .notif-item {
+            padding: 16px;
+            min-height: 68px;
+          }
+
+          .notif-title {
+            font-size: 0.9rem;
           }
         }
 
@@ -637,33 +722,88 @@ const AdminDashboard = () => {
           .stat-value {
             font-size: 1.6rem;
           }
+
+          /* CRITICAL: Maximum comfort on smallest screens */
+          .manage-btn {
+            min-height: 56px;
+            font-size: 0.85rem;
+          }
+
+          .quick-link {
+            min-height: 62px;
+          }
         }
 
-        /* Touch-friendly enhancements */
+        /* ══════════════════════════════════════════════
+           TOUCH ENHANCEMENTS - ENSURE BUTTONS WORK
+        ══════════════════════════════════════════════ */
+        
         @media (hover: none) and (pointer: coarse) {
+          /* Add touch feedback */
           .alert-card,
           .stat-card,
           .quick-link,
           .notif-item,
-          .manage-btn {
-            -webkit-tap-highlight-color: rgba(212, 175, 55, 0.1);
+          .manage-btn,
+          .close-btn {
+            -webkit-tap-highlight-color: rgba(212, 175, 55, 0.15);
+          }
+
+          /* CRITICAL: Touch feedback for buttons */
+          .manage-btn:active {
+            transform: scale(0.97);
+            box-shadow: 0 2px 10px rgba(212, 175, 55, 0.3);
           }
 
           .alert-card:active {
-            transform: scale(0.98);
-          }
-
-          .stat-card:active {
-            transform: scale(0.98);
-          }
-
-          .quick-link:active {
             transform: translateX(3px) scale(0.98);
           }
 
-          .manage-btn:active {
-            transform: scale(0.97);
+          .stat-card:active {
+            transform: translateY(-4px) scale(0.98);
           }
+
+          .quick-link:active {
+            transform: translateX(3px) scale(0.97);
+          }
+
+          .notif-item:active {
+            transform: translateX(3px) scale(0.98);
+          }
+
+          .close-btn:active {
+            transform: rotate(45deg) scale(0.95);
+          }
+        }
+
+        /* ══════════════════════════════════════════════
+           ACCESSIBILITY IMPROVEMENTS
+        ══════════════════════════════════════════════ */
+        
+        /* Focus indicators */
+        .manage-btn:focus-visible,
+        .quick-link:focus-visible,
+        .alert-card:focus-visible,
+        .notif-item:focus-visible,
+        .close-btn:focus-visible {
+          outline: 3px solid #D4AF37;
+          outline-offset: 2px;
+        }
+
+        /* Prevent iOS zoom on input focus */
+        @media (max-width: 768px) {
+          input,
+          select,
+          textarea {
+            font-size: 16px !important;
+          }
+        }
+
+        /* Prevent body scroll when sidebar open */
+        body.sidebar-open {
+          overflow: hidden;
+          position: fixed;
+          width: 100%;
         }
       `}</style>
 
@@ -673,14 +813,26 @@ const AdminDashboard = () => {
         {/* Sidebar Overlay */}
         <div
           className={`sidebar-overlay ${showSidebar ? "show" : ""}`}
-          onClick={() => setShowSidebar(false)}
+          onClick={() => {
+            setShowSidebar(false);
+            document.body.classList.remove('sidebar-open');
+          }}
         />
 
         {/* Notification Sidebar */}
         <div className={`notification-sidebar ${showSidebar ? "show" : ""}`}>
           <div className="sidebar-header">
             <h3 className="sidebar-title">Action Items</h3>
-            <X onClick={() => setShowSidebar(false)} className="close-btn" size={24} />
+            <button 
+              className="close-btn"
+              onClick={() => {
+                setShowSidebar(false);
+                document.body.classList.remove('sidebar-open');
+              }}
+              aria-label="Close sidebar"
+            >
+              <X size={24} />
+            </button>
           </div>
 
           {stats.notifications?.total === 0 ? (
@@ -700,6 +852,16 @@ const AdminDashboard = () => {
                       onClick={() => {
                         navigate(`/dashboard/admin/orders/${order.num}`);
                         setShowSidebar(false);
+                        document.body.classList.remove('sidebar-open');
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          navigate(`/dashboard/admin/orders/${order.num}`);
+                          setShowSidebar(false);
+                          document.body.classList.remove('sidebar-open');
+                        }
                       }}
                     >
                       <div className="notif-info">
@@ -727,7 +889,10 @@ const AdminDashboard = () => {
                       onClick={() => {
                         navigate(`/dashboard/admin/orders/${order.num}`);
                         setShowSidebar(false);
+                        document.body.classList.remove('sidebar-open');
                       }}
+                      role="button"
+                      tabIndex={0}
                     >
                       <div className="notif-info">
                         <div className="notif-title">Order #{order.num}</div>
@@ -751,7 +916,10 @@ const AdminDashboard = () => {
                       onClick={() => {
                         navigate("/dashboard/admin/products");
                         setShowSidebar(false);
+                        document.body.classList.remove('sidebar-open');
                       }}
+                      role="button"
+                      tabIndex={0}
                     >
                       <div className="notif-info" style={{ fontSize: "0.85rem" }}>
                         {item.name}
@@ -780,7 +948,11 @@ const AdminDashboard = () => {
                   Welcome, {auth?.user?.name}
                 </div>
               </div>
-              <button className="manage-btn" onClick={() => navigate("/dashboard/admin/orders")}>
+              <button 
+                className="manage-btn" 
+                onClick={() => navigate("/dashboard/admin/orders")}
+                aria-label="Manage Registry"
+              >
                 Manage Registry
               </button>
             </div>
@@ -790,7 +962,15 @@ const AdminDashboard = () => {
           {(stats.notifications?.requests > 0 || stats.notifications?.unbilled > 0) && (
             <div className="alerts-container">
               {stats.notifications.requests > 0 && (
-                <div className="alert-card danger" onClick={() => setShowSidebar(true)}>
+                <div 
+                  className="alert-card danger" 
+                  onClick={() => {
+                    setShowSidebar(true);
+                    document.body.classList.add('sidebar-open');
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
                   <div className="alert-content">
                     <AlertTriangle size={20} className="alert-icon" color="#ff4d4f" />
                     <span className="alert-text">
@@ -801,7 +981,15 @@ const AdminDashboard = () => {
                 </div>
               )}
               {stats.notifications.unbilled > 0 && (
-                <div className="alert-card warning" onClick={() => setShowSidebar(true)}>
+                <div 
+                  className="alert-card warning" 
+                  onClick={() => {
+                    setShowSidebar(true);
+                    document.body.classList.add('sidebar-open');
+                  }}
+                  role="button"
+                  tabIndex={0}
+                >
                   <div className="alert-content">
                     <FileText size={20} className="alert-icon" color="#D4AF37" />
                     <span className="alert-text">{stats.notifications.unbilled} UNBILLED ORDERS</span>
@@ -873,31 +1061,59 @@ const AdminDashboard = () => {
             <div className="section-card">
               <h3 className="section-title">Management Suite</h3>
               <div className="quick-links-grid">
-                <button className="quick-link" onClick={() => navigate("/dashboard/admin/orders")}>
+                <button 
+                  className="quick-link" 
+                  onClick={() => navigate("/dashboard/admin/orders")}
+                  aria-label="Order Registry"
+                >
                   <ShoppingBag size={16} color="#D4AF37" />
                   Order Registry
                 </button>
-                <button className="quick-link" onClick={() => navigate("/dashboard/admin/invoice")}>
+                <button 
+                  className="quick-link" 
+                  onClick={() => navigate("/dashboard/admin/invoice")}
+                  aria-label="Divine Billing"
+                >
                   <FileText size={16} color="#D4AF37" />
                   Divine Billing
                 </button>
-                <button className="quick-link" onClick={() => navigate("/dashboard/admin/products")}>
+                <button 
+                  className="quick-link" 
+                  onClick={() => navigate("/dashboard/admin/products")}
+                  aria-label="Product Hub"
+                >
                   <Package size={16} color="#D4AF37" />
                   Product Hub
                 </button>
-                <button className="quick-link" onClick={() => navigate("/dashboard/admin/create-product")}>
+                <button 
+                  className="quick-link" 
+                  onClick={() => navigate("/dashboard/admin/create-product")}
+                  aria-label="New Product"
+                >
                   <PlusCircle size={16} color="#D4AF37" />
                   New Product
                 </button>
-                <button className="quick-link" onClick={() => navigate("/dashboard/admin/create-category")}>
+                <button 
+                  className="quick-link" 
+                  onClick={() => navigate("/dashboard/admin/create-category")}
+                  aria-label="Categories"
+                >
                   <Layers size={16} color="#D4AF37" />
                   Categories
                 </button>
-                <button className="quick-link" onClick={() => navigate("/dashboard/admin/coupons")}>
+                <button 
+                  className="quick-link" 
+                  onClick={() => navigate("/dashboard/admin/coupons")}
+                  aria-label="Gift Coupons"
+                >
                   <Ticket size={16} color="#D4AF37" />
                   Gift Coupons
                 </button>
-                <button className="quick-link full-width" onClick={() => navigate("/dashboard/admin/users")}>
+                <button 
+                  className="quick-link full-width" 
+                  onClick={() => navigate("/dashboard/admin/users")}
+                  aria-label="Devotee Registry"
+                >
                   <UserCheck size={16} color="#D4AF37" />
                   Devotee Registry
                 </button>
