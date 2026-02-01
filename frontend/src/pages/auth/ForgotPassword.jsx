@@ -1,62 +1,107 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../../context/auth";
+import Layout from "../../components/Layout";
+import toast from "react-hot-toast";
+
+// Constants
+const COLORS = {
+  gold: "#D4AF37",
+  burgundy: "#2D0A14",
+  darkBurgundy: "#1a050b",
+  error: "#ff4d4d",
+  success: "green",
+  border: "#444",
+  white: "#fff",
+  text: "#333",
+};
+
+const OTP_TIMER_DURATION = 60; // seconds
+const MOBILE_BREAKPOINT = 768;
 
 const ForgotPassword = () => {
+  const [auth] = useAuth();
   const navigate = useNavigate();
-  const goldColor = "#D4AF37";
-  const burgundyColor = "#2D0A14";
 
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  // Redirect authenticated users
+  useEffect(() => {
+    if (auth?.user && auth?.token) {
+      const redirectPath = auth.user.role === 1 ? "/dashboard/admin" : "/";
+      navigate(redirectPath, { replace: true });
+    }
+  }, [auth, navigate]);
 
   // --- STATE ---
-  const [email, setEmail] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [otp, setOtp] = useState("");
+  const [formData, setFormData] = useState({
+    email: "",
+    newPassword: "",
+    otp: "",
+  });
   const [otpSent, setOtpSent] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < MOBILE_BREAKPOINT);
 
+  const BASE_URL = import.meta.env.VITE_API_URL;
+
+  // Handle responsive design
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    const handleResize = () => setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // --- TIMER LOGIC ---
+  // Timer countdown
   useEffect(() => {
-    let interval;
-    if (timer > 0) {
-      interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
-    }
+    if (timer <= 0) return;
+
+    const interval = setInterval(() => {
+      setTimer((prev) => prev - 1);
+    }, 1000);
+
     return () => clearInterval(interval);
   }, [timer]);
 
+  // Handle input changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    setErrorMsg(""); // Clear error on input change
+  };
+
   // 1. Send Reset OTP
   const handleSendOtp = async () => {
-    if (!email) return alert("Please enter your email first");
+    if (!formData.email.trim()) {
+      return toast.error("Please enter your email first");
+    }
+
     setErrorMsg("");
+    setLoading(true);
+
     try {
-      setLoading(true);
-      // Added purpose: "forgot-password" to match your backend requirements
       const { data } = await axios.post(`${BASE_URL}api/v1/auth/send-otp`, {
-        email,
-        purpose: "forgot-password"
+        email: formData.email,
+        purpose: "forgot-password",
       });
 
       if (data.success) {
         setOtpSent(true);
-        setTimer(60); // 60s Timer
-        alert("Password reset code sent to your email!");
+        setTimer(OTP_TIMER_DURATION);
+        toast.success("Password reset code sent to your email!");
       } else {
-        setErrorMsg(data.message); // Displays specific errors like "User not found"
+        setErrorMsg(data.message || "Failed to send OTP");
+        toast.error(data.message || "Failed to send OTP");
       }
     } catch (error) {
-      // Catches the "Purpose required" error or rate limit messages
-      setErrorMsg(error.response?.data?.message || "Error sending OTP.");
+      const message = error.response?.data?.message || "Error sending OTP. Please try again.";
+      setErrorMsg(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -64,20 +109,35 @@ const ForgotPassword = () => {
 
   // 2. Verify Reset OTP
   const handleVerifyOtp = async () => {
-    if (!otp) return alert("Please enter the code");
+    if (!formData.otp.trim()) {
+      return toast.error("Please enter the verification code");
+    }
+
+    if (formData.otp.length !== 6) {
+      return toast.error("OTP must be 6 digits");
+    }
+
     setErrorMsg("");
+    setLoading(true);
+
     try {
-      setLoading(true);
-      const { data } = await axios.post(`${BASE_URL}api/v1/auth/verify-otp`, { email, otp });
+      const { data } = await axios.post(`${BASE_URL}api/v1/auth/verify-otp`, {
+        email: formData.email,
+        otp: formData.otp,
+      });
+
       if (data.success) {
         setIsVerified(true);
         setTimer(0);
-        alert("OTP Verified! Please set your new password.");
+        toast.success("OTP Verified! Please set your new password.");
       } else {
-        setErrorMsg(data.message);
+        setErrorMsg(data.message || "Invalid OTP");
+        toast.error(data.message || "Invalid OTP");
       }
     } catch (error) {
-      setErrorMsg("Invalid OTP");
+      const message = error.response?.data?.message || "Invalid OTP. Please try again.";
+      setErrorMsg(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -86,76 +146,362 @@ const ForgotPassword = () => {
   // 3. Update Password
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!isVerified) return alert("Verify OTP first");
+
+    if (!isVerified) {
+      return toast.error("Please verify OTP first");
+    }
+
+    if (!formData.newPassword.trim()) {
+      return toast.error("Please enter a new password");
+    }
+
+    if (formData.newPassword.length < 6) {
+      return toast.error("Password must be at least 6 characters");
+    }
+
     setErrorMsg("");
+    setLoading(true);
+
     try {
-      setLoading(true);
       const { data } = await axios.post(`${BASE_URL}api/v1/auth/forgot-password`, {
-        email,
-        newPassword
+        email: formData.email,
+        newPassword: formData.newPassword,
       });
+
       if (data.success) {
-        alert("Password reset successful! You can now login.");
-        navigate("/login");
+        toast.success("Password reset successful! Redirecting to login...");
+        
+        // Clear form and states
+        setFormData({ email: "", newPassword: "", otp: "" });
+        setOtpSent(false);
+        setIsVerified(false);
+        
+        setTimeout(() => {
+          toast.dismiss();
+          navigate("/login", { replace: true });
+        }, 1500);
       } else {
-        setErrorMsg(data.message);
-        setLoading(false);
+        setErrorMsg(data.message || "Failed to reset password");
+        toast.error(data.message || "Failed to reset password");
       }
     } catch (error) {
-      // UPDATED LOGIC: Catch the 400 error message from your backend
       const message = error.response?.data?.message || "Failed to reset password. Please try again.";
       setErrorMsg(message);
+      toast.error(message);
+    } finally {
       setLoading(false);
     }
   };
 
+  // Handle resend OTP
+  const handleResendOtp = () => {
+    setFormData((prev) => ({ ...prev, otp: "" }));
+    setOtpSent(false);
+    handleSendOtp();
+  };
+
   // --- STYLES ---
-  const inputStyle = { width: "100%", padding: "14px 15px", marginBottom: "15px", border: "none", borderRadius: "2px", fontSize: "16px", outline: "none", backgroundColor: "white", color: "#333", boxSizing: "border-box" };
-  const otpButtonStyle = { position: "absolute", right: "10px", top: "8px", padding: "6px 12px", backgroundColor: burgundyColor, color: timer > 0 ? "#666" : goldColor, border: `1px solid ${goldColor}`, fontSize: "12px", cursor: timer > 0 ? "default" : "pointer", borderRadius: "4px", zIndex: 10 };
-  const mainButtonStyle = { width: "100%", padding: "14px", border: "none", color: burgundyColor, fontSize: "16px", fontWeight: "bold", textTransform: "uppercase", marginTop: "10px", letterSpacing: "1px", borderRadius: "25px", background: isVerified ? goldColor : "#666", cursor: isVerified ? "pointer" : "not-allowed" };
+  const styles = {
+    page: {
+      backgroundColor: COLORS.burgundy,
+      minHeight: "100vh",
+      width: "100%",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      fontFamily: "'Playfair Display', serif",
+      color: "white",
+      padding: isMobile ? "40px 15px" : "60px 20px",
+    },
+    container: {
+      border: `2px solid ${COLORS.gold}`,
+      padding: isMobile ? "40px 20px" : "60px 40px",
+      width: "100%",
+      maxWidth: "500px",
+      position: "relative",
+      textAlign: "center",
+      backgroundColor: COLORS.darkBurgundy,
+      borderRadius: "4px",
+    },
+    decorativeCorner: {
+      position: "absolute",
+      width: "30px",
+      height: "30px",
+    },
+    input: {
+      width: "100%",
+      padding: "14px 15px",
+      marginBottom: "15px",
+      border: `1px solid ${COLORS.border}`,
+      borderRadius: "2px",
+      fontSize: "16px",
+      backgroundColor: COLORS.white,
+      color: COLORS.text,
+      outline: "none",
+      transition: "border-color 0.3s",
+      boxSizing: "border-box",
+    },
+    inputWrapper: {
+      position: "relative",
+      marginBottom: "15px",
+    },
+    otpButton: {
+      position: "absolute",
+      right: "10px",
+      top: "8px",
+      padding: "6px 12px",
+      backgroundColor: COLORS.burgundy,
+      color: COLORS.gold,
+      border: `1px solid ${COLORS.gold}`,
+      fontSize: "12px",
+      cursor: "pointer",
+      borderRadius: "2px",
+      transition: "all 0.3s",
+      zIndex: 10,
+    },
+    submitButton: {
+      width: "100%",
+      padding: "14px",
+      backgroundColor: isVerified ? COLORS.gold : COLORS.border,
+      border: "none",
+      color: COLORS.burgundy,
+      fontSize: "16px",
+      fontWeight: "bold",
+      cursor: isVerified ? "pointer" : "not-allowed",
+      textTransform: "uppercase",
+      letterSpacing: "1px",
+      borderRadius: "2px",
+      transition: "all 0.3s",
+      marginTop: "10px",
+    },
+    errorText: {
+      color: COLORS.error,
+      fontSize: "14px",
+      marginBottom: "15px",
+      fontWeight: "bold",
+    },
+    verifiedIcon: {
+      position: "absolute",
+      right: "15px",
+      top: "12px",
+      color: COLORS.success,
+      fontSize: "18px",
+      fontWeight: "bold",
+    },
+    link: {
+      color: COLORS.gold,
+      textDecoration: "none",
+      transition: "opacity 0.3s",
+    },
+  };
 
   return (
-    <Layout>
-      <div style={{ backgroundColor: burgundyColor, minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", fontFamily: "'Playfair Display', serif", color: "white", padding: "40px 15px", margin: 0 }}>
-        <style>{`* { margin: 0; padding: 0; box-sizing: border-box; } body, html { background-color: ${burgundyColor}; }`}</style>
-        <div style={{ border: `2px solid ${goldColor}`, padding: isMobile ? "40px 20px" : "60px 40px", width: "100%", maxWidth: "500px", position: "relative", textAlign: "center", backgroundColor: burgundyColor }}>
+    <Layout title="Reset Password - GNC Luxury">
+      <div style={styles.page}>
+        <div style={styles.container}>
+          {/* Decorative Corners */}
+          <div
+            style={{
+              ...styles.decorativeCorner,
+              top: "-5px",
+              left: "-5px",
+              borderTop: `3px solid ${COLORS.gold}`,
+              borderLeft: `3px solid ${COLORS.gold}`,
+            }}
+          />
+          <div
+            style={{
+              ...styles.decorativeCorner,
+              top: "-5px",
+              right: "-5px",
+              borderTop: `3px solid ${COLORS.gold}`,
+              borderRight: `3px solid ${COLORS.gold}`,
+            }}
+          />
+          <div
+            style={{
+              ...styles.decorativeCorner,
+              bottom: "-5px",
+              left: "-5px",
+              borderBottom: `3px solid ${COLORS.gold}`,
+              borderLeft: `3px solid ${COLORS.gold}`,
+            }}
+          />
+          <div
+            style={{
+              ...styles.decorativeCorner,
+              bottom: "-5px",
+              right: "-5px",
+              borderBottom: `3px solid ${COLORS.gold}`,
+              borderRight: `3px solid ${COLORS.gold}`,
+            }}
+          />
 
-          {/* Luxury Corners */}
-          <div style={{ position: "absolute", top: "-5px", left: "-5px", width: "30px", height: "30px", borderTop: `4px solid ${goldColor}`, borderLeft: `4px solid ${goldColor}` }} />
-          <div style={{ position: "absolute", top: "-5px", right: "-5px", width: "30px", height: "30px", borderTop: `4px solid ${goldColor}`, borderRight: `4px solid ${goldColor}` }} />
-          <div style={{ position: "absolute", bottom: "-5px", left: "-5px", width: "30px", height: "30px", borderBottom: `4px solid ${goldColor}`, borderLeft: `4px solid ${goldColor}` }} />
-          <div style={{ position: "absolute", bottom: "-5px", right: "-5px", width: "30px", height: "30px", borderBottom: `4px solid ${goldColor}`, borderRight: `4px solid ${goldColor}` }} />
-
-          <h2 style={{ color: goldColor, marginBottom: "30px", fontWeight: "500" }}>Reset Password</h2>
+          <h2
+            style={{
+              color: COLORS.gold,
+              marginBottom: "30px",
+              fontWeight: "500",
+              fontSize: isMobile ? "24px" : "28px",
+            }}
+          >
+            RESET PASSWORD
+          </h2>
 
           <form onSubmit={handleSubmit}>
-            <div style={{ position: "relative" }}>
-              <input type="email" placeholder="Email Address" style={inputStyle} value={email} onChange={(e) => setEmail(e.target.value)} required disabled={isVerified} />
+            {/* Email Field with OTP Button */}
+            <div style={styles.inputWrapper}>
+              <input
+                type="email"
+                name="email"
+                placeholder="Email Address"
+                style={styles.input}
+                value={formData.email}
+                onChange={handleInputChange}
+                required
+                disabled={isVerified}
+                autoComplete="email"
+              />
               {!isVerified && (
-                <button type="button" onClick={handleSendOtp} style={otpButtonStyle} disabled={loading || timer > 0}>
-                  {loading ? "..." : (timer > 0 ? `Wait ${timer}s` : (otpSent ? "RESEND" : "GET CODE"))}
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  style={{
+                    ...styles.otpButton,
+                    opacity: loading || timer > 0 ? 0.6 : 1,
+                    cursor: loading || timer > 0 ? "not-allowed" : "pointer",
+                  }}
+                  disabled={loading || timer > 0}
+                >
+                  {loading
+                    ? "..."
+                    : timer > 0
+                    ? `${timer}s`
+                    : otpSent
+                    ? "RESEND"
+                    : "GET CODE"}
                 </button>
               )}
-              {isVerified && <span style={{ position: "absolute", right: "15px", top: "12px", color: "green", fontWeight: "bold" }}>✓ Verified</span>}
+              {isVerified && (
+                <span style={styles.verifiedIcon}>✓ Verified</span>
+              )}
             </div>
 
+            {/* OTP Verification Field */}
             {otpSent && !isVerified && (
-              <div style={{ position: "relative" }}>
-                <input type="text" placeholder="Enter OTP Code" style={{ ...inputStyle, border: `1px solid ${goldColor}` }} value={otp} onChange={(e) => setOtp(e.target.value)} required />
-                <button type="button" onClick={handleVerifyOtp} style={otpButtonStyle} disabled={loading}>
-                  {loading ? "..." : "VERIFY"}
+              <div style={styles.inputWrapper}>
+                <input
+                  type="text"
+                  name="otp"
+                  placeholder="Enter 6-Digit OTP"
+                  style={{
+                    ...styles.input,
+                    border: `1px solid ${COLORS.gold}`,
+                  }}
+                  value={formData.otp}
+                  onChange={handleInputChange}
+                  maxLength={6}
+                  required
+                  autoComplete="one-time-code"
+                />
+                <button
+                  type="button"
+                  onClick={handleVerifyOtp}
+                  style={{
+                    ...styles.otpButton,
+                    opacity: loading ? 0.6 : 1,
+                  }}
+                  disabled={loading}
+                >
+                  VERIFY
                 </button>
               </div>
             )}
 
-            <input type="password" placeholder="New Password" style={{ ...inputStyle, opacity: isVerified ? 1 : 0.5 }} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required disabled={!isVerified} />
+            {/* Resend OTP Link */}
+            {otpSent && !isVerified && timer === 0 && (
+              <div style={{ marginBottom: "15px", textAlign: "right" }}>
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  style={{
+                    ...styles.link,
+                    fontSize: "13px",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                  }}
+                  disabled={loading}
+                >
+                  Resend OTP
+                </button>
+              </div>
+            )}
 
-            {errorMsg && <p style={{ color: "#ff4d4d", fontSize: "14px", marginBottom: "15px", fontWeight: "bold" }}>{errorMsg}</p>}
+            {/* New Password Field */}
+            <input
+              type="password"
+              name="newPassword"
+              placeholder="New Password (min 6 characters)"
+              style={{
+                ...styles.input,
+                opacity: isVerified ? 1 : 0.5,
+                cursor: isVerified ? "text" : "not-allowed",
+              }}
+              value={formData.newPassword}
+              onChange={handleInputChange}
+              required
+              disabled={!isVerified}
+              autoComplete="new-password"
+            />
 
-            <button type="submit" style={mainButtonStyle} disabled={!isVerified || loading}>
+            {/* Error Message */}
+            {errorMsg && <p style={styles.errorText}>{errorMsg}</p>}
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              style={styles.submitButton}
+              disabled={!isVerified || loading}
+              onMouseEnter={(e) => {
+                if (isVerified && !loading) {
+                  e.target.style.opacity = "0.9";
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.opacity = "1";
+              }}
+            >
               {loading ? "PROCESSING..." : "UPDATE PASSWORD"}
             </button>
           </form>
+
+          {/* Back to Login Link */}
+          <div
+            style={{
+              marginTop: "25px",
+              paddingTop: "20px",
+              borderTop: `1px solid ${COLORS.gold}33`,
+            }}
+          >
+            <p style={{ fontSize: "13px", opacity: 0.7, marginBottom: "8px" }}>
+              Remember your password?
+            </p>
+            <button
+              onClick={() => navigate("/login")}
+              style={{
+                ...styles.link,
+                fontWeight: "bold",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "14px",
+              }}
+            >
+              BACK TO LOGIN
+            </button>
+          </div>
         </div>
       </div>
     </Layout>
