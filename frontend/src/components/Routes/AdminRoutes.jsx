@@ -43,5 +43,41 @@ export default function AdminRoute() {
 
   if (loading) return <Spinner />;
 
-  return ok ? <Outlet /> : <Spinner path="" />;
+  return ok ? <Outlet /> : <div style={{
+    height: "100vh", 
+    display: "flex", 
+    flexDirection: "column",
+    justifyContent: "center", 
+    alignItems: "center",
+    background: "linear-gradient(135deg, #0f0c29 0%, #24243e 100%)",
+    color: "#D4AF37",
+    fontFamily: "'Playfair Display', serif",
+    textAlign: "center",
+    padding: "20px"
+  }}>
+    <h2 style={{ marginBottom: "20px", fontSize: "28px" }}>
+      Access Denied
+    </h2>
+    <p style={{ marginBottom: "30px", fontSize: "16px", opacity: 0.8 }}>
+      Administrator privileges required to access this area.
+    </p>
+    <button 
+      onClick={() => window.location.href = '/'}
+      style={{
+        background: "#D4AF37",
+        color: "#0f0c29",
+        border: "none",
+        padding: "12px 24px",
+        borderRadius: "8px",
+        fontSize: "16px",
+        fontWeight: "bold",
+        cursor: "pointer",
+        transition: "all 0.3s ease"
+      }}
+      onMouseOver={(e) => e.target.style.background = "#FFD700"}
+      onMouseOut={(e) => e.target.style.background = "#D4AF37"}
+    >
+      Return to Home
+    </button>
+  </div>;
 }
