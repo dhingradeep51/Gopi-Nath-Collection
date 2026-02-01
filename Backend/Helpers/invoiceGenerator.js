@@ -58,8 +58,7 @@ export const generateInvoicePDF = async (invoice) => {
       const PW = 595.28;
       const PH = 841.89;
       const ML = 42;
-      const MR = 42;
-      const CW = PW - ML - MR;
+      const CW = PW - (ML * 2);
 
       /* ── Background ── */
       doc.rect(0, 0, PW, PH).fill(cream);
@@ -93,13 +92,13 @@ export const generateInvoicePDF = async (invoice) => {
       drawHeaderLine(ML, "BILL TO");
       drawHeaderLine(ML + colW, "PAYMENT");
 
-      // Bill To Content
-      doc.fontSize(9).fillColor(textDark).font("Helvetica-Bold").text(invoice.buyerName || "Deepak", ML, infoY + 22);
-      doc.fontSize(8.5).fillColor(textMid).font("Helvetica").text(invoice.buyerAddress || "KACCHA CAMP, PANIPAT, Haryana - 132103", ML, infoY + 34, { width: colW - 25 });
+      // Bill To Content with wrapping
+      doc.fontSize(9).fillColor(textDark).font("Helvetica-Bold").text(invoice.buyerName || "—", ML, infoY + 22);
+      doc.fontSize(8.5).fillColor(textMid).font("Helvetica").text(invoice.buyerAddress || "—", ML, infoY + 34, { width: colW - 25 });
 
       // Payment Content
       let payY = infoY + 22;
-      [{l: "Method", v: invoice.paymentMethod || "COD"}, {l: "Status", v: "SUCCESS"}, {l: "Txn ID", v: "—"}].forEach(p => {
+      [{l: "Method", v: invoice.paymentMethod || "COD"}, {l: "Status", v: "SUCCESS"}, {l: "Txn ID", v: invoice.transactionId || "—"}].forEach(p => {
         doc.fontSize(8.5).fillColor(textMid).font("Helvetica").text(`${p.l}: `, ML + colW, payY, { continued: true })
            .fillColor(textDark).text(p.v);
         payY += 14;
@@ -154,19 +153,17 @@ export const generateInvoicePDF = async (invoice) => {
       drawRow("Item Total (Incl. GST)", invoice.subtotal || 0);
       drawRow("Less: Discount", Math.abs(invoice.discount || 0), "#CC3300");
       
-      // Divider
       doc.moveTo(sumX + 10, subY - 4).lineTo(sumX + sumW - 10, subY - 4).strokeColor("#E0E0E0").lineWidth(0.5).stroke();
 
       drawRow("Taxable Value (Base)", invoice.taxableValue || 0, textDark, true);
       drawRow("CGST", invoice.cgst || 0);
       drawRow("SGST", invoice.sgst || 0);
 
-      // Total Banner
       doc.rect(sumX, sumY + 115, sumW, 30).fill(burgundy);
       doc.fontSize(9).fillColor(gold).font("Helvetica-Bold").text("NET AMOUNT PAYABLE", sumX + 10, sumY + 126);
       doc.fontSize(11).text(`₹${(invoice.totalPaid || 0).toFixed(2)}`, sumX, sumY + 125, { width: sumW - 10, align: "right" });
 
-      // Amount in Words (positioned below summary)
+      // Amount in Words
       doc.fontSize(7.5).fillColor("#999999").font("Helvetica-Bold").text("AMOUNT IN WORDS:", ML, sumY + 10);
       doc.fontSize(9).fillColor(textDark).text(numberToWords(invoice.totalPaid), ML, sumY + 22);
 
