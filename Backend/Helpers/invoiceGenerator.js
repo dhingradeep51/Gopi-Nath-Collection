@@ -69,138 +69,110 @@ export const generateInvoicePDF = async (invoice) => {
       doc.rect(0, 0, PW, hdrH).fill(darkBg);
       doc.rect(0, hdrH, PW, 3).fill(gold);
 
-      doc.fontSize(22).fillColor("#FFFFFF").font("Helvetica-Bold").text("GOPI NATH", ML, 25);
-      doc.fontSize(10).fillColor(gold).font("Helvetica").text("COLLECTION", ML, 46);
+      doc.fontSize(22).fillColor("#FFFFFF").font("Helvetica-Bold").text("Gopi Nath Collection", ML, 25);
       
-      doc.fontSize(7.5).fillColor("#AAAAAA")
-        .text("56 Krishna Nagar, New Model Town", ML, 64)
-        .text("Panipat, Haryana – 132103", ML, 74)
-        .text(`GSTIN: ${invoice.sellerGstin || "GST-PENDING"}`, ML, 84);
+      doc.fontSize(8.5).fillColor("#AAAAAA").font("Helvetica")
+        .text("56 Krishna Nagar New Model Town, Panipat, Haryana - 132103", ML, 55)
+        .fillColor(gold).font("Helvetica-Bold").text(`GSTIN: ${invoice.sellerGstin || "YOUR_GSTIN_NUMBER_HERE"}`, ML, 68);
 
       doc.fontSize(18).fillColor(gold).font("Helvetica-Bold").text("TAX INVOICE", ML, 25, { align: "right", width: CW });
-      doc.fontSize(8).fillColor("#CCCCCC")
-        .text(`Invoice No: ${invoice.invoiceNumber || "N/A"}`, ML, 52, { align: "right", width: CW })
-        .text(`Order No: ${invoice.orderNumber || "N/A"}`, ML, 62, { align: "right", width: CW })
-        .text(`Date: ${invoice.date || new Date().toLocaleDateString("en-IN")}`, ML, 72, { align: "right", width: CW });
+      doc.fontSize(8.5).fillColor("#CCCCCC").font("Helvetica")
+        .text(`Inv: ${invoice.invoiceNumber || "N/A"}`, ML, 52, { align: "right", width: CW })
+        .text(`Order: ${invoice.orderNumber || "N/A"}`, ML, 64, { align: "right", width: CW })
+        .text(`Date: ${invoice.date || new Date().toLocaleDateString("en-IN")}`, ML, 76, { align: "right", width: CW });
 
-      /* ────── Billing & Shipping Info ────── */
-      const infoY = hdrH + 20;
-      const colW = CW / 3;
+      /* ────── Info Blocks ────── */
+      const infoY = hdrH + 30;
+      const colW = CW / 2;
 
-      const drawInfoBlock = (x, title, data) => {
-        doc.fontSize(9).fillColor(gold).font("Helvetica-Bold").text(title, x, infoY);
-        doc.moveTo(x, infoY + 12).lineTo(x + colW - 15, infoY + 12).strokeColor(gold).lineWidth(1).stroke();
-        
-        let currentY = infoY + 18;
-        data.forEach(item => {
-          const label = `${item.label}: `;
-          const labelWidth = doc.widthOfString(label);
-          const valueWidth = colW - labelWidth - 20;
-          
-          doc.fontSize(7.5).fillColor(textMid).font("Helvetica-Bold").text(label, x, currentY, { lineBreak: false });
-          doc.fillColor(textDark).font("Helvetica").text(item.value || "—", x + labelWidth, currentY, {
-            width: valueWidth,
-            align: 'left'
-          });
-
-          // Move currentY down based on how much the value wrapped
-          const wrappedHeight = doc.heightOfString(item.value || "—", { width: valueWidth });
-          currentY += Math.max(wrappedHeight, 10) + 2; 
-        });
-        return currentY;
+      const drawHeaderLine = (x, title) => {
+        doc.fontSize(10).fillColor(gold).font("Helvetica-Bold").text(title, x, infoY);
+        doc.moveTo(x, infoY + 14).lineTo(x + colW - 20, infoY + 14).strokeColor(gold).lineWidth(1).stroke();
       };
 
-      const finalY1 = drawInfoBlock(ML, "BILL TO", [
-        { label: "Name", value: invoice.buyerName },
-        { label: "Address", value: invoice.buyerAddress },
-        { label: "State", value: invoice.buyerState }
-      ]);
-      const finalY2 = drawInfoBlock(ML + colW, "SHIP TO", [
-        { label: "Name", value: invoice.shipName || invoice.buyerName },
-        { label: "Address", value: invoice.shipAddress || invoice.buyerAddress },
-        { label: "State", value: invoice.shipState || invoice.buyerState }
-      ]);
-      const finalY3 = drawInfoBlock(ML + colW * 2, "PAYMENT", [
-        { label: "Method", value: invoice.paymentMethod || "COD" },
-        { label: "Status", value: "SUCCESS" },
-        { label: "Txn ID", value: invoice.transactionId }
-      ]);
+      drawHeaderLine(ML, "BILL TO");
+      drawHeaderLine(ML + colW, "PAYMENT");
 
-      // Ensure table starts after the longest info block
-      const tableY = Math.max(finalY1, finalY2, finalY3) + 15;
+      // Bill To Content
+      doc.fontSize(9).fillColor(textDark).font("Helvetica-Bold").text(invoice.buyerName || "Deepak", ML, infoY + 22);
+      doc.fontSize(8.5).fillColor(textMid).font("Helvetica").text(invoice.buyerAddress || "KACCHA CAMP, PANIPAT, Haryana - 132103", ML, infoY + 34, { width: colW - 25 });
+
+      // Payment Content
+      let payY = infoY + 22;
+      [{l: "Method", v: invoice.paymentMethod || "COD"}, {l: "Status", v: "SUCCESS"}, {l: "Txn ID", v: "—"}].forEach(p => {
+        doc.fontSize(8.5).fillColor(textMid).font("Helvetica").text(`${p.l}: `, ML + colW, payY, { continued: true })
+           .fillColor(textDark).text(p.v);
+        payY += 14;
+      });
 
       /* ────── Items Table ────── */
+      const tableY = infoY + 75;
       const tableCols = [
-        { label: "#", x: 0, w: 25, align: "center" },
-        { label: "ITEM", x: 25, w: 195, align: "left" },
-        { label: "QTY", x: 220, w: 40, align: "center" },
-        { label: "MRP", x: 260, w: 75, align: "right" },
-        { label: "TAXABLE", x: 335, w: 85, align: "right" },
-        { label: "GST", x: 420, w: CW - 420, align: "right" }
+        { label: "Item", x: 0, w: 230, align: "left" },
+        { label: "Qty", x: 230, w: 40, align: "center" },
+        { label: "MRP (Inc.)", x: 270, w: 80, align: "right" },
+        { label: "Taxable Val", x: 350, w: 80, align: "right" },
+        { label: "GST", x: 430, w: 40, align: "right" },
+        { label: "Total", x: 470, w: CW - 470, align: "right" }
       ];
 
-      doc.rect(ML, tableY, CW, 20).fill(tableHead);
+      doc.rect(ML, tableY, CW, 22).fill(tableHead);
       tableCols.forEach(c => {
-        doc.fontSize(8).fillColor("#FFFFFF").font("Helvetica-Bold").text(c.label, ML + c.x, tableY + 6, { width: c.w, align: c.align });
+        doc.fontSize(8.5).fillColor(gold).font("Helvetica-Bold").text(c.label, ML + c.x + 5, tableY + 7, { width: c.w - 10, align: c.align });
       });
 
-      let rowY = tableY + 20;
+      let rowY = tableY + 22;
       (invoice.items || []).forEach((item, i) => {
-        const fill = i % 2 === 0 ? "#FFFFFF" : "#FAF5EE";
-        doc.rect(ML, rowY, CW, 20).fill(fill);
-        doc.fillColor(textDark).font("Helvetica").fontSize(7.5);
+        doc.rect(ML, rowY, CW, 24).fill(i % 2 === 0 ? "#FFFFFF" : "#FAF8F4");
+        doc.fillColor(textDark).font("Helvetica").fontSize(8.5);
         
-        doc.text(i + 1, ML + tableCols[0].x, rowY + 6, { width: tableCols[0].w, align: "center" });
-        doc.text(item.productName, ML + tableCols[1].x + 5, rowY + 6, { width: tableCols[1].w });
-        doc.text(item.qty, ML + tableCols[2].x, rowY + 6, { width: tableCols[2].w, align: "center" });
-        doc.text((item.unitPrice || 0).toFixed(2), ML + tableCols[3].x, rowY + 6, { width: tableCols[3].w - 5, align: "right" });
-        doc.text((item.taxableValue || 0).toFixed(2), ML + tableCols[4].x, rowY + 6, { width: tableCols[4].w - 5, align: "right" });
-        doc.text(((item.cgst || 0) + (item.sgst || 0) + (item.igst || 0)).toFixed(2), ML + tableCols[5].x, rowY + 6, { width: tableCols[5].w - 5, align: "right" });
-        rowY += 20;
+        doc.text(item.productName, ML + tableCols[0].x + 5, rowY + 8, { width: tableCols[0].w - 10 });
+        doc.fillColor("#004488").text(item.qty, ML + tableCols[1].x, rowY + 8, { width: tableCols[1].w, align: "center" });
+        doc.fillColor(textDark).text(`₹${(item.unitPrice || 0).toFixed(2)}`, ML + tableCols[2].x, rowY + 8, { width: tableCols[2].w - 5, align: "right" });
+        doc.text(`₹${(item.taxableValue || 0).toFixed(2)}`, ML + tableCols[3].x, rowY + 8, { width: tableCols[3].w - 5, align: "right" });
+        doc.text(`₹${((item.cgst || 0) + (item.sgst || 0)).toFixed(2)}`, ML + tableCols[4].x, rowY + 8, { width: tableCols[4].w - 5, align: "right" });
+        doc.text(`₹${(item.finalPrice || 0).toFixed(2)}`, ML + tableCols[5].x, rowY + 8, { width: tableCols[5].w - 5, align: "right" });
+        rowY += 24;
       });
 
-      /* ────── Summary & Words ────── */
-      const sumY = rowY + 25;
-      const sumW = 210;
+      /* ────── Summary Box ────── */
+      const sumY = rowY + 15;
+      const sumW = 220;
       const sumX = ML + CW - sumW;
 
-      // Summary Box
-      doc.rect(sumX, sumY, sumW, 110).strokeColor(gold).lineWidth(1).stroke();
+      doc.rect(sumX, sumY, sumW, 145).strokeColor(gold).lineWidth(1).stroke();
       doc.rect(sumX, sumY, sumW, 20).fill(burgundy);
-      doc.fontSize(8.5).fillColor(gold).font("Helvetica-Bold").text("INVOICE SUMMARY", sumX + 10, sumY + 6);
-
-      const summaryData = [
-        { label: "Subtotal (Incl. GST)", value: invoice.subtotal || 0 },
-        { label: "Discount", value: -(invoice.discount || 0) },
-        { label: "Shipping Fee", value: invoice.shippingCharges || 0 }
-      ];
+      doc.fontSize(9).fillColor(gold).font("Helvetica-Bold").text("INVOICE SUMMARY", sumX + 10, sumY + 6);
 
       let subY = sumY + 28;
-      summaryData.forEach(row => {
-        doc.fontSize(7.5).fillColor(textMid).font("Helvetica").text(row.label, sumX + 10, subY);
-        doc.fillColor(textDark).text(`₹${row.value.toFixed(2)}`, sumX, subY, { width: sumW - 10, align: "right" });
-        subY += 15;
-      });
+      const drawRow = (label, value, color = textDark, isBold = false) => {
+        doc.fontSize(8.5).fillColor(textMid).font("Helvetica").text(label, sumX + 10, subY);
+        doc.fillColor(color).font(isBold ? "Helvetica-Bold" : "Helvetica").text(`₹${value.toFixed(2)}`, sumX, subY, { width: sumW - 10, align: "right" });
+        subY += 18;
+      };
 
-      doc.rect(sumX, sumY + 82, sumW, 28).fill(burgundy);
-      doc.fontSize(8).fillColor("#FFFFFF").text("NET PAYABLE", sumX + 10, sumY + 92);
-      doc.fontSize(10.5).fillColor(gold).text(`₹${(invoice.totalPaid || 0).toFixed(2)}`, sumX, sumY + 90, { width: sumW - 10, align: "right" });
+      drawRow("Item Total (Incl. GST)", invoice.subtotal || 0);
+      drawRow("Less: Discount", Math.abs(invoice.discount || 0), "#CC3300");
+      
+      // Divider
+      doc.moveTo(sumX + 10, subY - 4).lineTo(sumX + sumW - 10, subY - 4).strokeColor("#E0E0E0").lineWidth(0.5).stroke();
 
-      // Amount in Words
-      const wordsY = sumY + 65;
-      doc.rect(ML, wordsY, CW - sumW - 20, 35).fill("#F5F0E8");
-      doc.fontSize(7.5).fillColor(textMid).font("Helvetica-Bold").text("AMOUNT IN WORDS:", ML + 10, wordsY + 5);
-      doc.fontSize(8).fillColor(burgundy).text(numberToWords(invoice.totalPaid), ML + 10, wordsY + 18);
+      drawRow("Taxable Value (Base)", invoice.taxableValue || 0, textDark, true);
+      drawRow("CGST", invoice.cgst || 0);
+      drawRow("SGST", invoice.sgst || 0);
+
+      // Total Banner
+      doc.rect(sumX, sumY + 115, sumW, 30).fill(burgundy);
+      doc.fontSize(9).fillColor(gold).font("Helvetica-Bold").text("NET AMOUNT PAYABLE", sumX + 10, sumY + 126);
+      doc.fontSize(11).text(`₹${(invoice.totalPaid || 0).toFixed(2)}`, sumX, sumY + 125, { width: sumW - 10, align: "right" });
+
+      // Amount in Words (positioned below summary)
+      doc.fontSize(7.5).fillColor("#999999").font("Helvetica-Bold").text("AMOUNT IN WORDS:", ML, sumY + 10);
+      doc.fontSize(9).fillColor(textDark).text(numberToWords(invoice.totalPaid), ML, sumY + 22);
 
       /* ────── Footer ────── */
-      const ftrY = PH - 60;
-      doc.rect(0, ftrY, PW, 60).fill(darkBg);
-      doc.rect(0, ftrY, PW, 2).fill(gold);
-
-      doc.fontSize(8.5).fillColor(gold).font("Helvetica-Bold")
-         .text("This is a system generated invoice and does not require a physical signature.", 0, ftrY + 18, { align: "center", width: PW });
-      doc.fontSize(7).fillColor("#888888").font("Helvetica")
-         .text("www.gopinathcollection.com  |  support@gopinathcollection.com", 0, ftrY + 36, { align: "center", width: PW });
+      doc.fontSize(8).fillColor("#999999").font("Helvetica")
+         .text("Digitally generated for Gopi Nath Collection. No signature required.", 0, PH - 60, { align: "center", width: PW });
 
       doc.end();
     } catch (err) {
