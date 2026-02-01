@@ -316,6 +316,11 @@ const AdminOrders = () => {
         }
 
         .order-card {
+          background: rgba(255, 255, 255, 0.06);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(212, 175, 55, 0.2);
+          border-radius: 16px;
+          padding: 25px 30px;
           border: none;
           background: transparent;
           font: inherit;
@@ -325,29 +330,23 @@ const AdminOrders = () => {
           -webkit-appearance: none;
           -moz-appearance: none;
           appearance: none;
-          padding: 0;
           margin: 0;
           cursor: pointer;
           position: relative;
           overflow: hidden;
           touch-action: manipulation;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .order-card-content {
-          background: rgba(255, 255, 255, 0.06);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(212, 175, 55, 0.2);
-          border-radius: 16px;
-          padding: 25px 30px;
           display: grid;
           grid-template-columns: auto 1fr auto;
           align-items: center;
           gap: 25px;
           min-height: 90px;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .order-card-content::before {
+        .order-card::before {
           content: '';
           position: absolute;
           left: 0;
@@ -359,13 +358,13 @@ const AdminOrders = () => {
           transition: opacity 0.3s ease;
         }
 
-        .order-card:hover .order-card-content {
+        .order-card:hover {
           transform: translateX(8px);
           border-color: #D4AF37;
           box-shadow: 0 8px 30px rgba(212, 175, 55, 0.2);
         }
 
-        .order-card:hover .order-card-content::before {
+        .order-card:hover::before {
           opacity: 1;
         }
 
@@ -852,8 +851,27 @@ const AdminOrders = () => {
           }
         }
 
+        /* ══════════════════════════════════════════════
+           TOUCH ENHANCEMENTS
+        ══════════════════════════════════════════════ */
+
+        @media (hover: none) and (pointer: coarse) {
+          .order-card,
+          .stat-card {
+            -webkit-tap-highlight-color: rgba(212, 175, 55, 0.15);
+          }
+
+          .order-card:active {
+            /* Removed transform to prevent interference with touch events */
+          }
+
+          .stat-card:active {
+            transform: translateY(-4px);
+          }
+        }
+
         /* Focus indicators for accessibility */
-        .order-card:focus-visible .order-card-content {
+        .order-card:focus-visible {
           outline: 3px solid #D4AF37;
           outline-offset: 2px;
         }
