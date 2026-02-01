@@ -102,10 +102,88 @@ const AdminOrderDetails = () => {
 
   if (loading) {
     return (
-        <div className="loading-state">
-          <div className="spinner" />
-          <p className="loading-text">Loading order details...</p>
+      <>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@300;400;700&display=swap');
+
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+
+          .orders-page {
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            min-height: 100vh;
+            color: #fff;
+            font-family: 'Lato', sans-serif;
+          }
+
+          .orders-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 60px 30px;
+            padding-left: max(30px, env(safe-area-inset-left));
+            padding-right: max(30px, env(safe-area-inset-right));
+            padding-bottom: max(60px, env(safe-area-inset-bottom));
+          }
+
+          .loading-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            gap: 20px;
+          }
+
+          .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(212, 175, 55, 0.2);
+            border-top-color: #D4AF37;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+          }
+
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+
+          .loading-text {
+            color: #D4AF37;
+            font-size: 1.1rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+          }
+
+          @media (max-width: 480px) {
+            .loading-state {
+              min-height: 50vh;
+              gap: 15px;
+            }
+
+            .spinner {
+              width: 50px;
+              height: 50px;
+              border-width: 3px;
+            }
+
+            .loading-text {
+              font-size: 1rem;
+              letter-spacing: 1px;
+            }
+          }
+        `}</style>
+        <div className="orders-page">
+          <div className="orders-container">
+            <div className="loading-state">
+              <div className="spinner" />
+              <p className="loading-text">Loading order details...</p>
+            </div>
+          </div>
         </div>
+      </>
     );
   }
 
@@ -641,57 +719,6 @@ const AdminOrderDetails = () => {
           }
         }
 
-        /* ══════════════════════════════════════════════
-           LOADING STATE
-        ══════════════════════════════════════════════ */
-
-        .loading-state {
-          background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 100vh;
-          gap: 20px;
-        }
-
-        .spinner {
-          width: 60px;
-          height: 60px;
-          border: 4px solid rgba(212, 175, 55, 0.2);
-          border-top-color: #D4AF37;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-          color: #D4AF37;
-          font-size: 1.1rem;
-          font-weight: 300;
-          letter-spacing: 2px;
-        }
-
-        /* Mobile responsiveness for loading state */
-        @media (max-width: 480px) {
-          .loading-state {
-            min-height: 50vh;
-          }
-
-          .spinner {
-            width: 50px;
-            height: 50px;
-            border-width: 3px;
-          }
-
-          .loading-text {
-            font-size: 1rem;
-            letter-spacing: 1.5px;
-          }
-        }
       `}</style>
 
       <div className="order-details-wrapper">
