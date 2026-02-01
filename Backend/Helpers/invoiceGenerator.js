@@ -69,120 +69,138 @@ export const generateInvoicePDF = async (invoice) => {
       doc.rect(0, 0, PW, hdrH).fill(darkBg);
       doc.rect(0, hdrH, PW, 3).fill(gold);
 
-      doc.fontSize(24).fillColor("#FFFFFF").font("Helvetica-Bold").text("GOPI NATH", ML, 25);
-      doc.fontSize(11).fillColor(gold).font("Helvetica").text("COLLECTION", ML, 48);
+      doc.fontSize(22).fillColor("#FFFFFF").font("Helvetica-Bold").text("GOPI NATH", ML, 25);
+      doc.fontSize(10).fillColor(gold).font("Helvetica").text("COLLECTION", ML, 46);
       
-      doc.fontSize(8).fillColor("#AAAAAA")
-        .text("56 Krishna Nagar, New Model Town", ML, 68)
-        .text("Panipat, Haryana – 132103", ML, 78)
-        .text(`GSTIN: ${invoice.sellerGstin || "GST-PENDING"}`, ML, 88);
+      doc.fontSize(7.5).fillColor("#AAAAAA")
+        .text("56 Krishna Nagar, New Model Town", ML, 64)
+        .text("Panipat, Haryana – 132103", ML, 74)
+        .text(`GSTIN: ${invoice.sellerGstin || "GST-PENDING"}`, ML, 84);
 
       doc.fontSize(18).fillColor(gold).font("Helvetica-Bold").text("TAX INVOICE", ML, 25, { align: "right", width: CW });
-      doc.fontSize(8).fillColor("#CCCCCC").font("Helvetica")
-        .text(`Invoice No: ${invoice.invoiceNumber || "N/A"}`, ML, 55, { align: "right", width: CW })
-        .text(`Order No: ${invoice.orderNumber || "N/A"}`, ML, 65, { align: "right", width: CW })
-        .text(`Date: ${invoice.date || new Date().toLocaleDateString("en-IN")}`, ML, 75, { align: "right", width: CW });
+      doc.fontSize(8).fillColor("#CCCCCC")
+        .text(`Invoice No: ${invoice.invoiceNumber || "N/A"}`, ML, 52, { align: "right", width: CW })
+        .text(`Order No: ${invoice.orderNumber || "N/A"}`, ML, 62, { align: "right", width: CW })
+        .text(`Date: ${invoice.date || new Date().toLocaleDateString("en-IN")}`, ML, 72, { align: "right", width: CW });
 
       /* ────── Billing & Shipping Info ────── */
-      const infoY = hdrH + 25;
+      const infoY = hdrH + 20;
       const colW = CW / 3;
 
-      const writeInfo = (x, title, lines) => {
+      const drawInfoBlock = (x, title, data) => {
         doc.fontSize(9).fillColor(gold).font("Helvetica-Bold").text(title, x, infoY);
         doc.moveTo(x, infoY + 12).lineTo(x + colW - 15, infoY + 12).strokeColor(gold).lineWidth(1).stroke();
-        let ly = infoY + 20;
-        lines.forEach(l => {
-          doc.fontSize(8).fillColor(textMid).font("Helvetica-Bold").text(`${l.label}: `, x, ly, { continued: true })
-             .fillColor(textDark).font("Helvetica").text(l.value || "—");
-          ly += 14; // Increased leading to prevent overlapping
+        
+        let currentY = infoY + 18;
+        data.forEach(item => {
+          const label = `${item.label}: `;
+          const labelWidth = doc.widthOfString(label);
+          const valueWidth = colW - labelWidth - 20;
+          
+          doc.fontSize(7.5).fillColor(textMid).font("Helvetica-Bold").text(label, x, currentY, { lineBreak: false });
+          doc.fillColor(textDark).font("Helvetica").text(item.value || "—", x + labelWidth, currentY, {
+            width: valueWidth,
+            align: 'left'
+          });
+
+          // Move currentY down based on how much the value wrapped
+          const wrappedHeight = doc.heightOfString(item.value || "—", { width: valueWidth });
+          currentY += Math.max(wrappedHeight, 10) + 2; 
         });
+        return currentY;
       };
 
-      writeInfo(ML, "BILL TO", [
+      const finalY1 = drawInfoBlock(ML, "BILL TO", [
         { label: "Name", value: invoice.buyerName },
         { label: "Address", value: invoice.buyerAddress },
         { label: "State", value: invoice.buyerState }
       ]);
-      writeInfo(ML + colW, "SHIP TO", [
+      const finalY2 = drawInfoBlock(ML + colW, "SHIP TO", [
         { label: "Name", value: invoice.shipName || invoice.buyerName },
         { label: "Address", value: invoice.shipAddress || invoice.buyerAddress },
         { label: "State", value: invoice.shipState || invoice.buyerState }
       ]);
-      writeInfo(ML + (colW * 2), "PAYMENT", [
+      const finalY3 = drawInfoBlock(ML + colW * 2, "PAYMENT", [
         { label: "Method", value: invoice.paymentMethod || "COD" },
         { label: "Status", value: "SUCCESS" },
-        { label: "Txn ID", value: invoice.transactionId || "—" }
+        { label: "Txn ID", value: invoice.transactionId }
       ]);
 
+      // Ensure table starts after the longest info block
+      const tableY = Math.max(finalY1, finalY2, finalY3) + 15;
+
       /* ────── Items Table ────── */
-      const tableY = infoY + 85;
-      const cols = [
-        { label: "#", x: 0, w: 30, align: "center" },
-        { label: "ITEM", x: 30, w: 200, align: "left" },
-        { label: "QTY", x: 230, w: 40, align: "center" },
-        { label: "MRP", x: 270, w: 70, align: "right" },
-        { label: "TAXABLE", x: 340, w: 80, align: "right" },
+      const tableCols = [
+        { label: "#", x: 0, w: 25, align: "center" },
+        { label: "ITEM", x: 25, w: 195, align: "left" },
+        { label: "QTY", x: 220, w: 40, align: "center" },
+        { label: "MRP", x: 260, w: 75, align: "right" },
+        { label: "TAXABLE", x: 335, w: 85, align: "right" },
         { label: "GST", x: 420, w: CW - 420, align: "right" }
       ];
 
-      doc.rect(ML, tableY, CW, 22).fill(tableHead);
-      cols.forEach(c => {
-        doc.fontSize(8).fillColor("#FFFFFF").font("Helvetica-Bold").text(c.label, ML + c.x, tableY + 7, { width: c.w, align: c.align });
+      doc.rect(ML, tableY, CW, 20).fill(tableHead);
+      tableCols.forEach(c => {
+        doc.fontSize(8).fillColor("#FFFFFF").font("Helvetica-Bold").text(c.label, ML + c.x, tableY + 6, { width: c.w, align: c.align });
       });
 
-      let rowY = tableY + 22;
+      let rowY = tableY + 20;
       (invoice.items || []).forEach((item, i) => {
-        doc.rect(ML, rowY, CW, 20).fill(i % 2 === 0 ? "#FFFFFF" : "#FAF5EE");
-        doc.fillColor(textDark).fontSize(8).font("Helvetica");
-        doc.text(i + 1, ML + cols[0].x, rowY + 6, { width: cols[0].w, align: "center" });
-        doc.text(item.productName, ML + cols[1].x + 5, rowY + 6, { width: cols[1].w });
-        doc.text(item.qty, ML + cols[2].x, rowY + 6, { width: cols[2].w, align: "center" });
-        doc.text((item.unitPrice || 0).toFixed(2), ML + cols[3].x, rowY + 6, { width: cols[3].w - 5, align: "right" });
-        doc.text((item.taxableValue || 0).toFixed(2), ML + cols[4].x, rowY + 6, { width: cols[4].w - 5, align: "right" });
-        doc.text(((item.cgst || 0) + (item.sgst || 0)).toFixed(2), ML + cols[5].x, rowY + 6, { width: cols[5].w - 5, align: "right" });
+        const fill = i % 2 === 0 ? "#FFFFFF" : "#FAF5EE";
+        doc.rect(ML, rowY, CW, 20).fill(fill);
+        doc.fillColor(textDark).font("Helvetica").fontSize(7.5);
+        
+        doc.text(i + 1, ML + tableCols[0].x, rowY + 6, { width: tableCols[0].w, align: "center" });
+        doc.text(item.productName, ML + tableCols[1].x + 5, rowY + 6, { width: tableCols[1].w });
+        doc.text(item.qty, ML + tableCols[2].x, rowY + 6, { width: tableCols[2].w, align: "center" });
+        doc.text((item.unitPrice || 0).toFixed(2), ML + tableCols[3].x, rowY + 6, { width: tableCols[3].w - 5, align: "right" });
+        doc.text((item.taxableValue || 0).toFixed(2), ML + tableCols[4].x, rowY + 6, { width: tableCols[4].w - 5, align: "right" });
+        doc.text(((item.cgst || 0) + (item.sgst || 0) + (item.igst || 0)).toFixed(2), ML + tableCols[5].x, rowY + 6, { width: tableCols[5].w - 5, align: "right" });
         rowY += 20;
       });
 
-      /* ────── Summary & Net Payable ────── */
+      /* ────── Summary & Words ────── */
       const sumY = rowY + 25;
-      const sumW = 220;
+      const sumW = 210;
       const sumX = ML + CW - sumW;
 
-      doc.rect(sumX, sumY, sumW, 115).strokeColor(gold).lineWidth(1).stroke();
-      doc.rect(sumX, sumY, sumW, 22).fill(burgundy);
-      doc.fontSize(9).fillColor(gold).font("Helvetica-Bold").text("INVOICE SUMMARY", sumX + 10, sumY + 7);
+      // Summary Box
+      doc.rect(sumX, sumY, sumW, 110).strokeColor(gold).lineWidth(1).stroke();
+      doc.rect(sumX, sumY, sumW, 20).fill(burgundy);
+      doc.fontSize(8.5).fillColor(gold).font("Helvetica-Bold").text("INVOICE SUMMARY", sumX + 10, sumY + 6);
 
-      const sRows = [
-        { label: "Subtotal (Incl. GST)", value: invoice.totalPaid || 0 },
+      const summaryData = [
+        { label: "Subtotal (Incl. GST)", value: invoice.subtotal || 0 },
         { label: "Discount", value: -(invoice.discount || 0) },
         { label: "Shipping Fee", value: invoice.shippingCharges || 0 }
       ];
-      let subY = sumY + 32;
-      sRows.forEach(r => {
-        doc.fontSize(8).fillColor(textMid).font("Helvetica").text(r.label, sumX + 10, subY);
-        doc.fillColor(textDark).text(`₹${r.value.toFixed(2)}`, sumX, subY, { width: sumW - 10, align: "right" });
-        subY += 16;
+
+      let subY = sumY + 28;
+      summaryData.forEach(row => {
+        doc.fontSize(7.5).fillColor(textMid).font("Helvetica").text(row.label, sumX + 10, subY);
+        doc.fillColor(textDark).text(`₹${row.value.toFixed(2)}`, sumX, subY, { width: sumW - 10, align: "right" });
+        subY += 15;
       });
 
-      doc.rect(sumX, sumY + 87, sumW, 28).fill(burgundy);
-      doc.fontSize(9).fillColor("#FFFFFF").text("NET PAYABLE", sumX + 10, sumY + 97);
-      doc.fontSize(11).fillColor(gold).text(`₹${(invoice.totalPaid || 0).toFixed(2)}`, sumX, sumY + 95, { width: sumW - 10, align: "right" });
+      doc.rect(sumX, sumY + 82, sumW, 28).fill(burgundy);
+      doc.fontSize(8).fillColor("#FFFFFF").text("NET PAYABLE", sumX + 10, sumY + 92);
+      doc.fontSize(10.5).fillColor(gold).text(`₹${(invoice.totalPaid || 0).toFixed(2)}`, sumX, sumY + 90, { width: sumW - 10, align: "right" });
 
-      /* ────── Amount in Words ────── */
-      const wordsY = sumY + 70;
-      doc.rect(ML, wordsY, CW - sumW - 20, 45).fill("#F5F0E8");
-      doc.fontSize(8).fillColor(textMid).font("Helvetica-Bold").text("AMOUNT IN WORDS:", ML + 10, wordsY + 10);
-      doc.fontSize(9).fillColor(burgundy).text(numberToWords(invoice.totalPaid), ML + 10, wordsY + 25);
+      // Amount in Words
+      const wordsY = sumY + 65;
+      doc.rect(ML, wordsY, CW - sumW - 20, 35).fill("#F5F0E8");
+      doc.fontSize(7.5).fillColor(textMid).font("Helvetica-Bold").text("AMOUNT IN WORDS:", ML + 10, wordsY + 5);
+      doc.fontSize(8).fillColor(burgundy).text(numberToWords(invoice.totalPaid), ML + 10, wordsY + 18);
 
       /* ────── Footer ────── */
-      const ftrY = PH - 65;
-      doc.rect(0, ftrY, PW, 65).fill(darkBg);
-      doc.rect(0, ftrY, PW, 2.5).fill(gold);
+      const ftrY = PH - 60;
+      doc.rect(0, ftrY, PW, 60).fill(darkBg);
+      doc.rect(0, ftrY, PW, 2).fill(gold);
 
       doc.fontSize(8.5).fillColor(gold).font("Helvetica-Bold")
-         .text("This is a system generated invoice and does not require a physical signature.", 0, ftrY + 20, { align: "center", width: PW });
+         .text("This is a system generated invoice and does not require a physical signature.", 0, ftrY + 18, { align: "center", width: PW });
       doc.fontSize(7).fillColor("#888888").font("Helvetica")
-         .text("www.gopinathcollection.com  |  support@gopinathcollection.com", 0, ftrY + 40, { align: "center", width: PW });
+         .text("www.gopinathcollection.com  |  support@gopinathcollection.com", 0, ftrY + 36, { align: "center", width: PW });
 
       doc.end();
     } catch (err) {
