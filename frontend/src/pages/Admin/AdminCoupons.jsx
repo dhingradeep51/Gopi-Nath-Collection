@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import Layout from "../../components/Layout";
 import AdminMenu from "../../components/Menus/AdminMenu";
 import axios from "axios";
 import { message, Modal, Select, InputNumber, DatePicker, Table, Tag, Popconfirm } from "antd";
@@ -12,17 +11,15 @@ import {
   FaRupeeSign,
   FaPercentage,
   FaGift,
-  FaEdit,
   FaEye,
 } from "react-icons/fa";
 
 const { Option } = Select;
 
 const AdminCoupons = () => {
-  // ==================== STATE MANAGEMENT ====================
   const [name, setName] = useState("");
   const [expiry, setExpiry] = useState(null);
-  const [discountType, setDiscountType] = useState("fixed"); // fixed, percentage, gift
+  const [discountType, setDiscountType] = useState("fixed");
   const [discountValue, setDiscountValue] = useState(0);
   const [maxDiscount, setMaxDiscount] = useState(0);
   const [minPurchase, setMinPurchase] = useState(0);
@@ -34,33 +31,25 @@ const AdminCoupons = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [viewCoupon, setViewCoupon] = useState(null);
 
-  // ==================== CONSTANTS ====================
-  const gold = "#D4AF37";
-  const burgundy = "#2D0A14";
-  const darkBg = "#1a050b";
   const BASE_URL = import.meta.env.VITE_API_URL || "/";
 
-  // ==================== API CALLS ====================
   const getAllCoupons = async () => {
-  try {
-    setLoading(true);
-    const { data } = await axios.get(`${BASE_URL}api/v1/coupon/get-coupons`);
-    
-    // If backend sends: res.send(coupons)
-    if (Array.isArray(data)) {
-      setCoupons(data);
-    } 
-    // If backend sends: res.send({ success: true, coupons })
-    else if (data?.success) {
-      setCoupons(data.coupons);
+    try {
+      setLoading(true);
+      const { data } = await axios.get(`${BASE_URL}api/v1/coupon/get-coupons`);
+
+      if (Array.isArray(data)) {
+        setCoupons(data);
+      } else if (data?.success) {
+        setCoupons(data.coupons);
+      }
+
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      console.log("Fetch Error:", error);
     }
-    
-    setLoading(false);
-  } catch (error) {
-    setLoading(false);
-    console.log("Fetch Error:", error);
-  }
-};
+  };
 
   const getAllProducts = async () => {
     try {
@@ -78,7 +67,6 @@ const AdminCoupons = () => {
     getAllProducts();
   }, []);
 
-  // ==================== EVENT HANDLERS ====================
   const resetForm = () => {
     setName("");
     setExpiry(null);
@@ -90,53 +78,46 @@ const AdminCoupons = () => {
     setSelectedProduct(null);
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  // New conditional check for Gift types
-  const isGift = discountType === "gift";
+    const isGift = discountType === "gift";
 
-  // Check name, expiry, and either discountValue (for fixed/percentage) OR selectedProduct (for gifts)
-  if (!name || !expiry || (!isGift && !discountValue) || (isGift && !selectedProduct)) {
-    return message.error("Please fill all required fields correctly");
-  }
-
-  try {
-    setLoading(true);
-
-    const couponData = {
-      name: name.toUpperCase(),
-      expiry: expiry,
-      discountType,
-      // For gifts, we pass a value of 0 to the backend
-      discountValue: isGift ? 0 : discountValue,
-      maxDiscount: discountType === "percentage" ? maxDiscount : 0,
-      minPurchase,
-      usageLimit,
-      giftProductId: isGift ? selectedProduct : null,
-    };
-
-    const { data } = await axios.post(
-      `${BASE_URL}api/v1/coupon/create-coupon`,
-      couponData
-    );
-
-    if (data.success) {
-      message.success("Divine Coupon Created Successfully!");
-      resetForm();
-      getAllCoupons(); // This will now work because the 500 error is fixed
+    if (!name || !expiry || (!isGift && !discountValue) || (isGift && !selectedProduct)) {
+      return message.error("Please fill all required fields correctly");
     }
-    setLoading(false);
-  } catch (error) {
-    setLoading(false);
-    message.error(error.response?.data?.message || "Failed to create coupon");
-  }
-};
+
+    try {
+      setLoading(true);
+
+      const couponData = {
+        name: name.toUpperCase(),
+        expiry: expiry,
+        discountType,
+        discountValue: isGift ? 0 : discountValue,
+        maxDiscount: discountType === "percentage" ? maxDiscount : 0,
+        minPurchase,
+        usageLimit,
+        giftProductId: isGift ? selectedProduct : null,
+      };
+
+      const { data } = await axios.post(`${BASE_URL}api/v1/coupon/create-coupon`, couponData);
+
+      if (data.success) {
+        message.success("Divine Coupon Created Successfully!");
+        resetForm();
+        getAllCoupons();
+      }
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      message.error(error.response?.data?.message || "Failed to create coupon");
+    }
+  };
+
   const handleDelete = async (id) => {
     try {
-      const { data } = await axios.delete(
-        `${BASE_URL}api/v1/coupon/delete-coupon/${id}`
-      );
+      const { data } = await axios.delete(`${BASE_URL}api/v1/coupon/delete-coupon/${id}`);
       if (data.success) {
         message.success("Coupon Removed Successfully");
         getAllCoupons();
@@ -151,16 +132,13 @@ const handleSubmit = async (e) => {
     setModalVisible(true);
   };
 
-  // ==================== TABLE COLUMNS ====================
   const columns = [
     {
       title: "Coupon Code",
       dataIndex: "name",
       key: "name",
       render: (text) => (
-        <span style={{ fontWeight: "bold", color: gold, fontSize: "15px" }}>
-          {text}
-        </span>
+        <span style={{ fontWeight: "bold", color: "#D4AF37", fontSize: "15px" }}>{text}</span>
       ),
     },
     {
@@ -168,16 +146,8 @@ const handleSubmit = async (e) => {
       dataIndex: "discountType",
       key: "discountType",
       render: (type) => {
-        const colors = {
-          fixed: "blue",
-          percentage: "green",
-          gift: "purple",
-        };
-        const icons = {
-          fixed: <FaRupeeSign />,
-          percentage: <FaPercentage />,
-          gift: <FaGift />,
-        };
+        const colors = { fixed: "blue", percentage: "green", gift: "purple" };
+        const icons = { fixed: <FaRupeeSign />, percentage: <FaPercentage />, gift: <FaGift /> };
         return (
           <Tag color={colors[type]} icon={icons[type]}>
             {type?.toUpperCase()}
@@ -230,11 +200,7 @@ const handleSubmit = async (e) => {
       key: "status",
       render: (_, record) => {
         const isExpired = moment(record.expiry).isBefore(moment());
-        return isExpired ? (
-          <Tag color="red">EXPIRED</Tag>
-        ) : (
-          <Tag color="green">ACTIVE</Tag>
-        );
+        return isExpired ? <Tag color="red">EXPIRED</Tag> : <Tag color="green">ACTIVE</Tag>;
       },
     },
     {
@@ -243,7 +209,7 @@ const handleSubmit = async (e) => {
       render: (_, record) => (
         <div style={{ display: "flex", gap: "10px" }}>
           <FaEye
-            style={{ color: gold, cursor: "pointer", fontSize: "18px" }}
+            style={{ color: "#D4AF37", cursor: "pointer", fontSize: "18px" }}
             onClick={() => handleView(record)}
           />
           <Popconfirm
@@ -252,208 +218,568 @@ const handleSubmit = async (e) => {
             okText="Yes"
             cancelText="No"
           >
-            <FaTrash
-              style={{ color: "#ff4d4f", cursor: "pointer", fontSize: "18px" }}
-            />
+            <FaTrash style={{ color: "#ff4d4f", cursor: "pointer", fontSize: "18px" }} />
           </Popconfirm>
         </div>
       ),
     },
   ];
 
-  // ==================== RENDER ====================
   return (
-    <div title="Coupon Management - GNC Admin">
-      <div className="admin-coupons-page">
-        <div className="container-fluid">
-          <div className="row">
-            <div className="col-md-3">
-              <AdminMenu />
-            </div>
-            <div className="col-md-9">
-              <div className="admin-content">
-                {/* Page Header */}
-                <div className="page-header">
-                  <FaTicketAlt size={32} />
-                  <h1 className="page-title">COUPON REGISTRY</h1>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@300;400;600;700&display=swap');
+
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
+        .coupons-page {
+          background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+          min-height: 100vh;
+          color: #fff;
+          font-family: 'Lato', sans-serif;
+          padding-bottom: 50px;
+        }
+
+        .coupons-container {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 60px 30px;
+        }
+
+        .page-header {
+          display: flex;
+          align-items: center;
+          gap: 20px;
+          margin-bottom: 50px;
+          padding-bottom: 30px;
+          border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        .page-header svg {
+          color: #D4AF37;
+        }
+
+        .page-title {
+          font-family: 'Playfair Display', serif;
+          font-size: 3rem;
+          font-weight: 700;
+          background: linear-gradient(135deg, #D4AF37, #FFD700);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          letter-spacing: 3px;
+          margin: 0;
+        }
+
+        .creation-card {
+          background: rgba(255, 255, 255, 0.06);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(212, 175, 55, 0.2);
+          border-radius: 16px;
+          padding: 40px;
+          margin-bottom: 40px;
+        }
+
+        .section-title {
+          font-family: 'Playfair Display', serif;
+          font-size: 1.5rem;
+          color: #D4AF37;
+          margin-bottom: 30px;
+          padding-bottom: 15px;
+          border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        .form-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 25px;
+          margin-bottom: 30px;
+        }
+
+        .form-group {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .form-label {
+          color: #D4AF37;
+          font-size: 0.85rem;
+          margin-bottom: 10px;
+          font-weight: 600;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+        }
+
+        .required {
+          color: #ff4d4f;
+          margin-left: 3px;
+        }
+
+        .form-input {
+          background: rgba(0, 0, 0, 0.3) !important;
+          border: 1px solid rgba(212, 175, 55, 0.3) !important;
+          color: #fff !important;
+          padding: 12px 16px !important;
+          border-radius: 10px !important;
+          font-size: 0.95rem !important;
+          transition: all 0.3s ease !important;
+          height: 50px !important;
+        }
+
+        .form-input:hover,
+        .form-input:focus {
+          border-color: #D4AF37 !important;
+          box-shadow: 0 0 15px rgba(212, 175, 55, 0.2) !important;
+          background: rgba(0, 0, 0, 0.4) !important;
+        }
+
+        .form-input input {
+          color: #fff !important;
+          background: transparent !important;
+        }
+
+        .form-input input::placeholder {
+          color: rgba(255, 255, 255, 0.4) !important;
+        }
+
+        .custom-select .ant-select-selector {
+          background: rgba(0, 0, 0, 0.3) !important;
+          border: 1px solid rgba(212, 175, 55, 0.3) !important;
+          color: #fff !important;
+          height: 50px !important;
+          border-radius: 10px !important;
+          padding: 0 16px !important;
+        }
+
+        .custom-select .ant-select-selector:hover,
+        .custom-select.ant-select-focused .ant-select-selector {
+          border-color: #D4AF37 !important;
+          box-shadow: 0 0 15px rgba(212, 175, 55, 0.2) !important;
+        }
+
+        .custom-select .ant-select-selection-item {
+          color: #fff !important;
+          line-height: 48px !important;
+        }
+
+        .custom-select .ant-select-arrow {
+          color: #D4AF37 !important;
+        }
+
+        .submit-btn {
+          background: linear-gradient(135deg, #D4AF37, #FFD700);
+          color: #0f0c29;
+          border: none;
+          padding: 14px 35px;
+          border-radius: 10px;
+          font-size: 0.95rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+        }
+
+        .submit-btn:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+        }
+
+        .submit-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .table-card {
+          background: rgba(255, 255, 255, 0.06);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(212, 175, 55, 0.2);
+          border-radius: 16px;
+          padding: 40px;
+        }
+
+        .coupon-details {
+          padding: 25px 0;
+        }
+
+        .detail-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 15px 0;
+          border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+        }
+
+        .detail-row:last-child {
+          border-bottom: none;
+        }
+
+        .detail-label {
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.6);
+          font-size: 0.9rem;
+        }
+
+        .detail-value {
+          font-weight: 700;
+          color: #D4AF37;
+          font-size: 1rem;
+        }
+
+        /* Ant Design Overrides */
+        .ant-table {
+          background: transparent !important;
+        }
+
+        .ant-table-thead > tr > th {
+          background: rgba(212, 175, 55, 0.1) !important;
+          color: #D4AF37 !important;
+          border-bottom: 2px solid #D4AF37 !important;
+          font-weight: 700 !important;
+          font-size: 0.85rem !important;
+          text-transform: uppercase !important;
+          letter-spacing: 1px !important;
+        }
+
+        .ant-table-tbody > tr > td {
+          border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+          color: #fff !important;
+          font-size: 0.9rem !important;
+        }
+
+        .ant-table-tbody > tr:hover > td {
+          background: rgba(212, 175, 55, 0.08) !important;
+        }
+
+        .ant-modal-content {
+          background: linear-gradient(135deg, #1a050b 0%, #2D0A14 100%) !important;
+          border: 1px solid rgba(212, 175, 55, 0.3) !important;
+          border-radius: 16px !important;
+        }
+
+        .ant-modal-header {
+          background: transparent !important;
+          border-bottom: 1px solid rgba(212, 175, 55, 0.2) !important;
+        }
+
+        .ant-modal-title {
+          color: #D4AF37 !important;
+          font-family: 'Playfair Display', serif !important;
+          font-size: 1.3rem !important;
+        }
+
+        .ant-modal-close-x {
+          color: #D4AF37 !important;
+        }
+
+        .ant-modal-body {
+          color: #fff !important;
+        }
+
+        .ant-picker {
+          background: rgba(0, 0, 0, 0.3) !important;
+          border: 1px solid rgba(212, 175, 55, 0.3) !important;
+          height: 50px !important;
+          border-radius: 10px !important;
+        }
+
+        .ant-picker:hover,
+        .ant-picker-focused {
+          border-color: #D4AF37 !important;
+          box-shadow: 0 0 15px rgba(212, 175, 55, 0.2) !important;
+        }
+
+        .ant-picker-input > input {
+          color: #fff !important;
+        }
+
+        .ant-picker-suffix {
+          color: #D4AF37 !important;
+        }
+
+        .ant-input-number {
+          background: rgba(0, 0, 0, 0.3) !important;
+          border: 1px solid rgba(212, 175, 55, 0.3) !important;
+          border-radius: 10px !important;
+        }
+
+        .ant-input-number:hover,
+        .ant-input-number-focused {
+          border-color: #D4AF37 !important;
+          box-shadow: 0 0 15px rgba(212, 175, 55, 0.2) !important;
+        }
+
+        .ant-input-number-input {
+          color: #fff !important;
+          height: 48px !important;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+          .page-title {
+            font-size: 2.5rem;
+          }
+
+          .form-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+
+        @media (max-width: 768px) {
+          .coupons-container {
+            padding: 40px 20px;
+          }
+
+          .page-title {
+            font-size: 2rem;
+          }
+
+          .creation-card,
+          .table-card {
+            padding: 25px 20px;
+          }
+
+          .form-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .ant-table {
+            font-size: 0.85rem !important;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .coupons-container {
+            padding: 30px 15px;
+          }
+
+          .page-title {
+            font-size: 1.75rem;
+            letter-spacing: 2px;
+          }
+
+          .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .creation-card,
+          .table-card {
+            padding: 20px 16px;
+          }
+
+          .section-title {
+            font-size: 1.3rem;
+          }
+
+          .form-input,
+          .custom-select .ant-select-selector,
+          .ant-picker {
+            height: 46px !important;
+          }
+
+          .submit-btn {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .page-title {
+            font-size: 1.5rem;
+          }
+        }
+
+        /* Touch-friendly enhancements */
+        @media (hover: none) and (pointer: coarse) {
+          .submit-btn,
+          .form-input,
+          .custom-select {
+            -webkit-tap-highlight-color: rgba(212, 175, 55, 0.1);
+          }
+
+          .submit-btn:active {
+            transform: scale(0.97);
+          }
+        }
+      `}</style>
+
+      <div className="coupons-page">
+        <AdminMenu />
+
+        <div className="coupons-container">
+          <div className="page-header">
+            <FaTicketAlt size={40} />
+            <h1 className="page-title">Coupon Registry</h1>
+          </div>
+
+          <div className="creation-card">
+            <h3 className="section-title">Create New Coupon</h3>
+            <form onSubmit={handleSubmit}>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label className="form-label">
+                    Coupon Code <span className="required">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g. DIVINE10"
+                    value={name}
+                    onChange={(e) => setName(e.target.value.toUpperCase())}
+                    required
+                  />
                 </div>
 
-                {/* Creation Form */}
-                <div className="creation-card">
-                  <h3 className="section-title">Create New Coupon</h3>
-                  <form onSubmit={handleSubmit}>
-                    <div className="form-grid">
-                      {/* Coupon Code */}
-                      <div className="form-group">
-                        <label className="form-label">
-                          Coupon Code <span className="required">*</span>
-                        </label>
-                        <input
-                          type="text"
-                          className="form-input"
-                          placeholder="e.g. DIVINE10"
-                          value={name}
-                          onChange={(e) => setName(e.target.value.toUpperCase())}
-                          required
-                        />
-                      </div>
-
-                      {/* Discount Type */}
-                      <div className="form-group">
-                        <label className="form-label">
-                          Discount Type <span className="required">*</span>
-                        </label>
-                        <Select
-                          value={discountType}
-                          onChange={(value) => setDiscountType(value)}
-                          className="custom-select"
-                          style={{ width: "100%" }}
-                        >
-                          <Option value="fixed">
-                            <FaRupeeSign /> Fixed Amount
-                          </Option>
-                          <Option value="percentage">
-                            <FaPercentage /> Percentage
-                          </Option>
-                          <Option value="gift">
-                            <FaGift /> Free Gift
-                          </Option>
-                        </Select>
-                      </div>
-
-                      {/* Discount Value */}
-                      {discountType !== "gift" && (
-                        <div className="form-group">
-                          <label className="form-label">
-                            {discountType === "fixed" ? "Discount Amount" : "Discount Percentage"}{" "}
-                            <span className="required">*</span>
-                          </label>
-                          <InputNumber
-                            min={0}
-                            max={discountType === "percentage" ? 100 : 999999}
-                            value={discountValue}
-                            onChange={(value) => setDiscountValue(value)}
-                            className="form-input"
-                            style={{ width: "100%" }}
-                            prefix={discountType === "fixed" ? "₹" : "%"}
-                          />
-                        </div>
-                      )}
-
-                      {/* Max Discount (for percentage) */}
-                      {discountType === "percentage" && (
-                        <div className="form-group">
-                          <label className="form-label">Max Discount (₹)</label>
-                          <InputNumber
-                            min={0}
-                            value={maxDiscount}
-                            onChange={(value) => setMaxDiscount(value)}
-                            className="form-input"
-                            style={{ width: "100%" }}
-                            prefix="₹"
-                          />
-                        </div>
-                      )}
-
-                      {/* Gift Product */}
-                      {discountType === "gift" && (
-                        <div className="form-group" style={{ gridColumn: "1 / -1" }}>
-                          <label className="form-label">
-                            Select Gift Product <span className="required">*</span>
-                          </label>
-                          <Select
-                            showSearch
-                            placeholder="Choose a product"
-                            value={selectedProduct}
-                            onChange={(value) => setSelectedProduct(value)}
-                            className="custom-select"
-                            style={{ width: "100%" }}
-                            filterOption={(input, option) =>
-                              option.children.toLowerCase().includes(input.toLowerCase())
-                            }
-                          >
-                            {products.map((p) => (
-                              <Option key={p._id} value={p._id}>
-                                {p.name} - ₹{p.price}
-                              </Option>
-                            ))}
-                          </Select>
-                        </div>
-                      )}
-
-                      {/* Min Purchase */}
-                      <div className="form-group">
-                        <label className="form-label">Minimum Purchase (₹)</label>
-                        <InputNumber
-                          min={0}
-                          value={minPurchase}
-                          onChange={(value) => setMinPurchase(value)}
-                          className="form-input"
-                          style={{ width: "100%" }}
-                          prefix="₹"
-                        />
-                      </div>
-
-                      {/* Usage Limit */}
-                      <div className="form-group">
-                        <label className="form-label">
-                          Usage Limit <span className="required">*</span>
-                        </label>
-                        <InputNumber
-                          min={1}
-                          value={usageLimit}
-                          onChange={(value) => setUsageLimit(value)}
-                          className="form-input"
-                          style={{ width: "100%" }}
-                        />
-                      </div>
-
-                      {/* Expiry Date */}
-                      <div className="form-group">
-                        <label className="form-label">
-                          Expiry Date <span className="required">*</span>
-                        </label>
-                        <DatePicker
-                          value={expiry}
-                          onChange={(date) => setExpiry(date)}
-                          className="form-input"
-                          style={{ width: "100%" }}
-                          format="DD-MM-YYYY"
-                          disabledDate={(current) =>
-                            current && current < moment().startOf("day")
-                          }
-                        />
-                      </div>
-                    </div>
-
-                    {/* Submit Button */}
-                    <button type="submit" className="submit-btn" disabled={loading}>
-                      <FaPlus /> {loading ? "Creating..." : "Create Coupon"}
-                    </button>
-                  </form>
+                <div className="form-group">
+                  <label className="form-label">
+                    Discount Type <span className="required">*</span>
+                  </label>
+                  <Select
+                    value={discountType}
+                    onChange={(value) => setDiscountType(value)}
+                    className="custom-select"
+                    style={{ width: "100%" }}
+                  >
+                    <Option value="fixed">
+                      <FaRupeeSign /> Fixed Amount
+                    </Option>
+                    <Option value="percentage">
+                      <FaPercentage /> Percentage
+                    </Option>
+                    <Option value="gift">
+                      <FaGift /> Free Gift
+                    </Option>
+                  </Select>
                 </div>
 
-                {/* Coupons Table */}
-                <div className="table-card">
-                  <h3 className="section-title">All Coupons ({coupons.length})</h3>
-                  <Table
-                    columns={columns}
-                    dataSource={coupons}
-                    rowKey="_id"
-                    loading={loading}
-                    pagination={{ pageSize: 10 }}
-                    className="coupons-table"
+                {discountType !== "gift" && (
+                  <div className="form-group">
+                    <label className="form-label">
+                      {discountType === "fixed" ? "Discount Amount" : "Discount Percentage"}{" "}
+                      <span className="required">*</span>
+                    </label>
+                    <InputNumber
+                      min={0}
+                      max={discountType === "percentage" ? 100 : 999999}
+                      value={discountValue}
+                      onChange={(value) => setDiscountValue(value)}
+                      className="form-input"
+                      style={{ width: "100%" }}
+                      prefix={discountType === "fixed" ? "₹" : "%"}
+                    />
+                  </div>
+                )}
+
+                {discountType === "percentage" && (
+                  <div className="form-group">
+                    <label className="form-label">Max Discount (₹)</label>
+                    <InputNumber
+                      min={0}
+                      value={maxDiscount}
+                      onChange={(value) => setMaxDiscount(value)}
+                      className="form-input"
+                      style={{ width: "100%" }}
+                      prefix="₹"
+                    />
+                  </div>
+                )}
+
+                {discountType === "gift" && (
+                  <div className="form-group" style={{ gridColumn: "1 / -1" }}>
+                    <label className="form-label">
+                      Select Gift Product <span className="required">*</span>
+                    </label>
+                    <Select
+                      showSearch
+                      placeholder="Choose a product"
+                      value={selectedProduct}
+                      onChange={(value) => setSelectedProduct(value)}
+                      className="custom-select"
+                      style={{ width: "100%" }}
+                      filterOption={(input, option) =>
+                        option.children.toLowerCase().includes(input.toLowerCase())
+                      }
+                    >
+                      {products.map((p) => (
+                        <Option key={p._id} value={p._id}>
+                          {p.name} - ₹{p.price}
+                        </Option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label className="form-label">Minimum Purchase (₹)</label>
+                  <InputNumber
+                    min={0}
+                    value={minPurchase}
+                    onChange={(value) => setMinPurchase(value)}
+                    className="form-input"
+                    style={{ width: "100%" }}
+                    prefix="₹"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    Usage Limit <span className="required">*</span>
+                  </label>
+                  <InputNumber
+                    min={1}
+                    value={usageLimit}
+                    onChange={(value) => setUsageLimit(value)}
+                    className="form-input"
+                    style={{ width: "100%" }}
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    Expiry Date <span className="required">*</span>
+                  </label>
+                  <DatePicker
+                    value={expiry}
+                    onChange={(date) => setExpiry(date)}
+                    className="form-input"
+                    style={{ width: "100%" }}
+                    format="DD-MM-YYYY"
+                    disabledDate={(current) => current && current < moment().startOf("day")}
                   />
                 </div>
               </div>
-            </div>
+
+              <button type="submit" className="submit-btn" disabled={loading}>
+                <FaPlus /> {loading ? "Creating..." : "Create Coupon"}
+              </button>
+            </form>
+          </div>
+
+          <div className="table-card">
+            <h3 className="section-title">All Coupons ({coupons.length})</h3>
+            <Table
+              columns={columns}
+              dataSource={coupons}
+              rowKey="_id"
+              loading={loading}
+              pagination={{ pageSize: 10 }}
+              scroll={{ x: 900 }}
+            />
           </div>
         </div>
 
-        {/* View Modal */}
         <Modal
           title={
-            <span style={{ color: gold }}>
+            <span style={{ color: "#D4AF37" }}>
               <FaTicketAlt /> Coupon Details
             </span>
           }
@@ -476,8 +802,7 @@ const handleSubmit = async (e) => {
                 <span className="detail-label">Discount:</span>
                 <span className="detail-value">
                   {viewCoupon.discountType === "fixed" && `₹${viewCoupon.discountValue}`}
-                  {viewCoupon.discountType === "percentage" &&
-                    `${viewCoupon.discountValue}%`}
+                  {viewCoupon.discountType === "percentage" && `${viewCoupon.discountValue}%`}
                   {viewCoupon.discountType === "gift" && "Free Gift"}
                 </span>
               </div>
@@ -515,226 +840,7 @@ const handleSubmit = async (e) => {
           )}
         </Modal>
       </div>
-
-      {/* STYLES */}
-      <style>{`
-        .admin-coupons-page {
-          background-color: ${darkBg};
-          min-height: 100vh;
-          padding: 20px 0;
-        }
-
-        .admin-content {
-          padding: 20px;
-        }
-
-        /* Page Header */
-        .page-header {
-          display: flex;
-          align-items: center;
-          gap: 15px;
-          margin-bottom: 30px;
-          padding-bottom: 20px;
-          border-bottom: 2px solid ${gold}33;
-        }
-
-        .page-title {
-          color: ${gold};
-          font-family: "Playfair Display", serif;
-          font-size: 32px;
-          letter-spacing: 2px;
-          margin: 0;
-        }
-
-        /* Creation Card */
-        .creation-card {
-          background: ${burgundy};
-          border: 1px solid ${gold}33;
-          border-radius: 12px;
-          padding: 30px;
-          margin-bottom: 30px;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        .section-title {
-          color: ${gold};
-          font-size: 20px;
-          margin-bottom: 25px;
-          padding-bottom: 15px;
-          border-bottom: 1px solid ${gold}22;
-        }
-
-        /* Form Styles */
-        .form-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 20px;
-          margin-bottom: 25px;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .form-label {
-          color: ${gold};
-          font-size: 13px;
-          margin-bottom: 8px;
-          font-weight: 500;
-          letter-spacing: 0.5px;
-        }
-
-        .required {
-          color: #ff4d4f;
-        }
-
-        .form-input {
-          background: rgba(0, 0, 0, 0.3);
-          border: 1px solid ${gold}44;
-          color: white;
-          padding: 10px 12px;
-          border-radius: 6px;
-          font-size: 14px;
-          transition: all 0.3s;
-        }
-
-        .form-input:focus {
-          border-color: ${gold};
-          box-shadow: 0 0 10px ${gold}22;
-          outline: none;
-        }
-
-        .submit-btn {
-          background: ${gold};
-          color: ${burgundy};
-          border: none;
-          padding: 14px 30px;
-          font-weight: bold;
-          border-radius: 6px;
-          font-size: 14px;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          transition: all 0.3s;
-          margin-top: 10px;
-        }
-
-        .submit-btn:hover {
-          background: #e5c158;
-          transform: translateY(-2px);
-          box-shadow: 0 5px 15px rgba(212, 175, 55, 0.3);
-        }
-
-        .submit-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        /* Table Card */
-        .table-card {
-          background: ${burgundy};
-          border: 1px solid ${gold}33;
-          border-radius: 12px;
-          padding: 30px;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-
-        /* Coupon Details Modal */
-        .coupon-details {
-          padding: 20px 0;
-        }
-
-        .detail-row {
-          display: flex;
-          justify-content: space-between;
-          padding: 12px 0;
-          border-bottom: 1px solid #f0f0f0;
-        }
-
-        .detail-label {
-          font-weight: 600;
-          color: #666;
-        }
-
-        .detail-value {
-          font-weight: bold;
-          color: ${gold};
-        }
-
-        /* Ant Design Overrides */
-        .ant-table {
-          background: transparent !important;
-          color: white !important;
-        }
-
-        .ant-table-thead > tr > th {
-          background: rgba(212, 175, 55, 0.1) !important;
-          color: ${gold} !important;
-          border-bottom: 2px solid ${gold} !important;
-          font-weight: bold;
-        }
-
-        .ant-table-tbody > tr > td {
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
-          color: white !important;
-        }
-
-        .ant-table-tbody > tr:hover > td {
-          background: rgba(212, 175, 55, 0.05) !important;
-        }
-
-        .ant-select-selector {
-          background: rgba(0, 0, 0, 0.3) !important;
-          border: 1px solid ${gold}44 !important;
-          color: white !important;
-        }
-
-        .ant-select-arrow {
-          color: ${gold} !important;
-        }
-
-        .ant-input-number {
-          background: rgba(0, 0, 0, 0.3) !important;
-          border: 1px solid ${gold}44 !important;
-        }
-
-        .ant-input-number-input {
-          color: white !important;
-        }
-
-        .ant-picker {
-          background: rgba(0, 0, 0, 0.3) !important;
-          border: 1px solid ${gold}44 !important;
-        }
-
-        .ant-picker-input > input {
-          color: white !important;
-        }
-
-        .ant-picker-suffix {
-          color: ${gold} !important;
-        }
-
-        .ant-modal-content {
-          background: ${burgundy} !important;
-        }
-
-        .ant-modal-header {
-          background: ${burgundy} !important;
-          border-bottom: 1px solid ${gold}33 !important;
-        }
-
-        .ant-modal-title {
-          color: ${gold} !important;
-        }
-
-        .ant-modal-close-x {
-          color: ${gold} !important;
-        }
-      `}</style>
-    </div>
+    </>
   );
 };
 
