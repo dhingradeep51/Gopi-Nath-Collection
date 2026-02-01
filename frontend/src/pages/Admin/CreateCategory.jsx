@@ -107,127 +107,393 @@ const CreateCategory = () => {
   };
 
   return (
-    <div style={{ backgroundColor: burgundy, minHeight: "100vh", color: "white" }}>
-      <AdminMenu />
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@300;400;700&display=swap');
 
-      <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "40px 20px" }}>
-        
-        {/* Header Section */}
-        <div style={{ marginBottom: "40px", textAlign: 'center' }}>
-          <h1 style={{ color: gold, fontFamily: "'Playfair Display', serif", fontSize: "42px", margin: 0 }}>
-            Category Management
-          </h1>
-          <div style={{ width: "60px", height: "2px", background: gold, margin: "15px auto" }}></div>
-        </div>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "50px" }}>
-          
-          {/* Section 1: Creation Form */}
-          <div style={{ 
-            background: "rgba(255,255,255,0.03)", 
-            padding: "40px", 
-            borderRadius: "4px", 
-            border: `1px solid ${gold}22`,
-            maxWidth: "600px",
-            margin: "0 auto",
-            width: "100%",
-            position: "relative"
-          }}>
-            <h5 style={{ color: gold, fontSize: "14px", marginBottom: "25px", letterSpacing: "1px", fontWeight: "bold", textAlign: 'center' }}>
-              {loading ? "PROCESSING..." : "ADD NEW COLLECTION CATEGORY"}
-            </h5>
-            <CategoryForm 
-              handleSubmit={handleSubmit} 
-              value={name} 
-              setValue={setName} 
+        .orders-page {
+          background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+          min-height: 100vh;
+          color: #fff;
+          font-family: 'Lato', sans-serif;
+        }
+
+        .orders-container {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 60px 30px;
+          padding-left: max(30px, env(safe-area-inset-left));
+          padding-right: max(30px, env(safe-area-inset-right));
+          padding-bottom: max(60px, env(safe-area-inset-bottom));
+        }
+
+        .page-header {
+          text-align: center;
+          margin-bottom: 50px;
+          position: relative;
+        }
+
+        .page-header::after {
+          content: '';
+          position: absolute;
+          bottom: -15px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 100px;
+          height: 3px;
+          background: linear-gradient(90deg, transparent, #D4AF37, transparent);
+        }
+
+        .page-title {
+          font-family: 'Playfair Display', serif;
+          font-size: 3.5rem;
+          font-weight: 700;
+          background: linear-gradient(135deg, #D4AF37, #FFD700);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          letter-spacing: 3px;
+          margin-bottom: 10px;
+        }
+
+        .page-subtitle {
+          font-size: 1rem;
+          color: rgba(255, 255, 255, 0.6);
+          font-weight: 300;
+          letter-spacing: 2px;
+          text-transform: uppercase;
+        }
+
+        .content-section {
+          background: rgba(255, 255, 255, 0.06);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(212, 175, 55, 0.2);
+          border-radius: 16px;
+          padding: 40px;
+          margin-bottom: 30px;
+        }
+
+        .categories-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 20px;
+          margin-top: 30px;
+        }
+
+        .category-card {
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(212, 175, 55, 0.2);
+          border-radius: 12px;
+          padding: 20px;
+          transition: all 0.3s ease;
+          cursor: pointer;
+        }
+
+        .category-card:hover {
+          transform: translateY(-5px);
+          border-color: #D4AF37;
+          box-shadow: 0 8px 25px rgba(212, 175, 55, 0.2);
+        }
+
+        .category-name {
+          font-size: 1.1rem;
+          font-weight: 600;
+          color: #fff;
+          margin-bottom: 10px;
+        }
+
+        .category-id {
+          font-size: 0.9rem;
+          color: rgba(255, 255, 255, 0.6);
+        }
+
+        .action-buttons {
+          display: flex;
+          gap: 10px;
+          margin-top: 15px;
+        }
+
+        .btn-edit {
+          background: linear-gradient(135deg, #D4AF37, #FFD700);
+          color: #2D0A14;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .btn-edit:hover {
+          transform: scale(1.05);
+        }
+
+        .btn-delete {
+          background: #ff4d4f;
+          color: #fff;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .btn-delete:hover {
+          background: #d4380d;
+        }
+
+        .loading-state {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 60vh;
+          gap: 20px;
+        }
+
+        .spinner {
+          width: 60px;
+          height: 60px;
+          border: 4px solid rgba(212, 175, 55, 0.2);
+          border-top-color: #D4AF37;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+          color: #D4AF37;
+          font-size: 1.1rem;
+          font-weight: 300;
+          letter-spacing: 2px;
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 1024px) {
+          .page-title {
+            font-size: 2.5rem;
+          }
+
+          .categories-grid {
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+          }
+        }
+
+        @media (max-width: 768px) {
+          .orders-container {
+            padding: 30px 18px;
+            padding-left: max(18px, env(safe-area-inset-left));
+            padding-right: max(18px, env(safe-area-inset-right));
+          }
+
+          .page-header {
+            margin-bottom: 35px;
+          }
+
+          .page-header::after {
+            width: 80px;
+          }
+
+          .page-title {
+            font-size: 2rem;
+            letter-spacing: 2px;
+          }
+
+          .page-subtitle {
+            font-size: 0.85rem;
+            letter-spacing: 1.5px;
+          }
+
+          .content-section {
+            padding: 25px 20px;
+          }
+
+          .categories-grid {
+            grid-template-columns: 1fr;
+            gap: 15px;
+          }
+
+          .category-card {
+            padding: 18px;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .orders-container {
+            padding: 25px 14px;
+            padding-bottom: max(60px, env(safe-area-inset-bottom));
+          }
+
+          .page-title {
+            font-size: 1.75rem;
+            letter-spacing: 1.5px;
+          }
+
+          .page-subtitle {
+            font-size: 0.8rem;
+          }
+
+          .content-section {
+            padding: 20px 16px;
+          }
+
+          .category-card {
+            padding: 16px;
+          }
+
+          .action-buttons {
+            flex-direction: column;
+          }
+
+          .btn-edit, .btn-delete {
+            width: 100%;
+            padding: 10px;
+          }
+        }
+
+        /* Touch Enhancements */
+        @media (hover: none) and (pointer: coarse) {
+          .category-card {
+            -webkit-tap-highlight-color: rgba(212, 175, 55, 0.15);
+          }
+        }
+      `}</style>
+
+      <div className="orders-page">
+        <AdminMenu />
+
+        <div className="orders-container">
+          <div className="page-header">
+            <h1 className="page-title">Category Management</h1>
+            <p className="page-subtitle">Create & Manage Product Categories</p>
+          </div>
+
+          <div className="content-section">
+            <CategoryForm
+              handleSubmit={handleSubmit}
+              value={name}
+              setValue={setName}
               idValue={categoryId}
               setIdValue={setCategoryId}
-              loading={loading} // Pass loading prop to form to disable its button
-            />
-          </div>
-
-          {/* Section 2: Collection Table */}
-          <div style={{ 
-            background: "rgba(0,0,0,0.2)", 
-            borderRadius: "4px", 
-            overflow: "hidden", 
-            border: `1px solid ${gold}11`,
-            padding: "10px",
-            opacity: loading ? 0.7 : 1, // Visual feedback for table during delete
-            pointerEvents: loading ? "none" : "auto"
-          }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr style={{ borderBottom: `2px solid ${gold}33` }}>
-                  <th style={{ padding: "20px", color: gold, textAlign: "left", fontSize: "12px", letterSpacing: "1px", textTransform: "uppercase" }}>Designation ID</th>
-                  <th style={{ padding: "20px", color: gold, textAlign: "left", fontSize: "12px", letterSpacing: "1px", textTransform: "uppercase" }}>Collection Name</th>
-                  <th style={{ padding: "20px", color: gold, textAlign: "right", fontSize: "12px", letterSpacing: "1px", textTransform: "uppercase" }}>Management</th>
-                </tr>
-              </thead>
-              <tbody>
-                {categories?.map((c) => (
-                  <tr key={c._id} className="category-row" style={{ borderBottom: `1px solid ${gold}08` }}>
-                    <td style={{ padding: "25px 20px", color: gold, fontWeight: "bold", fontSize: "13px", letterSpacing: "1px" }}>
-                      {c.categoryId}
-                    </td>
-                    <td style={{ padding: "25px 20px", fontSize: "15px", textTransform: "uppercase", letterSpacing: "1px" }}>
-                      {c.name}
-                    </td>
-                    <td style={{ padding: "25px 20px", textAlign: "right" }}>
-                      <button 
-                        disabled={loading}
-                        onClick={() => { setVisible(true); setUpdatedName(c.name); setUpdatedId(c.categoryId); setSelected(c); }}
-                        style={{ background: "transparent", border: `1px solid ${gold}`, color: gold, padding: "8px 25px", cursor: loading ? "not-allowed" : "pointer", marginRight: "12px", fontSize: "11px", fontWeight: "bold" }}
-                      >
-                        EDIT
-                      </button>
-                      <button 
-                        disabled={loading}
-                        onClick={() => { if(window.confirm("Permanently delete this collection?")) handleDelete(c._id); }}
-                        style={{ background: "transparent", border: "1px solid #ff4d4f", color: "#ff4d4f", padding: "8px 25px", cursor: loading ? "not-allowed" : "pointer", fontSize: "11px" }}
-                      >
-                        {loading ? "..." : "DELETE"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Edit Modal */}
-        <Modal 
-          onCancel={() => !loading && setVisible(false)} // Prevent closing while updating
-          footer={null} 
-          open={visible} 
-          centered
-          width={500}
-          closable={!loading}
-        >
-          <div style={{ background: "#fff", padding: "40px", borderRadius: "4px" }}>
-            <h2 style={{ color: burgundy, fontFamily: "serif", marginBottom: "30px", fontSize: "22px", borderBottom: `1px solid ${burgundy}11`, paddingBottom: "15px" }}>
-              {loading ? "Updating..." : "Update Category Details"}
-            </h2>
-            <CategoryForm 
-              value={updatedName} 
-              setValue={setUpdatedName} 
-              idValue={updatedId}
-              setIdValue={setUpdatedId}
-              handleSubmit={handleUpdate} 
-              isEdit={true}
               loading={loading}
             />
           </div>
-        </Modal>
 
-        <style>{`
-          .category-row:hover { background: rgba(212, 175, 55, 0.05); }
-          .ant-modal-content { border-radius: 4px !important; overflow: hidden; padding: 0 !important; }
-          .ant-modal-close { color: ${burgundy} !important; top: 20px !important; right: 20px !important; }
-        `}</style>
+          {loading ? (
+            <div className="loading-state">
+              <div className="spinner" />
+              <p className="loading-text">Loading Categories...</p>
+            </div>
+          ) : (
+            <div className="content-section">
+              <h2 style={{ color: '#D4AF37', marginBottom: '20px', fontSize: '1.5rem' }}>
+                Existing Categories ({categories.length})
+              </h2>
+              <div className="categories-grid">
+                {categories.map((c) => (
+                  <div key={c._id} className="category-card">
+                    <div className="category-name">{c.name}</div>
+                    <div className="category-id">ID: {c.categoryId}</div>
+                    <div className="action-buttons">
+                      <button
+                        className="btn-edit"
+                        onClick={() => {
+                          setVisible(true);
+                          setUpdatedName(c.name);
+                          setUpdatedId(c.categoryId);
+                          setSelected(c);
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        className="btn-delete"
+                        onClick={() => handleDelete(c._id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      <Modal
+        onCancel={() => setVisible(false)}
+        footer={null}
+        open={visible}
+        title="Update Category"
+        style={{ background: '#2D0A14', color: '#D4AF37' }}
+      >
+        <form onSubmit={handleUpdate}>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ color: '#fff', display: 'block', marginBottom: '5px' }}>Category Name</label>
+            <input
+              type="text"
+              value={updatedName}
+              onChange={(e) => setUpdatedName(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid #D4AF37',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '16px'
+              }}
+              required
+            />
+          </div>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ color: '#fff', display: 'block', marginBottom: '5px' }}>Category ID</label>
+            <input
+              type="text"
+              value={updatedId}
+              onChange={(e) => setUpdatedId(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid #D4AF37',
+                borderRadius: '8px',
+                color: '#fff',
+                fontSize: '16px'
+              }}
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            style={{
+              background: '#D4AF37',
+              color: '#2D0A14',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '8px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              width: '100%'
+            }}
+            disabled={loading}
+          >
+            {loading ? <Spin size="small" /> : 'Update Category'}
+          </button>
+        </form>
+      </Modal>
+    </>
   );
 };
 
