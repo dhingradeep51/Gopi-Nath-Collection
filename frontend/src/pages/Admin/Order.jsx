@@ -317,7 +317,7 @@ const AdminOrders = () => {
 
         .order-card {
           border: none;
-          background: none;
+          background: transparent;
           font: inherit;
           outline: none;
           width: 100%;
@@ -328,7 +328,6 @@ const AdminOrders = () => {
           padding: 0;
           margin: 0;
           cursor: pointer;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
           overflow: hidden;
           touch-action: manipulation;
@@ -999,7 +998,7 @@ const AdminOrders = () => {
                     key={order._id}
                     className="order-card"
                     onClick={() => navigate(`/dashboard/admin/orders/${order.orderNumber}`)}
-                    onTouchStart={() => navigate(`/dashboard/admin/orders/${order.orderNumber}`)}
+                    onTouchEnd={() => navigate(`/dashboard/admin/orders/${order.orderNumber}`)}
                     type="button"
                   >
                     <div className="order-card-content">
