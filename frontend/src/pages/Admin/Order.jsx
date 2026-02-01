@@ -331,6 +331,12 @@ const AdminOrders = () => {
           overflow: hidden;
           min-height: 90px;
           touch-action: manipulation;
+          border: none;
+          background: none;
+          font: inherit;
+          outline: none;
+          width: 100%;
+          text-align: left;
         }
 
         .order-card::before {
@@ -980,17 +986,11 @@ const AdminOrders = () => {
                 const statusColor = getStatusColor(order.status);
 
                 return (
-                  <div
+                  <button
                     key={order._id}
                     className="order-card"
                     onClick={() => navigate(`/dashboard/admin/orders/${order.orderNumber}`)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        navigate(`/dashboard/admin/orders/${order.orderNumber}`);
-                      }
-                    }}
+                    type="button"
                   >
                     <div className="order-id">
                       <div className="order-number">{order.orderNumber}</div>
@@ -1015,7 +1015,7 @@ const AdminOrders = () => {
                         {order.status}
                       </span>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>

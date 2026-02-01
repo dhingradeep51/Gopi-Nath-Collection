@@ -92,14 +92,13 @@ function App() {
           <Route path="admin/products" element={<Products />} />
           <Route path="admin/users" element={<Users />} />
           <Route path="admin/orders" element={<AdminOrders />} />
+          <Route path="admin/orders/:orderID" element={<AdminOrderDetails />} />
           <Route path="admin/help-center" element={<HelpCenter />} />
           <Route path="admin/coupons" element={<AdminCoupons />} />
           <Route path="admin/product/:slug" element={<UpdateProduct />} />
           {/* ✅ Standardized path to match other admin routes */}
           <Route path="admin/notification" element={<AdminNotifications/>}/>
           <Route path="admin/invoice" element={<AdminInvoiceManager />} />
-          // Inside your Routes configuration
-          <Route path="/dashboard/admin/orders/:orderID" element={<AdminOrderDetails />} />
         </Route>
 
         {/* 404 Route */}
