@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminMenu from "../../components/Menus/AdminMenu";
-import { 
-  FaBell, 
-  FaTrash, 
-  FaFilter, 
+import {
+  FaBell,
+  FaTrash,
+  FaFilter,
   FaSearch,
   FaShoppingCart,
   FaUndo,
@@ -12,7 +12,7 @@ import {
   FaCheckCircle,
   FaEye,
   FaTicketAlt,
-  FaExclamationTriangle
+  FaExclamationTriangle,
 } from "react-icons/fa";
 import moment from "moment";
 import toast from "react-hot-toast";
@@ -25,102 +25,81 @@ const AdminNotifications = () => {
   const [sortOrder, setSortOrder] = useState("newest");
   const navigate = useNavigate();
 
-  const colors = {
-    deepBurgundy: "#1a060c",
-    richBurgundy: "#3D0E1C",
-    gold: "#D4AF37",
-    success: "#4BB543",
-    danger: "#ff4d4f",
-    warning: "#ff9800",
-    info: "#1890ff",
-    textMuted: "#6c757d",
-    lightBg: "#fdfaf0"
+  // ─── Unified Theme Colors ───────────────────────────────
+  const gold = "#D4AF37";
+  const goldLight = "#FFD700";
+  const bgDark = "#0f0c29";
+  const bgMid = "#302b63";
+  const bgEnd = "#24243e";
+  // ─────────────────────────────────────────────────────────
+
+  const typeColors = {
+    NEW_ORDER: "#4BB543",
+    ORDER_CANCELLED: "#ff4d4f",
+    CANCEL_REQUEST: "#ff4d4f",
+    ORDER_RETURNED: "#ff9800",
+    RETURN_REQUEST: "#ff9800",
+    ORDER_DELIVERED: "#1890ff",
+    USER_TICKET_ALERT: "#9b59b6",
   };
 
-  // Icon mapping for notification types
   const getTypeIcon = (type) => {
     const icons = {
-      "NEW_ORDER": <FaShoppingCart />,
-      "ORDER_CANCELLED": <FaTimes />,
-      "CANCEL_REQUEST": <FaTimes />,
-      "ORDER_RETURNED": <FaUndo />,
-      "RETURN_REQUEST": <FaUndo />,
-      "ORDER_DELIVERED": <FaCheckCircle />,
-      "USER_TICKET_ALERT": <FaTicketAlt />
+      NEW_ORDER: <FaShoppingCart />,
+      ORDER_CANCELLED: <FaTimes />,
+      CANCEL_REQUEST: <FaTimes />,
+      ORDER_RETURNED: <FaUndo />,
+      RETURN_REQUEST: <FaUndo />,
+      ORDER_DELIVERED: <FaCheckCircle />,
+      USER_TICKET_ALERT: <FaTicketAlt />,
     };
     return icons[type] || <FaBell />;
   };
 
-  // Color mapping for notification types
-  const getTypeColor = (type) => {
-    const colorMap = {
-      "NEW_ORDER": colors.success,
-      "ORDER_CANCELLED": colors.danger,
-      "CANCEL_REQUEST": colors.danger,
-      "ORDER_RETURNED": colors.warning,
-      "RETURN_REQUEST": colors.warning,
-      "ORDER_DELIVERED": colors.info,
-      "USER_TICKET_ALERT": "#9b59b6"
-    };
-    return colorMap[type] || colors.gold;
-  };
+  const getTypeColor = (type) => typeColors[type] || gold;
 
+  // ─── Data Loading ────────────────────────────────────────
   const loadLogs = () => {
-    const savedLogs = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
-    setLogs(savedLogs);
-    setFilteredLogs(savedLogs);
+    const saved = JSON.parse(localStorage.getItem("admin_notifications") || "[]");
+    setLogs(saved);
+    setFilteredLogs(saved);
   };
-
-  // Filter and search logic
-  useEffect(() => {
-    let result = [...logs];
-
-    // Filter by type
-    if (filterType !== "all") {
-      result = result.filter(log => log.type === filterType);
-    }
-
-    // Search filter
-    if (searchTerm.trim()) {
-      const search = searchTerm.toLowerCase();
-      result = result.filter(log => 
-        log.orderId?.toLowerCase().includes(search) ||
-        log.message?.toLowerCase().includes(search) ||
-        log.type?.toLowerCase().includes(search)
-      );
-    }
-
-    // Sort
-    result.sort((a, b) => {
-      const dateA = new Date(`${a.date} ${a.time}`);
-      const dateB = new Date(`${b.date} ${b.time}`);
-      return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
-    });
-
-    setFilteredLogs(result);
-  }, [logs, filterType, searchTerm, sortOrder]);
 
   useEffect(() => {
     loadLogs();
-
-    // Listen for storage events from other tabs/windows
     const handleStorageChange = (e) => {
-      if (e.key === "admin_notifications") {
-        loadLogs();
-      }
+      if (e.key === "admin_notifications") loadLogs();
     };
-
     window.addEventListener("storage", handleStorageChange);
-    
-    // Poll for updates every second
     const interval = setInterval(loadLogs, 1000);
-
     return () => {
       window.removeEventListener("storage", handleStorageChange);
       clearInterval(interval);
     };
   }, []);
 
+  // ─── Filtering / Sorting ─────────────────────────────────
+  useEffect(() => {
+    let result = [...logs];
+    if (filterType !== "all") result = result.filter((l) => l.type === filterType);
+    if (searchTerm.trim()) {
+      const s = searchTerm.toLowerCase();
+      result = result.filter(
+        (l) =>
+          l.orderId?.toLowerCase().includes(s) ||
+          l.message?.toLowerCase().includes(s) ||
+          l.type?.toLowerCase().includes(s)
+      );
+    }
+    result.sort((a, b) => {
+      const dA = new Date(`${a.date} ${a.time}`);
+      const dB = new Date(`${b.date} ${b.time}`);
+      return sortOrder === "newest" ? dB - dA : dA - dB;
+    });
+    setFilteredLogs(result);
+  }, [logs, filterType, searchTerm, sortOrder]);
+
+  // ─── Handlers ────────────────────────────────────────────
   const handleClear = () => {
     if (window.confirm("Are you sure you want to clear all notification history?")) {
       localStorage.removeItem("admin_notifications");
@@ -131,1073 +110,909 @@ const AdminNotifications = () => {
   };
 
   const handleDeleteSingle = (index) => {
-    const updatedLogs = logs.filter((_, i) => i !== index);
-    localStorage.setItem("admin_notifications", JSON.stringify(updatedLogs));
-    setLogs(updatedLogs);
+    const updated = logs.filter((_, i) => i !== index);
+    localStorage.setItem("admin_notifications", JSON.stringify(updated));
+    setLogs(updated);
     toast.success("Notification deleted");
   };
 
-  // ✅ SMART NAVIGATION LOGIC
   const handleViewDetails = (log) => {
-    if (log.type === "USER_TICKET_ALERT") {
-      navigate("/dashboard/admin/help-center");
-    } else {
-      navigate(`/dashboard/admin/orders/${log.orderId}`);
-    }
+    if (log.type === "USER_TICKET_ALERT") navigate("/dashboard/admin/help-center");
+    else navigate(`/dashboard/admin/orders/${log.orderId}`);
   };
 
-  // Get unique notification types for filter dropdown
-  const notificationTypes = useMemo(() => {
-    const types = [...new Set(logs.map(log => log.type))];
-    return types;
-  }, [logs]);
-
-  // Statistics
-  const stats = useMemo(() => {
-    return {
-      total: logs.length,
-      newOrders: logs.filter(l => l.type === "NEW_ORDER").length,
-      cancelled: logs.filter(l => l.type === "ORDER_CANCELLED" || l.type === "CANCEL_REQUEST").length,
-      returned: logs.filter(l => l.type === "ORDER_RETURNED" || l.type === "RETURN_REQUEST").length,
-      tickets: logs.filter(l => l.type === "USER_TICKET_ALERT").length
-    };
-  }, [logs]);
-
-  // Get cancel and return notifications
-  const criticalNotifications = useMemo(() => {
-    return logs.filter(log => 
-      log.type === "ORDER_CANCELLED" || 
-      log.type === "CANCEL_REQUEST" || 
-      log.type === "ORDER_RETURNED" || 
-      log.type === "RETURN_REQUEST"
-    ).sort((a, b) => {
-      const dateA = new Date(`${a.date} ${a.time}`);
-      const dateB = new Date(`${b.date} ${b.time}`);
-      return dateB - dateA;
-    });
-  }, [logs]);
-
-  // Track new critical notifications for animation
-  const [newCriticalIds, setNewCriticalIds] = useState(new Set());
-
-  useEffect(() => {
-    const currentCriticalIds = criticalNotifications.map(
-      log => `${log.orderId}-${log.type}-${log.date}-${log.time}`
-    );
-    
-    const previousCriticalIds = JSON.parse(
-      sessionStorage.getItem('previousCriticalIds') || '[]'
-    );
-
-    // Find newly added critical notifications
-    const newIds = currentCriticalIds.filter(id => !previousCriticalIds.includes(id));
-    
-    if (newIds.length > 0) {
-      setNewCriticalIds(new Set(newIds));
-      
-      // Remove the "new" animation after 3 seconds
-      setTimeout(() => {
-        setNewCriticalIds(new Set());
-      }, 3000);
-    }
-
-    // Store current IDs for next comparison
-    sessionStorage.setItem('previousCriticalIds', JSON.stringify(currentCriticalIds));
-  }, [criticalNotifications]);
-
   const handleDismissCritical = (logToRemove) => {
-    const updatedLogs = logs.filter(log => 
-      !(log.orderId === logToRemove.orderId && 
-        log.type === logToRemove.type && 
-        log.date === logToRemove.date && 
-        log.time === logToRemove.time)
+    const updated = logs.filter(
+      (l) =>
+        !(
+          l.orderId === logToRemove.orderId &&
+          l.type === logToRemove.type &&
+          l.date === logToRemove.date &&
+          l.time === logToRemove.time
+        )
     );
-    localStorage.setItem("admin_notifications", JSON.stringify(updatedLogs));
-    setLogs(updatedLogs);
+    localStorage.setItem("admin_notifications", JSON.stringify(updated));
+    setLogs(updated);
     toast.success("Notification dismissed");
   };
 
+  // ─── Derived Data ────────────────────────────────────────
+  const notificationTypes = useMemo(() => [...new Set(logs.map((l) => l.type))], [logs]);
+
+  const stats = useMemo(
+    () => ({
+      total: logs.length,
+      newOrders: logs.filter((l) => l.type === "NEW_ORDER").length,
+      cancelled: logs.filter((l) => l.type === "ORDER_CANCELLED" || l.type === "CANCEL_REQUEST").length,
+      returned: logs.filter((l) => l.type === "ORDER_RETURNED" || l.type === "RETURN_REQUEST").length,
+      tickets: logs.filter((l) => l.type === "USER_TICKET_ALERT").length,
+    }),
+    [logs]
+  );
+
+  const criticalNotifications = useMemo(
+    () =>
+      logs
+        .filter(
+          (l) =>
+            l.type === "ORDER_CANCELLED" ||
+            l.type === "CANCEL_REQUEST" ||
+            l.type === "ORDER_RETURNED" ||
+            l.type === "RETURN_REQUEST"
+        )
+        .sort((a, b) => new Date(`${b.date} ${b.time}`) - new Date(`${a.date} ${a.time}`)),
+    [logs]
+  );
+
+  const [newCriticalIds, setNewCriticalIds] = useState(new Set());
+  useEffect(() => {
+    const current = criticalNotifications.map((l) => `${l.orderId}-${l.type}-${l.date}-${l.time}`);
+    const prev = JSON.parse(sessionStorage.getItem("previousCriticalIds") || "[]");
+    const newIds = current.filter((id) => !prev.includes(id));
+    if (newIds.length > 0) {
+      setNewCriticalIds(new Set(newIds));
+      setTimeout(() => setNewCriticalIds(new Set()), 3000);
+    }
+    sessionStorage.setItem("previousCriticalIds", JSON.stringify(current));
+  }, [criticalNotifications]);
+
+  // ─── RENDER ──────────────────────────────────────────────
   return (
-    <div title="Notification Registry - Gopi Nath Collection">
+    <>
       <style>{`
-        .notifications-wrapper {
-          background: ${colors.lightBg};
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@300;400;600;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* ── Page Shell (matches Coupon page exactly) ── */
+        .notif-page {
+          background: linear-gradient(135deg, ${bgDark} 0%, ${bgMid} 50%, ${bgEnd} 100%);
           min-height: 100vh;
-          padding: 30px 0;
+          color: #fff;
+          font-family: 'Lato', sans-serif;
+          padding-bottom: 50px;
         }
 
-        .notifications-card {
-          background: white;
-          border-radius: 15px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-          overflow: hidden;
+        .notif-container {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 60px 30px;
         }
 
-        .notifications-header {
-          background: ${colors.deepBurgundy};
-          border-bottom: 3px solid ${colors.gold};
-          padding: 25px 30px;
+        /* ── Header ── */
+        .notif-page-header {
           display: flex;
-          justify-content: space-between;
           align-items: center;
+          gap: 20px;
+          margin-bottom: 40px;
+          padding-bottom: 30px;
+          border-bottom: 1px solid rgba(212,175,55,0.2);
           flex-wrap: wrap;
-          gap: 15px;
         }
 
-        .notifications-title {
-          color: ${colors.gold};
-          font-family: serif;
-          font-size: 1.8rem;
-          font-weight: bold;
+        .notif-page-header svg { color: ${gold}; }
+
+        .notif-page-title {
+          font-family: 'Playfair Display', serif;
+          font-size: 3rem;
+          font-weight: 700;
+          background: linear-gradient(135deg, ${gold}, ${goldLight});
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          letter-spacing: 3px;
           margin: 0;
-          display: flex;
-          align-items: center;
-          gap: 12px;
+          flex: 1;
         }
 
-        .btn-clear-all {
+        .notif-clear-btn {
           background: transparent;
-          color: ${colors.gold};
-          border: 2px solid ${colors.gold};
-          padding: 8px 20px;
-          border-radius: 20px;
-          font-weight: 600;
+          color: ${gold};
+          border: 1px solid ${gold};
+          padding: 10px 24px;
+          border-radius: 10px;
+          font-size: 0.85rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 1px;
           cursor: pointer;
           display: flex;
           align-items: center;
           gap: 8px;
-          transition: all 0.3s;
-          font-size: 0.9rem;
+          transition: all 0.3s ease;
         }
 
-        .btn-clear-all:hover {
-          background: ${colors.gold};
-          color: ${colors.deepBurgundy};
+        .notif-clear-btn:hover {
+          background: linear-gradient(135deg, ${gold}, ${goldLight});
+          color: ${bgDark};
           transform: translateY(-2px);
+          box-shadow: 0 4px 15px rgba(212,175,55,0.3);
         }
 
-        .notifications-body {
-          padding: 25px 30px;
-        }
-
-        /* Critical Notifications Container */
-        .critical-notifications-container {
-          background: linear-gradient(135deg, #fff5f5 0%, #ffe8e8 100%);
-          border: 2px solid ${colors.danger};
-          border-radius: 12px;
-          padding: 20px;
-          margin-bottom: 30px;
-          box-shadow: 0 4px 15px rgba(255, 77, 79, 0.15);
-        }
-
-        .critical-header {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 20px;
-          padding-bottom: 15px;
-          border-bottom: 2px solid ${colors.danger}33;
-        }
-
-        .critical-header-icon {
-          font-size: 1.8rem;
-          color: ${colors.danger};
-          animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.7; transform: scale(1.1); }
-        }
-
-        @keyframes slideInBounce {
-          0% {
-            opacity: 0;
-            transform: translateY(-20px) scale(0.9);
-          }
-          60% {
-            opacity: 1;
-            transform: translateY(5px) scale(1.05);
-          }
-          100% {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        @keyframes plusIcon {
-          0% {
-            opacity: 0;
-            transform: scale(0) rotate(-180deg);
-          }
-          50% {
-            opacity: 1;
-            transform: scale(1.5) rotate(0deg);
-          }
-          100% {
-            opacity: 0;
-            transform: scale(1) rotate(180deg);
-          }
-        }
-
-        @keyframes glowPulse {
-          0%, 100% {
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-          }
-          50% {
-            box-shadow: 0 0 20px rgba(255, 77, 79, 0.4), 0 0 40px rgba(255, 77, 79, 0.2);
-          }
-        }
-
-        .critical-header-text h3 {
-          margin: 0;
-          color: ${colors.danger};
-          font-size: 1.3rem;
-          font-weight: 700;
-        }
-
-        .critical-header-text p {
-          margin: 5px 0 0 0;
-          color: ${colors.textMuted};
-          font-size: 0.85rem;
-        }
-
-        .critical-count-badge {
-          background: ${colors.danger};
-          color: white;
-          padding: 4px 12px;
-          border-radius: 20px;
-          font-size: 0.85rem;
-          font-weight: 700;
-          margin-left: auto;
-        }
-
-        .critical-notifications-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 15px;
-        }
-
-        .critical-notification-card {
-          background: white;
-          border-radius: 10px;
-          padding: 15px;
-          border-left: 4px solid;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-          transition: all 0.3s;
-          position: relative;
-        }
-
-        .critical-notification-card.new-notification {
-          animation: slideInBounce 0.6s ease-out, glowPulse 2s ease-in-out;
-        }
-
-        .critical-notification-card.new-notification::before {
-          content: '+';
-          position: absolute;
-          top: -10px;
-          right: -10px;
-          width: 40px;
-          height: 40px;
-          background: ${colors.danger};
-          color: white;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 24px;
-          font-weight: bold;
-          animation: plusIcon 2s ease-out;
-          z-index: 10;
-          box-shadow: 0 4px 12px rgba(255, 77, 79, 0.4);
-        }
-
-        .critical-notification-card.cancelled {
-          border-left-color: ${colors.danger};
-        }
-
-        .critical-notification-card.returned {
-          border-left-color: ${colors.warning};
-        }
-
-        .critical-notification-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        }
-
-        .critical-card-header {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 12px;
-        }
-
-        .critical-type-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 5px 12px;
-          border-radius: 15px;
-          font-size: 0.75rem;
-          font-weight: 700;
-          text-transform: uppercase;
-        }
-
-        .critical-dismiss-btn {
-          background: transparent;
-          border: none;
-          color: ${colors.textMuted};
-          cursor: pointer;
-          padding: 5px;
-          border-radius: 4px;
-          transition: all 0.2s;
-          font-size: 1rem;
-        }
-
-        .critical-dismiss-btn:hover {
-          background: #f1f3f5;
-          color: ${colors.danger};
-        }
-
-        .critical-order-id {
-          font-weight: 700;
-          color: ${colors.deepBurgundy};
-          font-family: 'Courier New', monospace;
-          font-size: 0.95rem;
-          margin-bottom: 8px;
-        }
-
-        .critical-message {
-          color: ${colors.textMuted};
-          font-size: 0.85rem;
-          line-height: 1.5;
-          margin-bottom: 12px;
-        }
-
-        .critical-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding-top: 10px;
-          border-top: 1px solid #e9ecef;
-        }
-
-        .critical-timestamp {
-          font-size: 0.75rem;
-          color: ${colors.textMuted};
-        }
-
-        .critical-view-btn {
-          background: ${colors.gold};
-          color: white;
-          border: none;
-          padding: 5px 14px;
-          border-radius: 12px;
-          cursor: pointer;
-          transition: all 0.3s;
-          display: inline-flex;
-          align-items: center;
-          gap: 5px;
-          font-size: 0.75rem;
-          font-weight: 600;
-        }
-
-        .critical-view-btn:hover {
-          background: ${colors.deepBurgundy};
-          transform: scale(1.05);
-        }
-
-        .no-critical-notifications {
-          text-align: center;
-          padding: 30px;
-          color: ${colors.textMuted};
-          font-size: 0.9rem;
-        }
-
-        .stats-row {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-          gap: 15px;
+        /* ── Cards (glass morphism, same as coupon) ── */
+        .notif-card {
+          background: rgba(255,255,255,0.06);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(212,175,55,0.2);
+          border-radius: 16px;
+          padding: 35px;
           margin-bottom: 30px;
         }
 
-        .stat-card {
-          background: linear-gradient(135deg, ${colors.deepBurgundy} 0%, ${colors.richBurgundy} 100%);
-          border: 1px solid ${colors.gold}33;
+        .notif-section-title {
+          font-family: 'Playfair Display', serif;
+          font-size: 1.4rem;
+          color: ${gold};
+          margin-bottom: 25px;
+          padding-bottom: 14px;
+          border-bottom: 1px solid rgba(212,175,55,0.2);
+        }
+
+        /* ── Stats Row ── */
+        .notif-stats {
+          display: grid;
+          grid-template-columns: repeat(5, 1fr);
+          gap: 16px;
+          margin-bottom: 30px;
+        }
+
+        .notif-stat {
+          background: rgba(0,0,0,0.25);
+          border: 1px solid rgba(212,175,55,0.18);
           border-radius: 12px;
-          padding: 20px;
+          padding: 20px 12px;
           text-align: center;
           transition: all 0.3s;
           position: relative;
           overflow: hidden;
         }
 
-        .stat-card::before {
+        .notif-stat::after {
           content: '';
           position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
+          bottom: 0; left: 0; right: 0;
           height: 3px;
-          background: ${colors.gold};
+          background: linear-gradient(90deg, ${gold}, ${goldLight});
           transform: scaleX(0);
           transition: transform 0.3s;
         }
 
-        .stat-card:hover::before {
-          transform: scaleX(1);
-        }
+        .notif-stat:hover { transform: translateY(-3px); }
+        .notif-stat:hover::after { transform: scaleX(1); }
 
-        .stat-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 8px 20px rgba(212, 175, 55, 0.2);
-        }
-
-        .stat-number {
-          font-size: 2rem;
-          font-weight: bold;
-          color: ${colors.gold};
+        .notif-stat-num {
+          font-size: 1.9rem;
+          font-weight: 700;
+          color: ${gold};
           display: block;
-          margin-bottom: 5px;
+          margin-bottom: 4px;
         }
 
-        .stat-label {
-          font-size: 0.85rem;
-          color: rgba(255, 255, 255, 0.7);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-
-        .filters-section {
-          background: #f8f9fa;
-          border-radius: 10px;
-          padding: 20px;
-          margin-bottom: 25px;
-        }
-
-        .filters-row {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 15px;
-        }
-
-        .filter-group {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .filter-label {
-          color: ${colors.deepBurgundy};
-          font-size: 0.85rem;
-          font-weight: 600;
-          margin-bottom: 8px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .filter-select,
-        .filter-input {
-          width: 100%;
-          padding: 10px 12px;
-          border-radius: 8px;
-          border: 1px solid #ddd;
-          background: white;
-          font-size: 14px;
-          transition: all 0.3s;
-        }
-
-        .filter-select:focus,
-        .filter-input:focus {
-          outline: none;
-          border-color: ${colors.gold};
-          box-shadow: 0 0 0 3px ${colors.gold}22;
-        }
-
-        .table-container {
-          overflow-x: auto;
-          border-radius: 10px;
-          border: 1px solid #e9ecef;
-        }
-
-        .notifications-table {
-          width: 100%;
-          border-collapse: collapse;
-          background: white;
-        }
-
-        .notifications-table thead {
-          background: #f8f9fa;
-          position: sticky;
-          top: 0;
-          z-index: 10;
-        }
-
-        .notifications-table th {
-          padding: 15px;
-          text-align: left;
-          font-weight: 700;
-          font-size: 0.85rem;
-          color: #495057;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          border-bottom: 2px solid #dee2e6;
-        }
-
-        .notifications-table td {
-          padding: 15px;
-          vertical-align: middle;
-          border-bottom: 1px solid #f1f3f5;
-          color: #495057;
-        }
-
-        .notifications-table tbody tr {
-          transition: all 0.2s;
-        }
-
-        .notifications-table tbody tr:hover {
-          background: #f8f9fa;
-        }
-
-        .type-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 6px 14px;
-          border-radius: 20px;
+        .notif-stat-label {
           font-size: 0.75rem;
-          font-weight: 600;
-          white-space: nowrap;
+          color: rgba(255,255,255,0.55);
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
         }
 
-        .order-id {
-          font-weight: 700;
-          color: ${colors.deepBurgundy};
-          font-family: 'Courier New', monospace;
-          font-size: 0.9rem;
+        /* ── Critical Alert Box ── */
+        .notif-critical-wrap {
+          background: rgba(255,77,79,0.08);
+          border: 1px solid rgba(255,77,79,0.35);
+          border-radius: 14px;
+          padding: 24px;
+          margin-bottom: 28px;
         }
 
-        .message-text {
-          color: ${colors.textMuted};
-          font-size: 0.9rem;
-          line-height: 1.4;
-        }
-
-        .timestamp {
-          color: ${colors.textMuted};
-          font-size: 0.8rem;
-          white-space: nowrap;
-        }
-
-        .btn-view {
-          background: ${colors.gold};
-          color: white;
-          border: none;
-          padding: 6px 16px;
-          border-radius: 15px;
-          cursor: pointer;
-          transition: all 0.3s;
-          display: inline-flex;
+        .notif-critical-head {
+          display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 14px;
+          margin-bottom: 18px;
+          padding-bottom: 14px;
+          border-bottom: 1px solid rgba(255,77,79,0.2);
+          flex-wrap: wrap;
+        }
+
+        .notif-critical-icon {
+          color: #ff4d4f;
+          font-size: 1.6rem;
+          animation: ncPulse 2s infinite;
+        }
+
+        @keyframes ncPulse {
+          0%,100% { opacity:1; transform:scale(1); }
+          50%      { opacity:0.6; transform:scale(1.15); }
+        }
+
+        .notif-critical-head-text h3 {
+          color: #ff4d4f;
+          font-size: 1.1rem;
+          font-weight: 700;
+          margin: 0;
+        }
+
+        .notif-critical-head-text p {
+          color: rgba(255,255,255,0.45);
           font-size: 0.8rem;
-          font-weight: 600;
+          margin: 3px 0 0;
         }
 
-        .btn-view:hover {
-          background: ${colors.deepBurgundy};
-          transform: scale(1.05);
+        .notif-critical-badge {
+          margin-left: auto;
+          background: #ff4d4f;
+          color: #fff;
+          padding: 3px 12px;
+          border-radius: 20px;
+          font-size: 0.78rem;
+          font-weight: 700;
         }
 
-        .btn-delete {
-          background: transparent;
-          border: 1px solid ${colors.danger};
-          color: ${colors.danger};
-          padding: 5px 12px;
-          border-radius: 6px;
-          cursor: pointer;
+        .notif-critical-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 14px;
+        }
+
+        .notif-critical-card {
+          background: rgba(255,255,255,0.07);
+          border-radius: 10px;
+          padding: 16px;
+          border-left: 4px solid;
+          position: relative;
           transition: all 0.3s;
+        }
+
+        .notif-critical-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+        }
+
+        .notif-critical-card.cancelled { border-left-color: #ff4d4f; }
+        .notif-critical-card.returned  { border-left-color: #ff9800; }
+
+        .notif-critical-card.new-card {
+          animation: ncSlide 0.55s ease-out, ncGlow 2s ease-in-out;
+        }
+
+        @keyframes ncSlide {
+          0%   { opacity:0; transform:translateY(-16px) scale(0.92); }
+          60%  { opacity:1; transform:translateY(4px) scale(1.03); }
+          100% { opacity:1; transform:translateY(0) scale(1); }
+        }
+
+        @keyframes ncGlow {
+          0%,100% { box-shadow: 0 2px 6px rgba(0,0,0,0.15); }
+          50%     { box-shadow: 0 0 18px rgba(255,77,79,0.35), 0 0 36px rgba(255,77,79,0.15); }
+        }
+
+        .notif-critical-card.new-card::before {
+          content: '+';
+          position: absolute;
+          top: -10px; right: -10px;
+          width: 34px; height: 34px;
+          background: #ff4d4f;
+          color: #fff;
+          border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 20px; font-weight: 700;
+          box-shadow: 0 3px 10px rgba(255,77,79,0.4);
+          animation: ncPlus 2s ease-out;
+        }
+
+        @keyframes ncPlus {
+          0%   { opacity:0; transform: scale(0) rotate(-180deg); }
+          50%  { opacity:1; transform: scale(1.4) rotate(0); }
+          100% { opacity:0; transform: scale(1) rotate(180deg); }
+        }
+
+        .notif-cc-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 10px;
+        }
+
+        .notif-cc-badge {
           display: inline-flex;
           align-items: center;
           gap: 5px;
-          font-size: 0.75rem;
-          margin-left: 8px;
+          padding: 4px 11px;
+          border-radius: 14px;
+          font-size: 0.7rem;
+          font-weight: 700;
+          text-transform: uppercase;
         }
 
-        .btn-delete:hover {
-          background: ${colors.danger};
-          color: white;
+        .notif-cc-dismiss {
+          background: transparent;
+          border: none;
+          color: rgba(255,255,255,0.35);
+          cursor: pointer;
+          font-size: 0.95rem;
+          transition: color 0.2s;
         }
 
-        .empty-state {
-          text-align: center;
-          padding: 80px 20px;
+        .notif-cc-dismiss:hover { color: #ff4d4f; }
+
+        .notif-cc-order {
+          font-weight: 700;
+          color: ${gold};
+          font-family: 'Courier New', monospace;
+          font-size: 0.88rem;
+          margin-bottom: 6px;
         }
 
-        .empty-state-icon {
-          font-size: 4rem;
-          color: ${colors.textMuted};
-          opacity: 0.3;
-          margin-bottom: 20px;
-        }
-
-        .empty-state-text {
-          font-size: 1.2rem;
-          color: ${colors.textMuted};
+        .notif-cc-msg {
+          color: rgba(255,255,255,0.5);
+          font-size: 0.8rem;
+          line-height: 1.45;
           margin-bottom: 10px;
+        }
+
+        .notif-cc-footer {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-top: 8px;
+          border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .notif-cc-time {
+          font-size: 0.7rem;
+          color: rgba(255,255,255,0.35);
+        }
+
+        .notif-cc-view {
+          background: linear-gradient(135deg, ${gold}, ${goldLight});
+          color: ${bgDark};
+          border: none;
+          padding: 5px 13px;
+          border-radius: 10px;
+          cursor: pointer;
+          font-size: 0.72rem;
+          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          transition: all 0.25s;
+        }
+
+        .notif-cc-view:hover {
+          transform: scale(1.06);
+          box-shadow: 0 3px 10px rgba(212,175,55,0.35);
+        }
+
+        /* ── Filters ── */
+        .notif-filters {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 18px;
+          margin-bottom: 28px;
+        }
+
+        .notif-filter-group { display: flex; flex-direction: column; }
+
+        .notif-filter-label {
+          color: ${gold};
+          font-size: 0.78rem;
           font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.6px;
+          margin-bottom: 8px;
+          display: flex;
+          align-items: center;
+          gap: 7px;
         }
 
-        .empty-state-subtext {
-          font-size: 0.9rem;
-          color: ${colors.textMuted};
-          opacity: 0.7;
+        .notif-filter-select,
+        .notif-filter-input {
+          background: rgba(0,0,0,0.3);
+          border: 1px solid rgba(212,175,55,0.3);
+          color: #fff;
+          padding: 10px 14px;
+          border-radius: 10px;
+          font-size: 0.88rem;
+          transition: all 0.3s;
+          font-family: 'Lato', sans-serif;
+          outline: none;
+          appearance: none;
+          -webkit-appearance: none;
         }
 
-        .result-counter {
-          margin-top: 20px;
-          padding: 12px 20px;
-          background: #f8f9fa;
+        .notif-filter-select {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23D4AF37' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 12px center;
+          padding-right: 32px;
+        }
+
+        .notif-filter-select option { background: ${bgMid}; color: #fff; }
+
+        .notif-filter-select:hover,
+        .notif-filter-input:hover,
+        .notif-filter-select:focus,
+        .notif-filter-input:focus {
+          border-color: ${gold};
+          box-shadow: 0 0 14px rgba(212,175,55,0.2);
+        }
+
+        .notif-filter-input::placeholder { color: rgba(255,255,255,0.35); }
+
+        /* ── Table ── */
+        .notif-table-wrap {
+          overflow-x: auto;
+          border-radius: 12px;
+          border: 1px solid rgba(212,175,55,0.15);
+        }
+
+        .notif-table {
+          width: 100%;
+          border-collapse: collapse;
+          min-width: 700px;
+        }
+
+        .notif-table thead {
+          background: rgba(212,175,55,0.1);
+        }
+
+        .notif-table th {
+          padding: 14px 16px;
+          text-align: left;
+          color: ${gold};
+          font-size: 0.78rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          border-bottom: 2px solid rgba(212,175,55,0.3);
+          white-space: nowrap;
+        }
+
+        .notif-table td {
+          padding: 14px 16px;
+          color: rgba(255,255,255,0.85);
+          font-size: 0.88rem;
+          border-bottom: 1px solid rgba(255,255,255,0.06);
+          vertical-align: middle;
+        }
+
+        .notif-table tbody tr { transition: background 0.2s; }
+        .notif-table tbody tr:hover { background: rgba(212,175,55,0.06); }
+
+        .notif-type-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 5px 12px;
+          border-radius: 16px;
+          font-size: 0.72rem;
+          font-weight: 600;
+          white-space: nowrap;
+        }
+
+        .notif-order-id {
+          font-weight: 700;
+          color: ${gold};
+          font-family: 'Courier New', monospace;
+          font-size: 0.85rem;
+        }
+
+        .notif-msg { color: rgba(255,255,255,0.5); font-size: 0.82rem; line-height: 1.4; }
+
+        .notif-time {
+          color: rgba(255,255,255,0.4);
+          font-size: 0.76rem;
+          white-space: nowrap;
+        }
+
+        .notif-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+        .notif-btn-view {
+          background: linear-gradient(135deg, ${gold}, ${goldLight});
+          color: ${bgDark};
+          border: none;
+          padding: 6px 14px;
+          border-radius: 10px;
+          cursor: pointer;
+          font-size: 0.75rem;
+          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          transition: all 0.25s;
+        }
+
+        .notif-btn-view:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 3px 10px rgba(212,175,55,0.3);
+        }
+
+        .notif-btn-del {
+          background: transparent;
+          border: 1px solid #ff4d4f;
+          color: #ff4d4f;
+          padding: 5px 10px;
           border-radius: 8px;
+          cursor: pointer;
+          font-size: 0.72rem;
+          display: inline-flex;
+          align-items: center;
+          transition: all 0.25s;
+        }
+
+        .notif-btn-del:hover { background: #ff4d4f; color: #fff; }
+
+        /* ── Empty State ── */
+        .notif-empty {
           text-align: center;
-          font-size: 0.9rem;
-          color: ${colors.textMuted};
-          font-weight: 500;
+          padding: 70px 20px;
         }
 
-        /* Mobile Responsive */
-        @media (max-width: 992px) {
-          .notifications-wrapper {
-            padding: 20px 0;
-          }
-
-          .notifications-header {
-            padding: 20px;
-          }
-
-          .notifications-body {
-            padding: 20px;
-          }
-
-          .notifications-title {
-            font-size: 1.5rem;
-          }
-
-          .stats-row {
-            grid-template-columns: repeat(2, 1fr);
-          }
-
-          .critical-notifications-grid {
-            grid-template-columns: 1fr;
-          }
+        .notif-empty-icon {
+          font-size: 3.5rem;
+          color: ${gold};
+          opacity: 0.25;
+          margin-bottom: 18px;
         }
 
+        .notif-empty-title {
+          font-size: 1.1rem;
+          color: rgba(255,255,255,0.6);
+          font-weight: 600;
+          margin-bottom: 8px;
+        }
+
+        .notif-empty-sub {
+          font-size: 0.82rem;
+          color: rgba(255,255,255,0.3);
+        }
+
+        /* ── Footer counter ── */
+        .notif-footer {
+          margin-top: 18px;
+          text-align: center;
+          color: rgba(255,255,255,0.35);
+          font-size: 0.82rem;
+        }
+
+        /* ═══════════════════════════════════════════
+           RESPONSIVE — Tablet
+        ═══════════════════════════════════════════ */
+        @media (max-width: 1024px) {
+          .notif-page-title { font-size: 2.4rem; }
+          .notif-stats { grid-template-columns: repeat(3, 1fr); }
+        }
+
+        /* ═══════════════════════════════════════════
+           RESPONSIVE — Mobile
+        ═══════════════════════════════════════════ */
         @media (max-width: 768px) {
-          .notifications-header {
+          .notif-container { padding: 40px 18px; }
+          .notif-page-title { font-size: 1.9rem; letter-spacing: 2px; }
+
+          .notif-page-header {
             flex-direction: column;
             align-items: flex-start;
-            padding: 18px;
+            gap: 14px;
           }
 
-          .notifications-title {
-            font-size: 1.3rem;
-          }
+          .notif-clear-btn { width: 100%; justify-content: center; }
+          .notif-card { padding: 22px 18px; }
+          .notif-stats { grid-template-columns: repeat(3, 1fr); gap: 10px; }
 
-          .btn-clear-all {
-            width: 100%;
-            justify-content: center;
-          }
+          .notif-stat { padding: 14px 8px; }
+          .notif-stat-num { font-size: 1.5rem; }
+          .notif-stat-label { font-size: 0.68rem; }
 
-          .notifications-body {
-            padding: 15px;
-          }
+          .notif-critical-wrap { padding: 16px; }
+          .notif-critical-grid { grid-template-columns: 1fr; }
 
-          .stats-row {
-            grid-template-columns: 1fr;
-          }
+          .notif-filters { grid-template-columns: 1fr; gap: 12px; }
+          .notif-table { min-width: 0; }
 
-          .stat-card {
-            padding: 15px;
-          }
-
-          .stat-number {
-            font-size: 1.6rem;
-          }
-
-          .critical-notifications-container {
-            padding: 15px;
-          }
-
-          .critical-header {
+          /* ── Mobile card layout replaces table ── */
+          .notif-table thead { display: none; }
+          .notif-table tbody tr {
+            display: flex;
             flex-direction: column;
-            align-items: flex-start;
+            gap: 8px;
+            padding: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+            background: rgba(255,255,255,0.04);
+            border-radius: 10px;
+            margin-bottom: 10px;
           }
+          .notif-table tbody tr:hover { background: rgba(212,175,55,0.07); }
 
-          .critical-count-badge {
-            margin-left: 0;
-            margin-top: 10px;
-          }
-
-          .filters-section {
-            padding: 15px;
-          }
-
-          .filters-row {
-            grid-template-columns: 1fr;
-          }
-
-          .table-container {
-            border-radius: 8px;
-          }
-
-          .notifications-table {
+          .notif-table td {
+            padding: 0 !important;
+            border-bottom: none !important;
             font-size: 0.85rem;
           }
 
-          .notifications-table th,
-          .notifications-table td {
-            padding: 10px 8px;
+          /* Row 1: badge + order id side by side */
+          .notif-table td:nth-child(1),
+          .notif-table td:nth-child(2) {
+            display: inline-flex;
+            align-items: center;
           }
 
-          .type-badge {
-            font-size: 0.7rem;
-            padding: 5px 10px;
-          }
+          .notif-table td:nth-child(1) { margin-right: 10px; }
 
-          .btn-view,
-          .btn-delete {
-            font-size: 0.75rem;
-            padding: 5px 10px;
-          }
+          /* Message row */
+          .notif-table td:nth-child(3) { color: rgba(255,255,255,0.5); }
 
-          .empty-state {
-            padding: 50px 15px;
-          }
+          /* Time row */
+          .notif-table td:nth-child(4) { color: rgba(255,255,255,0.35); font-size: 0.75rem; }
 
-          .empty-state-icon {
-            font-size: 3rem;
-          }
+          /* Actions row */
+          .notif-table td:nth-child(5) { padding-top: 4px !important; }
+          .notif-actions { gap: 6px; }
         }
 
         @media (max-width: 480px) {
-          .notifications-title {
-            font-size: 1.1rem;
-          }
+          .notif-container { padding: 30px 14px; }
+          .notif-page-title { font-size: 1.6rem; letter-spacing: 1.5px; }
+          .notif-card { padding: 18px 14px; }
 
-          .stat-number {
-            font-size: 1.4rem;
-          }
+          .notif-stats { grid-template-columns: repeat(2, 1fr); }
+          .notif-stat:last-child { grid-column: span 2; }
 
-          .stat-label {
-            font-size: 0.75rem;
-          }
+          .notif-critical-head { flex-direction: column; align-items: flex-start; gap: 8px; }
+          .notif-critical-badge { margin-left: 0; }
 
-          .critical-header-text h3 {
-            font-size: 1.1rem;
-          }
+          .notif-btn-view, .notif-btn-del { width: 100%; justify-content: center; }
+        }
 
-          .critical-notifications-grid {
-            gap: 12px;
-          }
+        @media (max-width: 360px) {
+          .notif-page-title { font-size: 1.4rem; }
+          .notif-stats { grid-template-columns: 1fr 1fr; }
+        }
 
-          /* Stack action buttons vertically */
-          .action-buttons {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-          }
-
-          .btn-view,
-          .btn-delete {
-            width: 100%;
-            justify-content: center;
-            margin-left: 0;
-          }
+        /* Touch enhancements */
+        @media (hover: none) and (pointer: coarse) {
+          .notif-btn-view:active,
+          .notif-cc-view:active { transform: scale(0.95); }
+          .notif-clear-btn:active { transform: scale(0.97); }
         }
       `}</style>
 
-      <div className="notifications-wrapper">
-        <div className="container-fluid">
-          <div className="row">
-            <div className="col-md-3">
-              <AdminMenu />
-            </div>
-            <div className="col-md-9">
-              <div className="notifications-card">
-                
-                {/* Header */}
-                <div className="notifications-header">
-                  <h2 className="notifications-title">
-                    📜 Notification Registry
-                  </h2>
-                  <button className="btn-clear-all" onClick={handleClear}>
-                    <FaTrash />
-                    Clear History
-                  </button>
+      <div className="notif-page">
+        <AdminMenu />
+
+        <div className="notif-container">
+          {/* Header */}
+          <div className="notif-page-header">
+            <FaBell size={36} />
+            <h1 className="notif-page-title">Notification Registry</h1>
+            <button className="notif-clear-btn" onClick={handleClear}>
+              <FaTrash /> Clear History
+            </button>
+          </div>
+
+          {/* Critical Alerts */}
+          {criticalNotifications.length > 0 && (
+            <div className="notif-card" style={{ padding: 0, overflow: "hidden" }}>
+              <div className="notif-critical-wrap" style={{ margin: 0, borderRadius: 0, border: "none", borderBottom: "1px solid rgba(255,77,79,0.2)" }}>
+                <div className="notif-critical-head">
+                  <div className="notif-critical-icon">
+                    <FaExclamationTriangle />
+                  </div>
+                  <div className="notif-critical-head-text">
+                    <h3>⚠️ Action Required</h3>
+                    <p>Returns & Cancellations need your attention</p>
+                  </div>
+                  <span className="notif-critical-badge">{criticalNotifications.length}</span>
                 </div>
 
-                <div className="notifications-body">
-                  
-                  {/* Critical Notifications Container (Returns & Cancellations) */}
-                  {criticalNotifications.length > 0 && (
-                    <div className="critical-notifications-container">
-                      <div className="critical-header">
-                        <div className="critical-header-icon">
-                          <FaExclamationTriangle />
+                <div className="notif-critical-grid">
+                  {criticalNotifications.map((log, i) => {
+                    const logId = `${log.orderId}-${log.type}-${log.date}-${log.time}`;
+                    const isNew = newCriticalIds.has(logId);
+                    const isCancelled = log.type === "ORDER_CANCELLED" || log.type === "CANCEL_REQUEST";
+                    return (
+                      <div
+                        key={i}
+                        className={`notif-critical-card ${isCancelled ? "cancelled" : "returned"} ${isNew ? "new-card" : ""}`}
+                      >
+                        <div className="notif-cc-head">
+                          <span
+                            className="notif-cc-badge"
+                            style={{
+                              background: `${getTypeColor(log.type)}20`,
+                              color: getTypeColor(log.type),
+                              border: `1px solid ${getTypeColor(log.type)}`,
+                            }}
+                          >
+                            {getTypeIcon(log.type)}
+                            {isCancelled ? "CANCELLED" : "RETURNED"}
+                          </span>
+                          <button className="notif-cc-dismiss" onClick={() => handleDismissCritical(log)}>
+                            <FaTimes />
+                          </button>
                         </div>
-                        <div className="critical-header-text">
-                          <h3>⚠️ Action Required</h3>
-                          <p>Returns and Cancellations need your attention</p>
+                        <div className="notif-cc-order">Order: {log.orderId}</div>
+                        <div className="notif-cc-msg">{log.message}</div>
+                        <div className="notif-cc-footer">
+                          <span className="notif-cc-time">
+                            {moment(`${log.date} ${log.time}`).format("MMM DD, hh:mm A")}
+                          </span>
+                          <button className="notif-cc-view" onClick={() => handleViewDetails(log)}>
+                            <FaEye /> View
+                          </button>
                         </div>
-                        <span className="critical-count-badge">
-                          {criticalNotifications.length}
-                        </span>
                       </div>
-                      
-                      <div className="critical-notifications-grid">
-                        {criticalNotifications.map((log, index) => {
-                          const logId = `${log.orderId}-${log.type}-${log.date}-${log.time}`;
-                          const isNew = newCriticalIds.has(logId);
-                          const isCancelled = log.type === "ORDER_CANCELLED" || log.type === "CANCEL_REQUEST";
-                          const isReturned = log.type === "ORDER_RETURNED" || log.type === "RETURN_REQUEST";
-                          
-                          return (
-                            <div 
-                              key={index} 
-                              className={`critical-notification-card ${
-                                isCancelled ? "cancelled" : "returned"
-                              } ${isNew ? "new-notification" : ""}`}
-                            >
-                              <div className="critical-card-header">
-                                <span 
-                                  className="critical-type-badge"
-                                  style={{
-                                    background: `${getTypeColor(log.type)}22`,
-                                    color: getTypeColor(log.type),
-                                    border: `1px solid ${getTypeColor(log.type)}`
-                                  }}
-                                >
-                                  {getTypeIcon(log.type)}
-                                  {isCancelled ? "CANCELLED" : "RETURNED"}
-                                </span>
-                                <button 
-                                  className="critical-dismiss-btn"
-                                  onClick={() => handleDismissCritical(log)}
-                                  title="Dismiss notification"
-                                >
-                                  <FaTimes />
-                                </button>
-                              </div>
-                              
-                              <div className="critical-order-id">
-                                Order: {log.orderId}
-                              </div>
-                              
-                              <div className="critical-message">
-                                {log.message}
-                              </div>
-                              
-                              <div className="critical-footer">
-                                <span className="critical-timestamp">
-                                  {moment(`${log.date} ${log.time}`).format("MMM DD, hh:mm A")}
-                                </span>
-                                <button 
-                                  className="critical-view-btn"
-                                  onClick={() => handleViewDetails(log)}
-                                >
-                                  <FaEye />
-                                  View
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Statistics */}
-                  <div className="stats-row">
-                    <div className="stat-card">
-                      <span className="stat-number">{stats.total}</span>
-                      <span className="stat-label">Total</span>
-                    </div>
-                    <div className="stat-card">
-                      <span className="stat-number" style={{ color: colors.success }}>
-                        {stats.newOrders}
-                      </span>
-                      <span className="stat-label">New Orders</span>
-                    </div>
-                    <div className="stat-card">
-                      <span className="stat-number" style={{ color: colors.danger }}>
-                        {stats.cancelled}
-                      </span>
-                      <span className="stat-label">Cancelled</span>
-                    </div>
-                    <div className="stat-card">
-                      <span className="stat-number" style={{ color: colors.warning }}>
-                        {stats.returned}
-                      </span>
-                      <span className="stat-label">Returns</span>
-                    </div>
-                    <div className="stat-card">
-                      <span className="stat-number" style={{ color: "#9b59b6" }}>
-                        {stats.tickets}
-                      </span>
-                      <span className="stat-label">Tickets</span>
-                    </div>
-                  </div>
-
-                  {/* Filters */}
-                  <div className="filters-section">
-                    <div className="filters-row">
-                      <div className="filter-group">
-                        <div className="filter-label">
-                          <FaFilter />
-                          Filter by Type
-                        </div>
-                        <select 
-                          className="filter-select"
-                          value={filterType}
-                          onChange={(e) => setFilterType(e.target.value)}
-                        >
-                          <option value="all">All Notifications</option>
-                          {notificationTypes.map(type => (
-                            <option key={type} value={type}>
-                              {type.replace(/_/g, ' ')}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="filter-group">
-                        <div className="filter-label">
-                          <FaSearch />
-                          Search
-                        </div>
-                        <input
-                          type="text"
-                          className="filter-input"
-                          placeholder="Search by order ID or message..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                      </div>
-
-                      <div className="filter-group">
-                        <div className="filter-label">Sort By</div>
-                        <select 
-                          className="filter-select"
-                          value={sortOrder}
-                          onChange={(e) => setSortOrder(e.target.value)}
-                        >
-                          <option value="newest">Newest First</option>
-                          <option value="oldest">Oldest First</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Table */}
-                  <div className="table-container">
-                    <table className="notifications-table">
-                      <thead>
-                        <tr>
-                          <th>Type</th>
-                          <th>Reference</th>
-                          <th>Message</th>
-                          <th>Time</th>
-                          <th style={{ textAlign: 'center' }}>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredLogs.length > 0 ? (
-                          filteredLogs.map((log, index) => (
-                            <tr key={index}>
-                              <td>
-                                <span 
-                                  className="type-badge" 
-                                  style={{ 
-                                    background: `${getTypeColor(log.type)}22`,
-                                    color: getTypeColor(log.type),
-                                    border: `1px solid ${getTypeColor(log.type)}`
-                                  }}
-                                >
-                                  {getTypeIcon(log.type)}
-                                  {log.type.replace(/_/g, ' ')}
-                                </span>
-                              </td>
-                              <td>
-                                <span className="order-id">{log.orderId}</span>
-                              </td>
-                              <td>
-                                <span className="message-text">{log.message}</span>
-                              </td>
-                              <td>
-                                <span className="timestamp">
-                                  {moment(`${log.date} ${log.time}`).format("MMM DD, YYYY")}
-                                  <br />
-                                  {moment(`${log.date} ${log.time}`).format("hh:mm A")}
-                                </span>
-                              </td>
-                              <td style={{ textAlign: 'center' }}>
-                                <div className="action-buttons">
-                                  <button 
-                                    className="btn-view"
-                                    onClick={() => handleViewDetails(log)}
-                                  >
-                                    <FaEye />
-                                    View Details
-                                  </button>
-                                  <button 
-                                    className="btn-delete"
-                                    onClick={() => handleDeleteSingle(index)}
-                                    title="Delete this notification"
-                                  >
-                                    <FaTrash />
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan="5">
-                              <div className="empty-state">
-                                <div className="empty-state-icon">
-                                  <FaBell />
-                                </div>
-                                <div className="empty-state-text">
-                                  {searchTerm || filterType !== "all" 
-                                    ? "No notifications match your filters" 
-                                    : "No recent activities recorded"}
-                                </div>
-                                <div className="empty-state-subtext">
-                                  {searchTerm || filterType !== "all"
-                                    ? "Try adjusting your search or filter criteria"
-                                    : "New order and activity notifications will appear here"}
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Footer Info */}
-                  {filteredLogs.length > 0 && (
-                    <div className="result-counter">
-                      Showing {filteredLogs.length} of {logs.length} notification{logs.length !== 1 ? 's' : ''}
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Stats */}
+          <div className="notif-stats">
+            <div className="notif-stat">
+              <span className="notif-stat-num">{stats.total}</span>
+              <span className="notif-stat-label">Total</span>
+            </div>
+            <div className="notif-stat">
+              <span className="notif-stat-num" style={{ color: "#4BB543" }}>{stats.newOrders}</span>
+              <span className="notif-stat-label">New Orders</span>
+            </div>
+            <div className="notif-stat">
+              <span className="notif-stat-num" style={{ color: "#ff4d4f" }}>{stats.cancelled}</span>
+              <span className="notif-stat-label">Cancelled</span>
+            </div>
+            <div className="notif-stat">
+              <span className="notif-stat-num" style={{ color: "#ff9800" }}>{stats.returned}</span>
+              <span className="notif-stat-label">Returns</span>
+            </div>
+            <div className="notif-stat">
+              <span className="notif-stat-num" style={{ color: "#9b59b6" }}>{stats.tickets}</span>
+              <span className="notif-stat-label">Tickets</span>
+            </div>
+          </div>
+
+          {/* Filters + Table Card */}
+          <div className="notif-card">
+            <h3 className="notif-section-title">All Notifications ({logs.length})</h3>
+
+            {/* Filters */}
+            <div className="notif-filters">
+              <div className="notif-filter-group">
+                <label className="notif-filter-label"><FaFilter /> Filter Type</label>
+                <select className="notif-filter-select" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
+                  <option value="all">All Notifications</option>
+                  {notificationTypes.map((t) => (
+                    <option key={t} value={t}>{t.replace(/_/g, " ")}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="notif-filter-group">
+                <label className="notif-filter-label"><FaSearch /> Search</label>
+                <input
+                  type="text"
+                  className="notif-filter-input"
+                  placeholder="Order ID or message…"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="notif-filter-group">
+                <label className="notif-filter-label">Sort By</label>
+                <select className="notif-filter-select" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="notif-table-wrap">
+              <table className="notif-table">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Reference</th>
+                    <th>Message</th>
+                    <th>Time</th>
+                    <th style={{ textAlign: "center" }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLogs.length > 0 ? (
+                    filteredLogs.map((log, i) => (
+                      <tr key={i}>
+                        <td>
+                          <span
+                            className="notif-type-badge"
+                            style={{
+                              background: `${getTypeColor(log.type)}1a`,
+                              color: getTypeColor(log.type),
+                              border: `1px solid ${getTypeColor(log.type)}`,
+                            }}
+                          >
+                            {getTypeIcon(log.type)}
+                            {log.type.replace(/_/g, " ")}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="notif-order-id">{log.orderId}</span>
+                        </td>
+                        <td>
+                          <span className="notif-msg">{log.message}</span>
+                        </td>
+                        <td>
+                          <span className="notif-time">
+                            {moment(`${log.date} ${log.time}`).format("MMM DD, YYYY")}
+                            <br />
+                            {moment(`${log.date} ${log.time}`).format("hh:mm A")}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: "center" }}>
+                          <div className="notif-actions">
+                            <button className="notif-btn-view" onClick={() => handleViewDetails(log)}>
+                              <FaEye /> View Details
+                            </button>
+                            <button className="notif-btn-del" onClick={() => handleDeleteSingle(i)}>
+                              <FaTrash />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5}>
+                        <div className="notif-empty">
+                          <div className="notif-empty-icon"><FaBell /></div>
+                          <div className="notif-empty-title">
+                            {searchTerm || filterType !== "all"
+                              ? "No notifications match your filters"
+                              : "No recent activities recorded"}
+                          </div>
+                          <div className="notif-empty-sub">
+                            {searchTerm || filterType !== "all"
+                              ? "Try adjusting your search or filter criteria"
+                              : "New order and activity notifications will appear here"}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {filteredLogs.length > 0 && (
+              <div className="notif-footer">
+                Showing {filteredLogs.length} of {logs.length} notification{logs.length !== 1 ? "s" : ""}
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
