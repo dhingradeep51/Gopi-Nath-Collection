@@ -39,7 +39,7 @@ const AdminOrderDetails = () => {
   const getOrderDetails = useCallback(async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`${BASE_URL}api/v1/order/order-details/${params.orderID}`);
+      const { data } = await axios.get(`${BASE_URL}api/v1/order/order-details/${params.orderId}`);
       if (data?.success) {
         setOrder(data.order);
         setLogisticData({
@@ -54,7 +54,7 @@ const AdminOrderDetails = () => {
     } finally {
       setLoading(false);
     }
-  }, [params.orderID, BASE_URL, navigate]);
+  }, [params.orderId, BASE_URL, navigate]);
 
   useEffect(() => {
     if (params?.orderID) getOrderDetails();

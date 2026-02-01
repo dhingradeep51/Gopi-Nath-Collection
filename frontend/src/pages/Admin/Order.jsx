@@ -316,30 +316,39 @@ const AdminOrders = () => {
         }
 
         .order-card {
-          background: rgba(255, 255, 255, 0.06);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(212, 175, 55, 0.2);
-          border-radius: 16px;
-          padding: 25px 30px;
-          cursor: pointer;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          display: grid;
-          grid-template-columns: auto 1fr auto;
-          align-items: center;
-          gap: 25px;
-          position: relative;
-          overflow: hidden;
-          min-height: 90px;
-          touch-action: manipulation;
           border: none;
           background: none;
           font: inherit;
           outline: none;
           width: 100%;
           text-align: left;
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          appearance: none;
+          padding: 0;
+          margin: 0;
+          cursor: pointer;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          overflow: hidden;
+          touch-action: manipulation;
         }
 
-        .order-card::before {
+        .order-card-content {
+          background: rgba(255, 255, 255, 0.06);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(212, 175, 55, 0.2);
+          border-radius: 16px;
+          padding: 25px 30px;
+          display: grid;
+          grid-template-columns: auto 1fr auto;
+          align-items: center;
+          gap: 25px;
+          min-height: 90px;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .order-card-content::before {
           content: '';
           position: absolute;
           left: 0;
@@ -351,13 +360,13 @@ const AdminOrders = () => {
           transition: opacity 0.3s ease;
         }
 
-        .order-card:hover {
+        .order-card:hover .order-card-content {
           transform: translateX(8px);
           border-color: #D4AF37;
           box-shadow: 0 8px 30px rgba(212, 175, 55, 0.2);
         }
 
-        .order-card:hover::before {
+        .order-card:hover .order-card-content::before {
           opacity: 1;
         }
 
@@ -835,7 +844,7 @@ const AdminOrders = () => {
             -webkit-tap-highlight-color: rgba(212, 175, 55, 0.15);
           }
 
-          .order-card:active {
+          .order-card:active .order-card-content {
             transform: translateX(3px);
           }
 
@@ -845,7 +854,7 @@ const AdminOrders = () => {
         }
 
         /* Focus indicators for accessibility */
-        .order-card:focus-visible {
+        .order-card:focus-visible .order-card-content {
           outline: 3px solid #D4AF37;
           outline-offset: 2px;
         }
@@ -990,8 +999,10 @@ const AdminOrders = () => {
                     key={order._id}
                     className="order-card"
                     onClick={() => navigate(`/dashboard/admin/orders/${order.orderNumber}`)}
+                    onTouchStart={() => navigate(`/dashboard/admin/orders/${order.orderNumber}`)}
                     type="button"
                   >
+                    <div className="order-card-content">
                     <div className="order-id">
                       <div className="order-number">{order.orderNumber}</div>
                       <div className="order-date">{moment(order.createdAt).format("DD MMM YYYY")}</div>
@@ -1015,6 +1026,7 @@ const AdminOrders = () => {
                         {order.status}
                       </span>
                     </div>
+                  </div>
                   </button>
                 );
               })}
