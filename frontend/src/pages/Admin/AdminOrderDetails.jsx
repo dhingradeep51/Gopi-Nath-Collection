@@ -57,8 +57,8 @@ const AdminOrderDetails = () => {
   }, [params.orderId, BASE_URL, navigate]);
 
   useEffect(() => {
-    if (params?.orderID) getOrderDetails();
-  }, [params?.orderID, getOrderDetails]);
+    if (params?.orderId) getOrderDetails();
+  }, [params?.orderId, getOrderDetails]);
 
   /* ================= HANDLERS ================= */
   const handleStatusChange = async (value) => {
