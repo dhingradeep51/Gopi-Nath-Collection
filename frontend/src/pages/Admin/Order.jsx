@@ -830,11 +830,11 @@ const AdminOrders = () => {
           }
 
           .order-card:active {
-            transform: translateX(3px) scale(0.98);
+            transform: translateX(3px);
           }
 
           .stat-card:active {
-            transform: translateY(-4px) scale(0.98);
+            transform: translateY(-4px);
           }
         }
 
