@@ -321,8 +321,6 @@ const AdminOrders = () => {
           border: 1px solid rgba(212, 175, 55, 0.2);
           border-radius: 16px;
           padding: 25px 30px;
-          border: none;
-          background: transparent;
           font: inherit;
           outline: none;
           width: 100%;
