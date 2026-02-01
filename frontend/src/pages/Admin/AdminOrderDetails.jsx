@@ -6,7 +6,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
 import axios from "axios";
 import moment from "moment";
-import { Input, Button, Dropdown, Tag, Divider, Spin } from "antd";
+import { Input, Button, Dropdown, Tag, Divider } from "antd";
 import { 
   FaChevronDown, FaArrowLeft, FaTruck, FaEdit, FaUser, 
   FaMapMarkerAlt, FaCopy, FaFileInvoice, FaShoppingBag, 
@@ -102,28 +102,10 @@ const AdminOrderDetails = () => {
 
   if (loading) {
     return (
-      <Layout>
-        <div style={{ 
-          background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
-          minHeight: '100vh', 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          flexDirection: 'column',
-          gap: '20px',
-          padding: '40px 20px'
-        }}>
-          <Spin size="large" />
-          <p style={{ 
-            color: colors.gold, 
-            fontSize: '1.1rem',
-            fontWeight: 300,
-            letterSpacing: '2px'
-          }}>
-            Loading order details...
-          </p>
+        <div className="loading-state">
+          <div className="spinner" />
+          <p className="loading-text">Loading order details...</p>
         </div>
-      </Layout>
     );
   }
 
@@ -656,6 +638,58 @@ const AdminOrderDetails = () => {
           select,
           textarea {
             font-size: 16px !important;
+          }
+        }
+
+        /* ══════════════════════════════════════════════
+           LOADING STATE
+        ══════════════════════════════════════════════ */
+
+        .loading-state {
+          background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-height: 100vh;
+          gap: 20px;
+        }
+
+        .spinner {
+          width: 60px;
+          height: 60px;
+          border: 4px solid rgba(212, 175, 55, 0.2);
+          border-top-color: #D4AF37;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+          color: #D4AF37;
+          font-size: 1.1rem;
+          font-weight: 300;
+          letter-spacing: 2px;
+        }
+
+        /* Mobile responsiveness for loading state */
+        @media (max-width: 480px) {
+          .loading-state {
+            min-height: 50vh;
+          }
+
+          .spinner {
+            width: 50px;
+            height: 50px;
+            border-width: 3px;
+          }
+
+          .loading-text {
+            font-size: 1rem;
+            letter-spacing: 1.5px;
           }
         }
       `}</style>
