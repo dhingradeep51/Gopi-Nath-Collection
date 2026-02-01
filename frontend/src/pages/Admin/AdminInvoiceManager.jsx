@@ -16,8 +16,9 @@ const AdminInvoiceManager = () => {
   const navigate = useNavigate();
 
   const BASE_URL = import.meta.env.VITE_API_URL;
+  const primary = "#0f0c29";
+  const secondary = "#24243e";
   const gold = "#D4AF37";
-  const burgundy = "#2D0A14";
 
   // 1. Fetch orders from database
   const getOrders = async () => {
@@ -145,7 +146,7 @@ const handleGenerateInvoice = async (order) => {
 
         const canGenerate = o.payment?.method === "online" || o.status === "Delivered";
         return canGenerate ? (
-          <Button icon={<FaPlus />} size="small" style={{ background: gold, color: burgundy, border: 'none' }} onClick={() => handleGenerateInvoice(o)}>
+          <Button icon={<FaPlus />} size="small" style={{ background: gold, color: primary, border: 'none' }} onClick={() => handleGenerateInvoice(o)}>
             GENERATE
           </Button>
         ) : (
@@ -173,7 +174,7 @@ const handleGenerateInvoice = async (order) => {
   }, [orders, searchText]);
 
   return (
-    <div style={{ background: "#1a050b", minHeight: "100vh", color: "#fff" }}>
+    <div style={{ background: `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`, minHeight: "100vh", color: "#fff" }}>
       <AdminMenu />
       <div style={{ padding: "40px", maxWidth: "1400px", margin: "0 auto" }}>
         <Row gutter={[24, 24]} align="middle" style={{ marginBottom: "30px" }}>
@@ -202,7 +203,7 @@ const handleGenerateInvoice = async (order) => {
 
       <style>{`
         .gnc-invoice-table .ant-table { background: transparent !important; color: #fff !important; }
-        .gnc-invoice-table .ant-table-thead > tr > th { background: ${burgundy} !important; color: ${gold} !important; border-bottom: 2px solid ${gold}44 !important; }
+        .gnc-invoice-table .ant-table-thead > tr > th { background: ${primary} !important; color: ${gold} !important; border-bottom: 2px solid ${gold}44 !important; }
         .gnc-invoice-table .ant-table-tbody > tr > td { border-bottom: 1px solid rgba(255,255,255,0.05) !important; color: #fff !important; }
         .gnc-invoice-table .ant-table-tbody > tr:hover > td { background: rgba(212, 175, 55, 0.05) !important; }
       `}</style>

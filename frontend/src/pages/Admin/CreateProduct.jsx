@@ -28,7 +28,8 @@ const CreateProduct = () => {
 
   const gold = "#D4AF37";
   const softCream = "#FDF5E6"; 
-  const deepBurgundy = "#2D0A14";
+  const primary = "#0f0c29";
+  const secondary = "#24243e";
 
   const labelStyle = { 
     color: gold, 
@@ -129,7 +130,7 @@ const CreateProduct = () => {
   };
 
   return (
-    <div style={{ backgroundColor: deepBurgundy, minHeight: "100vh", color: "white" }}>
+    <div style={{ background: `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`, minHeight: "100vh", color: "white" }}>
       <AdminMenu />
       
       <div style={{ padding: "40px 80px" }}>
@@ -326,7 +327,7 @@ const CreateProduct = () => {
                 width: "100%", 
                 padding: "18px", 
                 background: loading ? "#ccc" : gold, 
-                color: deepBurgundy, 
+                color: primary, 
                 fontWeight: "900", 
                 border: "none", 
                 cursor: loading ? "not-allowed" : "pointer", 

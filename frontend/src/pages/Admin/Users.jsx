@@ -22,7 +22,6 @@ const Users = () => {
   const BASE_URL = import.meta.env.VITE_API_URL;
 
   const gold = "#D4AF37";
-  const darkBurgundy = "#120307"; 
   const glassWhite = "rgba(255, 255, 255, 0.05)";
 
   const getUsers = async () => {

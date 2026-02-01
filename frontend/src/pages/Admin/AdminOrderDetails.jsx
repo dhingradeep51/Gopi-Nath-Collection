@@ -26,10 +26,10 @@ const AdminOrderDetails = () => {
   const statusList = ["Not Processed", "Processing", "Shipped", "Delivered", "Cancel", "Return"];
   
   const colors = {
-    burgundy: "#2D0A14",
-    darkBurgundy: "#1a050b",
-    richBurgundy: "#3D0E1C",
+    primary: "#0f0c29",
+    secondary: "#24243e",
     gold: "#D4AF37",
+    goldLight: "#FFD700",
     success: "#4BB543",
     danger: "#ff4d4f",
     warning: "#faad14"
@@ -104,7 +104,7 @@ const AdminOrderDetails = () => {
     return (
       <Layout>
         <div style={{ 
-          background: colors.darkBurgundy, 
+          background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
           minHeight: '100vh', 
           display: 'flex', 
           justifyContent: 'center', 
@@ -134,7 +134,7 @@ const AdminOrderDetails = () => {
     <div title={`Order ${order?.orderNumber} - Admin`}>
       <style>{`
         .order-details-wrapper {
-          background: ${colors.darkBurgundy};
+          background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%);
           min-height: 100vh;
           color: #fff;
           padding: 40px 20px;
@@ -427,13 +427,13 @@ const AdminOrderDetails = () => {
 
         .btn-status:hover {
           background: ${colors.gold};
-          color: ${colors.darkBurgundy};
+          color: ${colors.primary};
         }
 
         .btn-update {
           width: 100%;
           background: ${colors.gold};
-          color: ${colors.darkBurgundy};
+          color: ${colors.primary};
           font-weight: bold;
           height: 50px;
           border: none;

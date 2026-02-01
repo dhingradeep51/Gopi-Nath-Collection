@@ -23,7 +23,8 @@ const HelpCenter = () => {
   const [searchText, setSearchText] = useState("");
 
   const gold = "#D4AF37";
-  const darkBurgundy = "#120307";
+  const primary = "#0f0c29";
+  const secondary = "#24243e";
   const BASE_URL = import.meta.env.VITE_API_URL;
 
   // ✅ Stable fetch function to prevent re-render loops
@@ -153,7 +154,7 @@ const HelpCenter = () => {
             <AdminMenu />
           </div>
           <div className="col-md-9">
-            <div style={{ background: darkBurgundy, padding: "30px", borderRadius: "10px", color: "#fff" }}>
+            <div style={{ background: `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`, padding: "30px", borderRadius: "10px", color: "#fff" }}>
               
               <h2 style={{ color: gold, marginBottom: "20px" }}><FaTicketAlt /> Support Registry</h2>
 

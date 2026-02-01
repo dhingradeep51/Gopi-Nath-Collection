@@ -19,7 +19,6 @@ const CreateCategory = () => {
 
   const BASE_URL = import.meta.env.VITE_API_URL;
   const gold = "#D4AF37";
-  const burgundy = "#2D0A14";
 
   // 1. Get All Categories
   const getAllCategory = async () => {
