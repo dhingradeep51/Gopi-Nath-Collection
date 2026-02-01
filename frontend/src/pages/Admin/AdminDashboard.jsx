@@ -9,7 +9,7 @@ import axios from "axios";
 import {
   TrendingUp, Users, Package, FileText, ArrowRight,
   ShoppingBag, Layers, PlusCircle, Ticket, UserCheck,
-  AlertTriangle, X,
+  AlertTriangle, X, Bell,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -86,6 +86,52 @@ const AdminDashboard = () => {
           position: relative;
         }
 
+        .header-main {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 20px;
+        }
+
+        .notification-bell {
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(212, 175, 55, 0.3);
+          border-radius: 12px;
+          padding: 12px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          position: relative;
+          touch-action: manipulation;
+          min-width: 50px;
+          min-height: 50px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .notification-bell:hover {
+          background: rgba(212, 175, 55, 0.1);
+          border-color: #D4AF37;
+          transform: scale(1.05);
+        }
+
+        .notification-count {
+          position: absolute;
+          top: -8px;
+          right: -8px;
+          background: linear-gradient(135deg, #ff4d4f, #ff6b6b);
+          color: white;
+          border-radius: 50%;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.7rem;
+          font-weight: 700;
+          border: 2px solid #0f0c29;
+        }
+
         .page-header::after {
           content: '';
           position: absolute;
@@ -95,6 +141,13 @@ const AdminDashboard = () => {
           width: 100px;
           height: 3px;
           background: linear-gradient(90deg, transparent, #D4AF37, transparent);
+        }
+
+        .header-main {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 20px;
         }
 
         .page-title {
@@ -115,6 +168,29 @@ const AdminDashboard = () => {
           font-weight: 300;
           letter-spacing: 2px;
           text-transform: uppercase;
+        }
+
+        .welcome-message {
+          margin-top: 20px;
+          padding: 20px;
+          background: rgba(255, 255, 255, 0.04);
+          border-radius: 12px;
+          border: 1px solid rgba(212, 175, 55, 0.2);
+          text-align: center;
+        }
+
+        .welcome-text {
+          display: block;
+          font-size: 1.1rem;
+          color: #D4AF37;
+          font-weight: 500;
+          margin-bottom: 5px;
+        }
+
+        .welcome-date {
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.5);
+          font-weight: 300;
         }
 
         .controls-section {
@@ -272,10 +348,26 @@ const AdminDashboard = () => {
           margin-bottom: 8px;
         }
 
-        .stat-subtext {
-          font-size: 0.8rem;
-          color: rgba(255, 255, 255, 0.4);
-          font-weight: 300;
+        .stat-card.alert-stat {
+          border-color: rgba(255, 77, 79, 0.4);
+          background: rgba(255, 77, 79, 0.05);
+        }
+
+        .stat-card.alert-stat:hover {
+          border-color: #ff4d4f;
+          box-shadow: 0 12px 40px rgba(255, 77, 79, 0.25);
+        }
+
+        .stat-card.alert-stat .stat-icon-wrapper {
+          background: linear-gradient(135deg, rgba(255, 77, 79, 0.2), rgba(255, 152, 0, 0.1));
+        }
+
+        .stat-subtext.alert-indicator {
+          color: #ff4d4f !important;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          font-size: 0.7rem;
         }
 
         .results-info {
@@ -507,8 +599,27 @@ const AdminDashboard = () => {
             margin-bottom: 35px;
           }
 
-          .page-header::after {
-            width: 80px;
+          .header-main {
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+          }
+
+          .notification-bell {
+            align-self: flex-end;
+            min-width: 48px;
+            min-height: 48px;
+            padding: 10px;
+          }
+
+          .notification-bell svg {
+            font-size: 18px !important;
+          }
+
+          .notification-count {
+            width: 22px;
+            height: 22px;
+            font-size: 0.65rem;
           }
 
           .page-title {
@@ -519,6 +630,19 @@ const AdminDashboard = () => {
           .page-subtitle {
             font-size: 0.85rem;
             letter-spacing: 1.5px;
+          }
+
+          .welcome-message {
+            margin-top: 15px;
+            padding: 16px;
+          }
+
+          .welcome-text {
+            font-size: 1rem;
+          }
+
+          .welcome-date {
+            font-size: 0.8rem;
           }
 
           .controls-section {
@@ -828,24 +952,7 @@ const AdminDashboard = () => {
           }
         }
 
-        /* ══════════════════════════════════════════════
-           TOUCH ENHANCEMENTS
-        ══════════════════════════════════════════════ */
 
-        @media (hover: none) and (pointer: coarse) {
-          .order-card,
-          .stat-card {
-            -webkit-tap-highlight-color: rgba(212, 175, 55, 0.15);
-          }
-
-          .order-card:active {
-            /* Removed transform to prevent interference with touch events */
-          }
-
-          .stat-card:active {
-            transform: translateY(-4px);
-          }
-        }
 
         /* Focus indicators for accessibility */
         .order-card:focus-visible {
@@ -853,13 +960,507 @@ const AdminDashboard = () => {
           outline-offset: 2px;
         }
 
-        /* Prevent iOS zoom on input focus */
+        /* ══════════════════════════════════════════════
+           ALERTS & NOTIFICATIONS
+        ══════════════════════════════════════════════ */
+
+        .alerts-container {
+          display: flex;
+          gap: 20px;
+          margin-bottom: 40px;
+          flex-wrap: wrap;
+        }
+
+        .alert-card {
+          flex: 1;
+          min-width: 300px;
+          background: rgba(255, 255, 255, 0.06);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(212, 175, 55, 0.2);
+          border-radius: 16px;
+          padding: 20px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          touch-action: manipulation;
+        }
+
+        .alert-card:hover {
+          transform: translateY(-4px);
+          border-color: #D4AF37;
+          box-shadow: 0 8px 25px rgba(212, 175, 55, 0.2);
+        }
+
+        .alert-card.danger {
+          border-left: 4px solid #ff4d4f;
+        }
+
+        .alert-card.warning {
+          border-left: 4px solid #D4AF37;
+        }
+
+        .alert-content {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          flex: 1;
+        }
+
+        .alert-text {
+          font-size: 1rem;
+          font-weight: 500;
+          color: #fff;
+        }
+
+        .alert-icon {
+          flex-shrink: 0;
+        }
+
+        /* ══════════════════════════════════════════════
+           CONTENT GRID & SECTIONS
+        ══════════════════════════════════════════════ */
+
+        .content-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 30px;
+          margin-top: 50px;
+        }
+
+        .section-card {
+          background: rgba(255, 255, 255, 0.06);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(212, 175, 55, 0.2);
+          border-radius: 16px;
+          padding: 30px;
+        }
+
+        .section-title {
+          font-family: 'Playfair Display', serif;
+          font-size: 1.5rem;
+          color: #D4AF37;
+          margin-bottom: 25px;
+          border-bottom: 2px solid rgba(212, 175, 55, 0.3);
+          padding-bottom: 10px;
+        }
+
+        .profile-field {
+          margin-bottom: 20px;
+        }
+
+        .profile-field:last-child {
+          margin-bottom: 0;
+        }
+
+        .profile-avatar {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          margin-bottom: 25px;
+          padding-bottom: 20px;
+          border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        .avatar-circle {
+          width: 60px;
+          height: 60px;
+          background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(255, 215, 0, 0.1));
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 2px solid rgba(212, 175, 55, 0.3);
+        }
+
+        .role-badge {
+          background: linear-gradient(135deg, #D4AF37, #FFD700);
+          color: #0f0c29;
+          padding: 6px 14px;
+          border-radius: 20px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        .profile-label {
+          display: block;
+          font-size: 0.85rem;
+          color: rgba(255, 255, 255, 0.6);
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 8px;
+          font-weight: 300;
+        }
+
+        .profile-value {
+          font-size: 1.1rem;
+          color: #fff;
+          font-weight: 500;
+        }
+
+        .quick-links-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+          gap: 15px;
+        }
+
+        .quick-link {
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(212, 175, 55, 0.3);
+          border-radius: 12px;
+          padding: 15px 12px;
+          color: #fff;
+          font-size: 0.9rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          text-align: center;
+          touch-action: manipulation;
+          min-height: 50px;
+        }
+
+        .quick-link:hover {
+          background: rgba(212, 175, 55, 0.1);
+          border-color: #D4AF37;
+          transform: translateY(-2px);
+          box-shadow: 0 4px 15px rgba(212, 175, 55, 0.15);
+        }
+
+        .quick-link.full-width {
+          grid-column: 1 / -1;
+        }
+
+        /* ══════════════════════════════════════════════
+           SIDEBAR & OVERLAY
+        ══════════════════════════════════════════════ */
+
+        .sidebar-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          backdrop-filter: blur(5px);
+          z-index: 999;
+          opacity: 0;
+          visibility: hidden;
+          transition: all 0.3s ease;
+        }
+
+        .sidebar-overlay.show {
+          opacity: 1;
+          visibility: visible;
+        }
+
+        .notification-sidebar {
+          position: fixed;
+          top: 0;
+          right: 0;
+          width: 350px;
+          height: 100vh;
+          background: linear-gradient(135deg, #0f0c29 0%, #24243e 100%);
+          border-left: 1px solid rgba(212, 175, 55, 0.2);
+          z-index: 1000;
+          transform: translateX(100%);
+          transition: transform 0.3s ease;
+          overflow-y: auto;
+          padding: 30px 20px;
+        }
+
+        .notification-sidebar.show {
+          transform: translateX(0);
+        }
+
+        .sidebar-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 30px;
+          padding-bottom: 20px;
+          border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        .sidebar-title {
+          font-family: 'Playfair Display', serif;
+          font-size: 1.5rem;
+          color: #D4AF37;
+          margin: 0;
+        }
+
+        .close-btn {
+          background: none;
+          border: none;
+          color: #D4AF37;
+          cursor: pointer;
+          padding: 8px;
+          border-radius: 8px;
+          transition: all 0.3s ease;
+          touch-action: manipulation;
+          min-width: 40px;
+          min-height: 40px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .close-btn:hover {
+          background: rgba(212, 175, 55, 0.1);
+          transform: scale(1.1);
+        }
+
+        .category-header {
+          font-size: 0.85rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 15px;
+          margin-top: 25px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .category-header:first-child {
+          margin-top: 0;
+        }
+
+        .notif-item {
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(212, 175, 55, 0.2);
+          border-radius: 12px;
+          padding: 15px;
+          margin-bottom: 10px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          touch-action: manipulation;
+        }
+
+        .notif-item:hover {
+          background: rgba(255, 255, 255, 0.08);
+          border-color: #D4AF37;
+          transform: translateX(5px);
+        }
+
+        .notif-info {
+          flex: 1;
+        }
+
+        .notif-title {
+          font-size: 0.9rem;
+          font-weight: 500;
+          color: #fff;
+          margin-bottom: 4px;
+        }
+
+        .notif-status {
+          font-size: 0.75rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        /* ══════════════════════════════════════════════
+           MOBILE RESPONSIVE FOR NEW ELEMENTS
+        ══════════════════════════════════════════════ */
+
+        @media (max-width: 1024px) {
+          .content-grid {
+            grid-template-columns: 1fr;
+            gap: 25px;
+            margin-top: 40px;
+          }
+
+          .notification-sidebar {
+            width: 320px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .alerts-container {
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+          }
+
+          .alert-card {
+            min-width: unset;
+          }
+
+          .alert-content {
+            gap: 12px;
+          }
+
+          .alert-text {
+            font-size: 0.9rem;
+          }
+
+          .content-grid {
+            margin-top: 35px;
+          }
+
+          .section-card {
+            padding: 25px 20px;
+          }
+
+          .section-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+          }
+
+          .profile-avatar {
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+          }
+
+          .avatar-circle {
+            width: 50px;
+            height: 50px;
+          }
+
+          .avatar-circle svg {
+            font-size: 24px !important;
+          }
+
+          .role-badge {
+            font-size: 0.7rem;
+            padding: 5px 12px;
+          }
+
+          .quick-links-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+          }
+
+          .quick-link {
+            padding: 12px 10px;
+            font-size: 0.85rem;
+            min-height: 48px;
+          }
+
+          .notification-sidebar {
+            width: 300px;
+            padding: 25px 18px;
+          }
+
+          .sidebar-title {
+            font-size: 1.3rem;
+          }
+
+          .notif-item {
+            padding: 12px;
+          }
+
+          .notif-title {
+            font-size: 0.85rem;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .alerts-container {
+            margin-bottom: 25px;
+          }
+
+          .alert-card {
+            padding: 18px;
+          }
+
+          .alert-text {
+            font-size: 0.85rem;
+          }
+
+          .content-grid {
+            margin-top: 30px;
+          }
+
+          .section-card {
+            padding: 20px 16px;
+          }
+
+          .section-title {
+            font-size: 1.2rem;
+            margin-bottom: 18px;
+          }
+
+          .profile-avatar {
+            flex-direction: column;
+            text-align: center;
+            gap: 10px;
+            margin-bottom: 18px;
+            padding-bottom: 12px;
+          }
+
+          .avatar-circle {
+            width: 55px;
+            height: 55px;
+          }
+
+          .avatar-circle svg {
+            font-size: 28px !important;
+          }
+
+          .role-badge {
+            font-size: 0.75rem;
+            padding: 6px 14px;
+          }
+
+          .profile-value {
+            font-size: 1rem;
+          }
+
+          .quick-links-grid {
+            grid-template-columns: 1fr;
+            gap: 10px;
+          }
+
+          .quick-link {
+            padding: 14px 12px;
+            font-size: 0.9rem;
+            min-height: 52px;
+          }
+
+          .notification-sidebar {
+            width: 280px;
+            padding: 20px 16px;
+          }
+
+          .sidebar-header {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+          }
+
+          .sidebar-title {
+            font-size: 1.2rem;
+          }
+
+          .close-btn {
+            min-width: 44px;
+            min-height: 44px;
+            padding: 10px;
+          }
+
+          .notif-item {
+            padding: 14px 12px;
+            margin-bottom: 8px;
+          }
+        }
+
+        /* Prevent iOS zoom */
         @media (max-width: 768px) {
           input,
           select,
-          textarea,
-          .ant-input,
-          .ant-select-selector {
+          textarea {
             font-size: 16px !important;
           }
         }
@@ -997,8 +1598,34 @@ const AdminDashboard = () => {
         <div className="orders-container">
           {/* Page Header */}
           <div className="page-header">
-            <h1 className="page-title">Divine Dashboard</h1>
-            <p className="page-subtitle">Admin Control Center</p>
+            <div className="header-main">
+              <div>
+                <h1 className="page-title">Divine Dashboard</h1>
+                <p className="page-subtitle">Admin Control Center</p>
+              </div>
+              {stats.notifications?.total > 0 && (
+                <button 
+                  className="notification-bell"
+                  onClick={() => {
+                    setShowSidebar(true);
+                    document.body.classList.add('sidebar-open');
+                  }}
+                  aria-label={`View ${stats.notifications.total} notifications`}
+                >
+                  <Bell size={20} color="#D4AF37" />
+                  <span className="notification-count">{stats.notifications.total}</span>
+                </button>
+              )}
+            </div>
+            <div className="welcome-message">
+              <span className="welcome-text">Welcome back, {auth?.user?.name?.split(' ')[0] || 'Administrator'}</span>
+              <span className="welcome-date">{new Date().toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}</span>
+            </div>
           </div>
 
           {/* Action Center Alerts */}
@@ -1081,6 +1708,9 @@ const AdminDashboard = () => {
                 </div>
                 <p className="stat-label">Stock Alerts</p>
                 <h2 className="stat-value">{stats.lowStockItems} Items</h2>
+                {stats.lowStockItems > 0 && (
+                  <p className="stat-subtext alert-indicator">⚠️ Action Required</p>
+                )}
               </div>
             </div>
           )}
@@ -1090,6 +1720,12 @@ const AdminDashboard = () => {
             {/* Administrative Profile */}
             <div className="section-card">
               <h3 className="section-title">Administrative Profile</h3>
+              <div className="profile-avatar">
+                <div className="avatar-circle">
+                  <UserCheck size={32} color="#D4AF37" />
+                </div>
+                <div className="role-badge">Administrator</div>
+              </div>
               <div className="profile-field">
                 <label className="profile-label">Full Name</label>
                 <span className="profile-value">{auth?.user?.name}</span>
@@ -1097,6 +1733,10 @@ const AdminDashboard = () => {
               <div className="profile-field">
                 <label className="profile-label">Official Email</label>
                 <span className="profile-value">{auth?.user?.email}</span>
+              </div>
+              <div className="profile-field">
+                <label className="profile-label">Last Login</label>
+                <span className="profile-value">{new Date().toLocaleDateString()}</span>
               </div>
             </div>
 
