@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 
 /**
- * Helper: Converts numbers to Indian Currency Words (Lakhs/Crores)
+ * Helper: Converts numbers to Indian Currency Words
  */
 const numberToWords = (num) => {
   if (!num || num === 0) return "Zero";
@@ -29,7 +29,7 @@ const numberToWords = (num) => {
 export const generateInvoicePDF = async (invoice) => {
   return new Promise((resolve, reject) => {
     try {
-      /* ────── File Setup ────── */
+      /* ────── file setup ────── */
       const dir = path.join(process.cwd(), "uploads", "invoices");
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 
@@ -45,7 +45,7 @@ export const generateInvoicePDF = async (invoice) => {
         resolve(pdfBuffer);
       });
 
-      /* ────── Brand Palette ────── */
+      /* ────── brand palette ────── */
       const gold = "#D4AF37";
       const burgundy = "#2D0A14";
       const darkBg = "#1a1018";
@@ -54,22 +54,21 @@ export const generateInvoicePDF = async (invoice) => {
       const textDark = "#2C2C2C";
       const textMid = "#5A5A5A";
 
-      /* ────── Page Dimensions ────── */
+      /* ────── page dimensions ────── */
       const PW = 595.28;
       const PH = 841.89;
       const ML = 42;
       const MR = 42;
       const CW = PW - ML - MR;
 
-      /* ── Background ── */
+      /* ── BACKGROUND ── */
       doc.rect(0, 0, PW, PH).fill(cream);
 
-      /* ────── Top Header ────── */
+      /* ────── TOP HEADER ────── */
       const hdrH = 110;
       doc.rect(0, 0, PW, hdrH).fill(darkBg);
-      doc.rect(0, hdrH, PW, 3).fill(gold); 
+      doc.rect(0, hdrH, PW, 3).fill(gold);
 
-      // Left Header: Brand Identity
       doc.fontSize(24).fillColor("#FFFFFF").font("Helvetica-Bold").text("GOPI NATH", ML, 25);
       doc.fontSize(11).fillColor(gold).font("Helvetica").text("COLLECTION", ML, 48);
       
@@ -78,125 +77,113 @@ export const generateInvoicePDF = async (invoice) => {
         .text("Panipat, Haryana – 132103", ML, 78)
         .text(`GSTIN: ${invoice.sellerGstin || "GST-PENDING"}`, ML, 88);
 
-      // Right Header: Invoice Metadata
-      doc.fontSize(20).fillColor(gold).font("Helvetica-Bold").text("TAX INVOICE", ML, 25, { align: "right", width: CW });
+      doc.fontSize(18).fillColor(gold).font("Helvetica-Bold").text("TAX INVOICE", ML, 25, { align: "right", width: CW });
       doc.fontSize(8).fillColor("#CCCCCC").font("Helvetica")
-        .text(`Invoice No: ${invoice.invoiceNumber || "N/A"}`, ML, 55, { align: "right", width: CW })
-        .text(`Order No: ${invoice.orderNumber || "N/A"}`, ML, 65, { align: "right", width: CW })
+        .text(`Invoice No: ${invoice.invoiceNumber || ""}`, ML, 55, { align: "right", width: CW })
+        .text(`Order No: ${invoice.orderNumber || ""}`, ML, 65, { align: "right", width: CW })
         .text(`Date: ${invoice.date || new Date().toLocaleDateString("en-IN")}`, ML, 75, { align: "right", width: CW });
 
-      /* ────── Billing & Shipping Row ────── */
+      /* ────── INFO BLOCKS ────── */
       const infoY = hdrH + 20;
       const colW = CW / 3;
 
-      const drawInfoBlock = (x, title, data) => {
+      const writeInfo = (x, title, lines) => {
         doc.fontSize(9).fillColor(gold).font("Helvetica-Bold").text(title, x, infoY);
         doc.moveTo(x, infoY + 12).lineTo(x + colW - 20, infoY + 12).strokeColor(gold).lineWidth(1).stroke();
-        
-        let moveY = infoY + 18;
-        data.forEach(item => {
-          doc.fontSize(8).fillColor(textMid).font("Helvetica-Bold").text(`${item.label}: `, x, moveY, { continued: true })
-             .fillColor(textDark).font("Helvetica").text(item.value || "—");
-          moveY += 12;
+        let ly = infoY + 18;
+        lines.forEach(l => {
+          doc.fontSize(8).fillColor(textMid).font("Helvetica-Bold").text(`${l.label}: `, x, ly, { continued: true })
+             .fillColor(textDark).font("Helvetica").text(l.value || "—");
+          ly += 12;
         });
       };
 
-      drawInfoBlock(ML, "BILL TO", [
+      writeInfo(ML, "BILL TO", [
         { label: "Name", value: invoice.buyerName },
         { label: "Address", value: invoice.buyerAddress },
         { label: "State", value: invoice.buyerState }
       ]);
-
-      drawInfoBlock(ML + colW, "SHIP TO", [
+      writeInfo(ML + colW, "SHIP TO", [
         { label: "Name", value: invoice.shipName || invoice.buyerName },
         { label: "Address", value: invoice.shipAddress || invoice.buyerAddress },
         { label: "State", value: invoice.shipState || invoice.buyerState }
       ]);
-
-      drawInfoBlock(ML + colW * 2, "PAYMENT", [
+      writeInfo(ML + colW * 2, "PAYMENT", [
         { label: "Method", value: invoice.paymentMethod || "COD" },
         { label: "Status", value: "SUCCESS" },
-        { label: "Txn ID", value: invoice.transactionId }
+        { label: "Txn ID", value: invoice.transactionId || "—" }
       ]);
 
-      /* ────── Items Table ────── */
-      const tableY = infoY + 80;
-      const tableCols = [
+      /* ────── ITEMS TABLE ────── */
+      const tableY = infoY + 85;
+      const cols = [
         { label: "#", x: 0, w: 30, align: "center" },
         { label: "ITEM", x: 30, w: 200, align: "left" },
         { label: "QTY", x: 230, w: 40, align: "center" },
         { label: "MRP", x: 270, w: 70, align: "right" },
         { label: "TAXABLE", x: 340, w: 80, align: "right" },
-        { label: "GST", x: 420, w: 91, align: "right" }
+        { label: "GST", x: 420, w: CW - 420, align: "right" }
       ];
 
       doc.rect(ML, tableY, CW, 20).fill(tableHead);
-      tableCols.forEach(c => {
-        doc.fontSize(8).fillColor("#FFFFFF").font("Helvetica-Bold")
-           .text(c.label, ML + c.x, tableY + 6, { width: c.w, align: c.align });
+      cols.forEach(c => {
+        doc.fontSize(8).fillColor("#FFFFFF").font("Helvetica-Bold").text(c.label, ML + c.x, tableY + 6, { width: c.w, align: c.align });
       });
 
       let rowY = tableY + 20;
       (invoice.items || []).forEach((item, i) => {
-        const fill = i % 2 === 0 ? "#FFFFFF" : "#FAF5EE";
-        doc.rect(ML, rowY, CW, 20).fill(fill);
-        
-        doc.fillColor(textDark).font("Helvetica").fontSize(8);
-        doc.text(i + 1, ML + tableCols[0].x, rowY + 6, { width: tableCols[0].w, align: "center" });
-        doc.text(item.productName, ML + tableCols[1].x + 5, rowY + 6, { width: tableCols[1].w });
-        doc.text(item.qty, ML + tableCols[2].x, rowY + 6, { width: tableCols[2].w, align: "center" });
-        doc.text(item.unitPrice.toFixed(2), ML + tableCols[3].x, rowY + 6, { width: tableCols[3].w - 5, align: "right" });
-        doc.text(item.taxableValue.toFixed(2), ML + tableCols[4].x, rowY + 6, { width: tableCols[4].w - 5, align: "right" });
-        doc.text(((item.cgst || 0) + (item.sgst || 0) + (item.igst || 0)).toFixed(2), ML + tableCols[5].x, rowY + 6, { width: tableCols[5].w - 5, align: "right" });
-        
+        doc.rect(ML, rowY, CW, 20).fill(i % 2 === 0 ? "#FFFFFF" : "#FAF5EE");
+        doc.fillColor(textDark).fontSize(8).font("Helvetica");
+        doc.text(i + 1, ML + cols[0].x, rowY + 6, { width: cols[0].w, align: "center" });
+        doc.text(item.productName, ML + cols[1].x + 5, rowY + 6, { width: cols[1].w });
+        doc.text(item.qty, ML + cols[2].x, rowY + 6, { width: cols[2].w, align: "center" });
+        doc.text((item.unitPrice || 0).toFixed(2), ML + cols[3].x, rowY + 6, { width: cols[3].w - 5, align: "right" });
+        doc.text((item.taxableValue || 0).toFixed(2), ML + cols[4].x, rowY + 6, { width: cols[4].w - 5, align: "right" });
+        doc.text(((item.cgst || 0) + (item.sgst || 0)).toFixed(2), ML + cols[5].x, rowY + 6, { width: cols[5].w - 5, align: "right" });
         rowY += 20;
       });
 
-      /* ────── Summary, Words & Footer Note ────── */
+      /* ────── SUMMARY SECTION ────── */
       const sumY = rowY + 20;
       const sumW = 220;
       const sumX = ML + CW - sumW;
 
-      // Invoice Summary Box
+      // Summary Box
       doc.rect(sumX, sumY, sumW, 110).strokeColor(gold).lineWidth(1).stroke();
       doc.rect(sumX, sumY, sumW, 20).fill(burgundy);
       doc.fontSize(9).fillColor(gold).font("Helvetica-Bold").text("INVOICE SUMMARY", sumX + 10, sumY + 6);
 
-      const summaryRows = [
-        { label: "Subtotal (Incl. GST)", value: invoice.subtotal || 0 },
+      const sData = [
+        { label: "Subtotal (Incl. GST)", value: invoice.totalPaid || 0 },
         { label: "Discount", value: -(invoice.discount || 0) },
         { label: "Shipping Fee", value: invoice.shippingCharges || 0 }
       ];
-
       let subY = sumY + 30;
-      summaryRows.forEach(row => {
-        doc.fontSize(8).fillColor(textMid).font("Helvetica").text(row.label, sumX + 10, subY);
-        doc.fillColor(textDark).text(`₹${row.value.toFixed(2)}`, sumX, subY, { width: sumW - 10, align: "right" });
+      sData.forEach(r => {
+        doc.fontSize(8).fillColor(textMid).font("Helvetica").text(r.label, sumX + 10, subY);
+        doc.fillColor(textDark).text(`₹${r.value.toFixed(2)}`, sumX, subY, { width: sumW - 10, align: "right" });
         subY += 15;
       });
 
-      // Net Amount Display
       doc.rect(sumX, sumY + 85, sumW, 25).fill(burgundy);
       doc.fontSize(9).fillColor("#FFFFFF").text("NET PAYABLE", sumX + 10, sumY + 93);
       doc.fontSize(11).fillColor(gold).text(`₹${(invoice.totalPaid || 0).toFixed(2)}`, sumX, sumY + 92, { width: sumW - 10, align: "right" });
 
-      // Amount in Words Block
-      const wordsY = sumY + 60;
+      // Amount in Words
+      const wordsY = sumY + 65;
       doc.rect(ML, wordsY, CW - sumW - 20, 35).fill("#F5F0E8");
       doc.fontSize(7).fillColor(textMid).font("Helvetica-Bold").text("AMOUNT IN WORDS:", ML + 5, wordsY + 5);
       doc.fontSize(8).fillColor(burgundy).text(numberToWords(invoice.totalPaid), ML + 5, wordsY + 18);
 
-      /* ────── Footer Area ────── */
-      const ftrY = PH - 65;
-      doc.rect(0, ftrY, PW, 65).fill(darkBg);
-      doc.rect(0, ftrY, PW, 2.5).fill(gold); 
+      /* ────── FOOTER ────── */
+      const ftrY = PH - 60;
+      doc.rect(0, ftrY, PW, 60).fill(darkBg);
+      doc.rect(0, ftrY, PW, 2).fill(gold);
 
-      // Center-aligned system generation disclaimer
       doc.fontSize(8.5).fillColor(gold).font("Helvetica-Bold")
-         .text("This is a system generated invoice and does not require a physical signature.", 0, ftrY + 20, { align: "center", width: PW });
-      
+         .text("This is a system generated invoice and does not require a physical signature.", 0, ftrY + 18, { align: "center", width: PW });
       doc.fontSize(7).fillColor("#888888").font("Helvetica")
-         .text("www.gopinathcollection.com  |  support@gopinathcollection.com", 0, ftrY + 38, { align: "center", width: PW });
+         .text("Thank you for your business!", 0, ftrY + 35, { align: "center", width: PW });
 
       doc.end();
     } catch (err) {
