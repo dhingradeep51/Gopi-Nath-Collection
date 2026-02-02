@@ -132,7 +132,7 @@ export const placeOrderController = async (req, res) => {
       console.log("Generated Checksum:", checksum); // Verify suffix matches Index
 
       const response = await axios.post(
-        "https://api-preprod.phonepe.com/apis/hermes/pg/v1/pay",
+        "https://api.phonepe.com/apis/hermes/pg/v1/pay",
         { request: base64Payload },
         { headers: { accept: "application/json", "Content-Type": "application/json", "X-VERIFY": checksum } }
       );

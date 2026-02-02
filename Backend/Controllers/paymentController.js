@@ -66,7 +66,7 @@ export const initiatePayment = async (req, res) => {
     console.log("Generated X-VERIFY:", checksum);
 
     const response = await axios.post(
-      "https://api-preprod.phonepe.com/apis/hermes/pg/v1/pay",
+      "https://api.phonepe.com/apis/hermes/pg/v1/pay",
       { request: base64Payload },
       { headers: { 
           "Content-Type": "application/json", 
@@ -106,7 +106,7 @@ export const checkStatus = async (req, res) => {
 
   try {
     const response = await axios.get(
-      `https://api-preprod.phonepe.com/apis/hermes/pg/v1/status/${merchantId}/${merchantTransactionId}`,
+      `https://api.phonepe.com/apis/hermes/pg/v1/pay/${merchantId}/${merchantTransactionId}`,
       { headers: { 
           "Content-Type": "application/json", 
           "X-VERIFY": checksum, 
