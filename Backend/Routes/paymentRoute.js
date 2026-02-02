@@ -3,8 +3,6 @@ import { initiatePayment, checkStatus } from "../Controllers/paymentController.j
 import { requireSignIn } from "../Middlewares/authMiddleware.js";
 
 const router = express.Router();
-
-router.post("/initiate", requireSignIn, initiatePayment);
 router.post("/status/:merchantTransactionId", checkStatus);
 router.get("/status/:merchantTransactionId", checkStatus);
 

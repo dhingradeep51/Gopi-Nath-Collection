@@ -8,143 +8,92 @@ import { sendNotification } from "../Utils/notificationUtils.js";
 import axios from "axios";
 import crypto from "crypto";
 // --- PLACE NEW ORDER ---
+import { getPhonePeAccessToken } from "../Utils/phonepeAuth.js";
 
 export const placeOrderController = async (req, res) => {
   try {
-    const {
-      cart,
-      address,
-      paymentMethod,
-      shippingFee = 0,
-      discount = 0,
-      subtotal,
-      totalAmount
-    } = req.body;
+    const { cart, address, paymentMethod, shippingFee = 0, discount = 0 } = req.body;
 
     if (!cart || cart.length === 0) {
-      return res.status(400).send({
-        success: false,
-        message: "Cart is empty"
-      });
+      return res.status(400).send({ success: false, message: "Cart is empty" });
     }
 
+    let subtotal = 0;
     const products = [];
-    let calculatedSubtotal = 0;
-    let totalBaseAmount = 0;
-    let totalGstAmount = 0;
-    let highestGstRate = 0;
 
     for (const item of cart) {
       const product = await ProductModel.findById(item._id);
       const qty = item.cartQuantity || 1;
-      const price = product.price;
-      const gstRate = product.gstRate || 18;
-
-      const basePrice = price / (1 + gstRate / 100);
-      const gstAmount = price - basePrice;
-
-      calculatedSubtotal += price * qty;
-      totalBaseAmount += basePrice * qty;
-      totalGstAmount += gstAmount * qty;
-      if (gstRate > highestGstRate) highestGstRate = gstRate;
+      subtotal += product.price * qty;
 
       products.push({
         product: product._id,
         name: product.name,
         qty,
-        price: Number(price.toFixed(2)),
-        gstRate,
-        basePrice: Number(basePrice.toFixed(2)),
-        gstAmount: Number(gstAmount.toFixed(2))
+        price: product.price
       });
     }
 
+    const totalPaid = subtotal + shippingFee - discount;
     const merchantTransactionId = `MT${Date.now()}`;
     const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
-    const finalAmount = totalAmount || (calculatedSubtotal + shippingFee - discount);
 
-    // Save payment
-    const paymentRecord = await new PaymentModel({
+    const payment = await new PaymentModel({
       merchantTransactionId,
-      amount: finalAmount,
+      amount: totalPaid,
       status: "PENDING",
       method: paymentMethod
     }).save();
 
-    // Save order
     const order = await orderModel.create({
       products,
       buyer: req.user._id,
       address,
-      paymentDetails: paymentRecord._id,
+      paymentDetails: payment._id,
       orderNumber,
-      subtotal: Number((subtotal || calculatedSubtotal).toFixed(2)),
-      totalPaid: Number(finalAmount.toFixed(2)),
-      totalBaseAmount: Number(totalBaseAmount.toFixed(2)),
-      totalGstAmount: Number(totalGstAmount.toFixed(2)),
-      highestGstRate,
+      subtotal,
+      totalPaid,
       shippingFee,
       discount,
       status: "Not Processed"
     });
 
-    // COD flow
     if (paymentMethod === "cod") {
-      return res.status(201).send({
-        success: true,
-        message: "Order placed (COD)",
-        order
-      });
+      return res.status(201).send({ success: true, order });
     }
 
-    // ================= PHONEPE UAT CONFIG =================
-    const PHONEPE_BASE_URL = "https://api-preprod.phonepe.com/apis";
-    const endpoint = "/pgsandbox/pg/v1/pay"; // ✅ MUST include pgsandbox
+    // 🔑 V2 TOKEN
+    const accessToken = await getPhonePeAccessToken();
 
+    // 📦 V2 PAYLOAD
     const payload = {
-      merchantId: process.env.PHONEPE_MERCHANT_ID,
       merchantTransactionId,
-      merchantUserId: req.user._id.toString(),
-      amount: Math.round(order.totalPaid * 100), // paise
+      amount: Math.round(totalPaid * 100),
       redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
       redirectMode: "POST",
       callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
       paymentInstrument: { type: "PAY_PAGE" }
     };
 
-    const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
-
-    // ✅ CHECKSUM MUST MATCH FULL PATH
-    const checksum =
-      crypto.createHash("sha256")
-        .update(base64Payload + endpoint + process.env.PHONEPE_SALT_KEY)
-        .digest("hex") +
-      "###" +
-      process.env.PHONEPE_SALT_INDEX;
-
     const response = await axios.post(
-      `${PHONEPE_BASE_URL}${endpoint}`,
-      { request: base64Payload },
+      `${PHONEPE_BASE_URL}/pg/v2/pay`,
+      payload,
       {
         headers: {
-          "Content-Type": "application/json",
-          "X-VERIFY": checksum,
-          accept: "application/json"
+          Authorization: `O-Bearer ${accessToken}`,
+          "Content-Type": "application/json"
         }
       }
     );
 
     return res.status(200).send({
       success: true,
-      url: response.data.data.instrumentResponse.redirectInfo.url
+      url: response.data.data.redirectUrl
     });
 
   } catch (error) {
-    console.error("Order Error:", error.response?.data || error.message);
-    return res.status(500).send({
-      success: false,
-      message: "Payment Gateway Error"
-    });
+    console.error("PhonePe V2 Error:", error.response?.data || error.message);
+    return res.status(500).send({ success: false, message: "Payment failed" });
   }
 };
 
