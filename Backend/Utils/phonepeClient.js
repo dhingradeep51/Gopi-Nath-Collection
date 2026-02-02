@@ -1,4 +1,4 @@
-import { StandardCheckoutClient, Env } from "phonepe-pg-sdk";
+import { StandardCheckoutClient, Env } from "pg-sdk-node";
 
 const env =
   process.env.PHONEPE_ENV === "PRODUCTION"
