@@ -13,6 +13,7 @@ import categoryRoutes from './Routes/categoryRoute.js';
 import couponRoutes from './Routes/couponRoute.js';
 import orderRoute from './Routes/orderRoute.js';
 import invoiceRoutes from './Routes/invoiceRoute.js';
+import paymentRoutes from './Routes/paymentRoute.js';
 
 // config dotenv
 dotenv.config();
@@ -68,7 +69,7 @@ app.use("/api/v1/category", categoryRoutes);
 app.use("/api/v1/coupon", couponRoutes);
 app.use("/api/v1/order", orderRoute);
 app.use("/api/v1/invoice", invoiceRoutes);
-
+app.use("/api/v1/payment", paymentRoutes);
 app.get('/', (req, res) => {
   res.send('<h1>Welcome to Gopi Nath Collection API</h1>');
 });
