@@ -58,6 +58,11 @@ app.use(cors({
 app.use(express.json());
 app.use(morgan('dev'));
 app.use(express.urlencoded({ extended: true }));
+app.use(
+  "/api/v1/payment/phonepe/webhook",
+  express.raw({ type: "application/json" })
+);
+
 
 // Make 'io' accessible in your routes
 app.set("io", io);

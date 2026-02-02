@@ -5,122 +5,93 @@ import { StandardCheckoutClient, Env } from "pg-sdk-node";
 /* =====================================================
    📌 PHONEPE CLIENT INITIALIZATION
    ===================================================== */
-const phonePeClient = StandardCheckoutClient.getInstance(
-  process.env.PHONEPE_CLIENT_ID,
-  process.env.PHONEPE_CLIENT_SECRET,
-  Number(process.env.PHONEPE_CLIENT_VERSION || 1),
-  process.env.PHONEPE_ENV === "PRODUCTION" ? Env.PRODUCTION : Env.SANDBOX
-);
+import OrderModel from "../Models/orderModel.js";
+import PaymentModel from "../Models/paymentModel.js";
+import { phonePeClient } from "../Utils/phonepeClient.js";
 
-/* =====================================================
-   🔔 PHONEPE V2 WEBHOOK (REAL PAYLOAD SAFE)
-   ===================================================== */
+/**
+ * 🔐 PHONEPE WEBHOOK WITH CALLBACK VERIFICATION (V2)
+ */
 export const phonePeWebhookController = async (req, res) => {
   try {
-    console.log(
-      "📩 PHONEPE WEBHOOK RECEIVED:",
-      JSON.stringify(req.body, null, 2)
+    // 1️⃣ Get raw body as string (IMPORTANT)
+    const responseBodyString = JSON.stringify(req.body);
+
+    // 2️⃣ Get Authorization header sent by PhonePe
+    const authorizationHeader = req.headers["authorization"];
+    if (!authorizationHeader) {
+      return res.sendStatus(401);
+    }
+
+    // 3️⃣ Validate callback using SDK
+    const callbackResponse = phonePeClient.validateCallback(
+      process.env.PHONEPE_CALLBACK_USERNAME,
+      process.env.PHONEPE_CALLBACK_PASSWORD,
+      authorizationHeader,
+      responseBodyString
     );
 
-    /* =====================================================
-       🔐 OPTIONAL S2S VALIDATION (FUTURE SAFE)
-       ===================================================== */
-    if (process.env.PHONEPE_ENABLE_S2S === "true") {
-      const authorizationHeader = req.headers["authorization"];
-      if (!authorizationHeader) {
-        console.error("❌ Missing Authorization header");
-        return res.sendStatus(401);
-      }
+    /**
+     * callbackResponse structure:
+     * {
+     *   type: "CHECKOUT_ORDER_COMPLETED" | "CHECKOUT_ORDER_FAILED",
+     *   payload: {
+     *     originalMerchantOrderId,
+     *     orderId,
+     *     state,
+     *     amount,
+     *     paymentDetails[]
+     *   }
+     * }
+     */
 
-      try {
-        phonePeClient.validateCallback(
-          process.env.PHONEPE_WEBHOOK_USERNAME,
-          process.env.PHONEPE_WEBHOOK_PASSWORD,
-          authorizationHeader,
-          JSON.stringify(req.body)
-        );
-      } catch (err) {
-        console.error("❌ Invalid PhonePe signature");
-        return res.sendStatus(401);
-      }
-    }
+    const {
+      originalMerchantOrderId, // this is YOUR merchantOrderId
+      state,
+      paymentDetails
+    } = callbackResponse.payload;
 
-    /* =====================================================
-       📦 PAYLOAD PARSING (CRITICAL FIX)
-       ===================================================== */
-    const data =
-      req.body?.data ||
-      req.body?.payload ||
-      req.body?.event?.payload;
-
-    if (!data) {
-      console.error("❌ Invalid PhonePe payload structure:", req.body);
-      return res.sendStatus(400);
-    }
-
-    const merchantTransactionId =
-      data.merchantTransactionId || data.merchantOrderId;
-
-    const transactionId = data.transactionId;
-    const state = data.state; // COMPLETED | FAILED | CANCELLED
-
-    if (!merchantTransactionId || !state) {
-      console.error("❌ Missing transactionId/state:", data);
-      return res.sendStatus(400);
-    }
-
-    /* =====================================================
-       🔎 DB LOOKUP
-       ===================================================== */
+    // 4️⃣ Find Order
     const order = await OrderModel.findOne({
-      merchantOrderId: merchantTransactionId
+      merchantOrderId: originalMerchantOrderId
     });
 
     if (!order) {
-      console.error("❌ Order not found:", merchantTransactionId);
       return res.sendStatus(404);
     }
 
+    // 5️⃣ Find Payment
     const payment = await PaymentModel.findById(order.paymentDetails);
     if (!payment) {
-      console.error("❌ Payment not found for order:", order._id);
       return res.sendStatus(404);
     }
 
-    /* =====================================================
-       🛡 IDEMPOTENCY (PHONEPE RETRIES WEBHOOKS)
-       ===================================================== */
-    if (payment.status === "SUCCESS" || payment.status === "FAILED") {
-      return res.sendStatus(200);
-    }
-
-    /* =====================================================
-       ✅ STATE HANDLING
-       ===================================================== */
+    // 6️⃣ Handle payment state
     if (state === "COMPLETED") {
-      payment.status = "SUCCESS";
-      payment.transactionId = transactionId || payment.transactionId;
+      payment.status = "PAID";
+      payment.transactionId = paymentDetails?.[0]?.transactionId;
+      payment.paymentResponse = callbackResponse;
+
       order.status = "Processing";
     } else {
       payment.status = "FAILED";
+      payment.paymentResponse = callbackResponse;
+
       order.status = "Not Processed";
     }
-
-    payment.paymentResponse = req.body;
 
     await payment.save();
     await order.save();
 
-    console.log(
-      `✅ PAYMENT UPDATED: ${merchantTransactionId} → ${payment.status}`
-    );
-
+    // 7️⃣ Respond 200 to stop retries
     return res.sendStatus(200);
+
   } catch (error) {
-    console.error("🚨 PhonePe Webhook Error:", error);
+    console.error("PhonePe Webhook Verification Failed:", error);
     return res.sendStatus(500);
   }
 };
+
 
 /* =====================================================
    🧭 PHONEPE REDIRECT HANDLER (UI ONLY)
