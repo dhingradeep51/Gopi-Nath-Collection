@@ -125,8 +125,6 @@ const handlePlaceOrder = async () => {
   try {
     setLoading(true);
 
-    console.log("▶️ Place Order clicked");
-    console.log("▶️ Payment Method:", paymentMethod);
 
     const orderData = {
       cart: cart.map((item) => ({
@@ -189,8 +187,6 @@ const handlePlaceOrder = async () => {
 
     // ✅ COD FLOW
     if (paymentMethod === "cod") {
-      console.log("▶️ COD order placed");
-      console.log("▶️ Order number:", data.order?.orderNumber);
 
       setFinalOrderId(data.order.orderNumber);
       localStorage.removeItem("cart");
@@ -200,8 +196,6 @@ const handlePlaceOrder = async () => {
     }
 
   } catch (error) {
-    console.error("❌ Place Order Error:", error);
-    console.error("❌ Error response:", error.response?.data);
     toast.error(error.response?.data?.message || "Order failed");
   } finally {
     setLoading(false);

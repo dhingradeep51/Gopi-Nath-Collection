@@ -13,10 +13,6 @@ import phonePeClient from "../Utils/phonepeClient.js";
  */
 export const placeOrderController = async (req, res) => {
   try {
-    // ✅ TEMPORARY DEBUG: Verify Authorization header
-    console.log("🔍 AUTH DEBUG - req.headers.authorization:", req.headers.authorization);
-    console.log("🔍 AUTH DEBUG - req.user._id:", req.user?._id);
-
     const { cart, address, paymentMethod } = req.body;
 
     if (!cart || cart.length === 0) {
@@ -197,7 +193,7 @@ export const getAllOrdersController = async (req, res) => {
 
   try {
 
-    const orders = await orderModel
+    const orders = await OrderModel
 
       .find({})
 
@@ -252,7 +248,7 @@ export const orderStatusController = async (req, res) => {
     const updateData = { status };
     if (status === "Cancel" || status === "Return") updateData.isApprovedByAdmin = true;
 
-    const updated = await orderModel.findByIdAndUpdate(orderId, updateData, { new: true }).populate("buyer", "name");
+    const updated = await OrderModel.findByIdAndUpdate(orderId, updateData, { new: true }).populate("buyer", "name");
 
     // ✅ TRIGGER: INVOICE ALERT (If status set to Delivered but isInvoiced is false)
     if (status === "Delivered" && !updated.isInvoiced) {
@@ -277,7 +273,7 @@ export const updateOrderLogisticsController = async (req, res) => {
       });
     }
 
-    const updatedOrder = await orderModel.findByIdAndUpdate(
+    const updatedOrder = await OrderModel.findByIdAndUpdate(
       orderId,
       { awbNumber, trackingLink },
       { new: true }
@@ -310,7 +306,7 @@ export const userOrderStatusController = async (req, res) => {
     const { orderId } = req.params;
     const { status, reason } = req.body;
 
-    const order = await orderModel.findById(orderId);
+    const order = await OrderModel.findById(orderId);
     if (!order) return res.status(404).send({ success: false, message: "Order not found" });
 
     let newStatus;
@@ -329,7 +325,7 @@ export const userOrderStatusController = async (req, res) => {
       sendNotification(req, notificationType, { orderId: order.orderNumber });
     }
 
-    const updated = await orderModel.findByIdAndUpdate(orderId, {
+    const updated = await OrderModel.findByIdAndUpdate(orderId, {
       status: newStatus,
       cancelReason: status === "Cancel" ? reason.trim() : order.cancelReason,
       returnReason: status === "Return" ? reason.trim() : order.returnReason,
@@ -345,7 +341,7 @@ export const userOrderStatusController = async (req, res) => {
 };
 export const getOrdersController = async (req, res) => {
   try {
-    const orders = await orderModel
+    const orders = await OrderModel
       .find({ buyer: req.user._id })
       .populate({
         path: "products.product",
@@ -376,7 +372,7 @@ export const orderInvoiceStatusController = async (req, res) => {
       });
     }
 
-    const order = await orderModel.findByIdAndUpdate(
+    const order = await OrderModel.findByIdAndUpdate(
       orderId,
       { isInvoiced, invoiceNo, invoiceDate },
       { new: true }
@@ -410,7 +406,7 @@ export const getOrderByIdController = async (req, res) => {
     const { orderId } = req.params;
 
     // Search by custom orderNumber, not _id
-    const order = await orderModel.findOne({ orderNumber: orderId })
+    const order = await OrderModel.findOne({ orderNumber: orderId })
       .populate({
         path: "products.product",
         select: "name slug photo"
@@ -434,7 +430,7 @@ export const getOrderByIdController = async (req, res) => {
 export const getAdminStatsController = async (req, res) => {
   try {
     const userCount = await userModel.countDocuments({});
-    const allOrders = await orderModel.find({}, "orderNumber totalPaid status isInvoiced");
+    const allOrders = await OrderModel.find({}, "orderNumber totalPaid status isInvoiced");
     const products = await ProductModel.find({}, "name quantity");
 
     // Filter logic for specific lists
