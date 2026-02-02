@@ -19,7 +19,7 @@ export const placeOrderController = async (req, res) => {
     // 🔍 DEBUG: Check incoming request body
     console.log("--- New Order Request ---");
     console.log("Payment Method:", paymentMethod);
-    console.log("Received Subtotal:", subtotal); //
+    console.log("Received Subtotal:", subtotal);
 
     // 1️⃣ Validation
     if (!cart || cart.length === 0) return res.status(400).send({ success: false, message: "Cart is empty" });
@@ -80,9 +80,9 @@ export const placeOrderController = async (req, res) => {
       method: paymentMethod
     }).save();
 
-    // 6️⃣ Save Order (Fixed: Ensuring subtotal is defined)
+    // 6️⃣ Save Order (Includes subtotal to fix DB validation)
     const finalSubtotal = Number((subtotal || calculatedSubtotal).toFixed(2));
-    console.log("Saving to DB - Subtotal:", finalSubtotal); //
+    console.log("Saving to DB - Subtotal:", finalSubtotal);
 
     const order = await orderModel.create({
       products,
@@ -108,10 +108,8 @@ export const placeOrderController = async (req, res) => {
       sendNotification(req, "NEW_ORDER", { orderId: generatedOrderNumber });
       return res.status(201).send({ success: true, message: "Order placed (COD)", order });
     } else {
-      // 🚀 PHONEPE HANDSHAKE DEBUGGING
+      // 🚀 PHONEPE LIVE HANDSHAKE
       console.log("--- PhonePe Handshake Start ---");
-      console.log("Merchant ID:", process.env.PHONEPE_MERCHANT_ID);
-      console.log("Salt Index:", process.env.PHONEPE_SALT_INDEX); //
       
       const payload = {
         merchantId: process.env.PHONEPE_MERCHANT_ID,
@@ -125,25 +123,25 @@ export const placeOrderController = async (req, res) => {
       };
 
       const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
-      const string = base64Payload + "/pg/v1/pay" + process.env.PHONEPE_SALT_KEY;
-      const sha256 = crypto.createHash("sha256").update(string).digest("hex");
+      
+      // ✅ FIX: Use the production endpoint path in the hash
+      const endpoint = "/pg/v1/pay";
+      const stringToHash = base64Payload + endpoint + process.env.PHONEPE_SALT_KEY;
+      const sha256 = crypto.createHash("sha256").update(stringToHash).digest("hex");
       const checksum = `${sha256}###${process.env.PHONEPE_SALT_INDEX}`;
 
-      console.log("Generated Checksum:", checksum); // Verify suffix matches Index
+      console.log("Generated X-VERIFY Checksum:", checksum);
 
       const response = await axios.post(
-        "https://api.phonepe.com/apis/hermes/pg/v1/pay",
+        `https://api.phonepe.com/apis/pg${endpoint}`, // ✅ LIVE Production URL
         { request: base64Payload },
         { headers: { accept: "application/json", "Content-Type": "application/json", "X-VERIFY": checksum } }
       );
 
       console.log("PhonePe API Status:", response.status);
-      console.log("--- Handshake Success ---");
-
       return res.status(200).send({ success: true, url: response.data.data.instrumentResponse.redirectInfo.url });
     }
   } catch (error) {
-    // 🔍 DEBUG: Catch the specific KEY_NOT_CONFIGURED or validation error reason
     console.error("--- Critical Error Log ---");
     if (error.response) {
       console.error("API Response Data:", error.response.data); //
