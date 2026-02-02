@@ -4,13 +4,6 @@ import PaymentModel from "../Models/paymentModel.js";
 import orderModel from "../Models/orderModel.js";
 import ProductModel from "../Models/productModel.js";
 
-import axios from "axios";
-import crypto from "crypto";
-import moment from "moment";
-import orderModel from "../Models/orderModel.js";
-import PaymentModel from "../Models/paymentModel.js";
-import ProductModel from "../Models/productModel.js";
-
 export const initiatePayment = async (req, res) => {
   try {
     const { cart, address, financials, buyerId } = req.body;
