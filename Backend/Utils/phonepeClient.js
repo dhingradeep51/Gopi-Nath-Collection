@@ -1,16 +1,13 @@
-import { StandardCheckoutClient, Env } from "pg-sdk-node";
-import dotenv from "dotenv";
+import { StandardCheckoutClient, Env } from "phonepe-pg-sdk";
 
-dotenv.config();
+const env =
+  process.env.PHONEPE_ENV === "PRODUCTION"
+    ? Env.PRODUCTION
+    : Env.SANDBOX;
 
-const env = process.env.PHONEPE_ENV === "PRODUCTION" ? Env.PRODUCTION : Env.SANDBOX;
-
-const phonePeClient = new StandardCheckoutClient(
+export const phonePeClient = StandardCheckoutClient.getInstance(
   process.env.PHONEPE_CLIENT_ID,
   process.env.PHONEPE_CLIENT_SECRET,
-  process.env.PHONEPE_CLIENT_VERSION || "1",
-  env,
-  false // shouldPublishEvents
+  Number(process.env.PHONEPE_CLIENT_VERSION || 1),
+  env
 );
-
-export default phonePeClient;
