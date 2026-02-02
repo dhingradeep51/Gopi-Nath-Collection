@@ -140,3 +140,6 @@ export const checkStatus = async (req, res) => {
     res.redirect(`${process.env.FRONTEND_URL}/dashboard/user/orders?success=false`);
   }
 };
+
+
+//this is for payment
