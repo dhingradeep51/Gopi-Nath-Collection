@@ -12,83 +12,58 @@ import { phonePeClient } from "../Utils/phonepeClient.js";
  */
 export const phonePeWebhookController = async (req, res) => {
   try {
-    // 1️⃣ Get raw body as string (IMPORTANT)
-    const responseBodyString = JSON.stringify(req.body);
+    console.log("🔥 PhonePe Webhook HIT");
 
-    // 2️⃣ Get Authorization header sent by PhonePe
+    const rawBody = req.body.toString();
     const authorizationHeader = req.headers["authorization"];
-    if (!authorizationHeader) {
-      return res.sendStatus(401);
-    }
 
-    // 3️⃣ Validate callback using SDK
+    console.log("Authorization:", authorizationHeader);
+    console.log("Raw Body:", rawBody);
+
     const callbackResponse = phonePeClient.validateCallback(
       process.env.PHONEPE_CALLBACK_USERNAME,
       process.env.PHONEPE_CALLBACK_PASSWORD,
       authorizationHeader,
-      responseBodyString
+      rawBody
     );
 
-    /**
-     * callbackResponse structure:
-     * {
-     *   type: "CHECKOUT_ORDER_COMPLETED" | "CHECKOUT_ORDER_FAILED",
-     *   payload: {
-     *     originalMerchantOrderId,
-     *     orderId,
-     *     state,
-     *     amount,
-     *     paymentDetails[]
-     *   }
-     * }
-     */
+    console.log("✅ Verified Callback:", callbackResponse);
 
-    const {
-      originalMerchantOrderId, // this is YOUR merchantOrderId
-      state,
-      paymentDetails
-    } = callbackResponse.payload;
+    const { originalMerchantOrderId, state, paymentDetails } =
+      callbackResponse.payload;
 
-    // 4️⃣ Find Order
     const order = await OrderModel.findOne({
       merchantOrderId: originalMerchantOrderId
     });
 
     if (!order) {
+      console.error("❌ Order not found");
       return res.sendStatus(404);
     }
 
-    // 5️⃣ Find Payment
     const payment = await PaymentModel.findById(order.paymentDetails);
-    if (!payment) {
-      return res.sendStatus(404);
-    }
 
-    // 6️⃣ Handle payment state
     if (state === "COMPLETED") {
       payment.status = "PAID";
       payment.transactionId = paymentDetails?.[0]?.transactionId;
-      payment.paymentResponse = callbackResponse;
-
       order.status = "Processing";
     } else {
       payment.status = "FAILED";
-      payment.paymentResponse = callbackResponse;
-
       order.status = "Not Processed";
     }
 
     await payment.save();
     await order.save();
 
-    // 7️⃣ Respond 200 to stop retries
+    console.log("✅ Payment & Order updated");
     return res.sendStatus(200);
 
-  } catch (error) {
-    console.error("PhonePe Webhook Verification Failed:", error);
+  } catch (err) {
+    console.error("❌ Webhook Error:", err);
     return res.sendStatus(500);
   }
 };
+
 
 
 /* =====================================================
