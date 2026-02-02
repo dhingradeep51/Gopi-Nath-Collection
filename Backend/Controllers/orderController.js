@@ -9,43 +9,29 @@ import axios from "axios";
 import crypto from "crypto";
 // --- PLACE NEW ORDER ---
 import { getPhonePeV2Token } from "../Utils/phonepeAuth.js";
-
+import { MetaInfo, CreateSdkOrderRequest } from "phonepe-pg-sdk";
 
 /**
- * 🚀 PLACE ORDER CONTROLLER
- * Handles GST calculations, DB persistence, and PhonePe UAT Handshake
+ * 🚀 PLACE ORDER CONTROLLER (PURE V2)
  */
-/**
- * 🚀 PLACE ORDER CONTROLLER (V2 O-BEARER FLOW)
- * Resolves 'Api Mapping Not Found' by using OAuth2 credentials.
- */
-import { StandardCheckoutClient, Env, MetaInfo, CreateSdkOrderRequest } from 'pg-sdk-node';
-
-// 1️⃣ Initialize PhonePe SDK Client
-// Use V2 credentials (client_id, client_secret) from Developer Settings
-const clientId = process.env.PHONEPE_CLIENT_ID;
-const clientSecret = process.env.PHONEPE_CLIENT_SECRET;
-const clientVersion = 1; // Default for current V2 integration
-const env = Env.SANDBOX; // Change to Env.PRODUCTION for live site
-
-const phonePeClient = StandardCheckoutClient.getInstance(clientId, clientSecret, clientVersion, env);
-
 export const placeOrderController = async (req, res) => {
   try {
-    const { cart, address, paymentMethod, shippingFee = 0, discount = 0 } = req.body;
+    const { cart, address, paymentMethod } = req.body;
 
-    // 2️⃣ Validation
     if (!cart || cart.length === 0) {
-      return res.status(400).send({ success: false, message: "Cart is empty" });
+      return res.status(400).send({
+        success: false,
+        message: "Cart is empty"
+      });
     }
 
-    const products = [];
+    let products = [];
     let subtotal = 0;
     let totalBaseAmount = 0;
     let totalGstAmount = 0;
     let highestGstRate = 0;
 
-    // 3️⃣ Process Items & GST Calculations
+    // 1️⃣ Prepare product snapshot + GST
     for (const item of cart) {
       const product = await ProductModel.findById(item._id);
       if (!product) continue;
@@ -53,82 +39,152 @@ export const placeOrderController = async (req, res) => {
       const qty = item.cartQuantity || 1;
       const price = product.price;
       const gstRate = product.gstRate || 18;
+
       const basePrice = price / (1 + gstRate / 100);
       const gstAmount = price - basePrice;
 
       subtotal += price * qty;
       totalBaseAmount += basePrice * qty;
       totalGstAmount += gstAmount * qty;
-      if (gstRate > highestGstRate) highestGstRate = gstRate;
+      highestGstRate = Math.max(highestGstRate, gstRate);
 
       products.push({
         product: product._id,
         name: product.name,
         qty,
-        price: Number(price.toFixed(2)),
+        price,
         gstRate,
-        basePrice: Number(basePrice.toFixed(2)),
-        gstAmount: Number(gstAmount.toFixed(2))
+        basePrice,
+        gstAmount
       });
     }
 
-    const totalPaid = subtotal + shippingFee - discount;
-    const merchantOrderId = `MT${Date.now()}`; // Unique for PhonePe
+    const totalPaid = Number(subtotal.toFixed(2));
+    const merchantOrderId = `ORD${Date.now()}`;
     const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
 
-    // 4️⃣ Save Order (Status: PENDING)
+    // 2️⃣ Create Payment (PENDING)
     const payment = await new PaymentModel({
       merchantTransactionId: merchantOrderId,
       amount: totalPaid,
-      status: "PENDING",
-      method: paymentMethod
+      method: paymentMethod === "cod" ? "cod" : "phonepe",
+      status: "PENDING_PAYMENT"
     }).save();
 
-    const order = await orderModel.create({
+    // 3️⃣ Create Order
+    const order = await OrderModel.create({
+      merchantOrderId,
+      orderNumber,
       products,
       buyer: req.user._id,
       address,
       paymentDetails: payment._id,
-      orderNumber,
-      subtotal: Number(subtotal.toFixed(2)),
-      totalPaid: Number(totalPaid.toFixed(2)),
-      totalBaseAmount: Number(totalBaseAmount.toFixed(2)),
-      totalGstAmount: Number(totalGstAmount.toFixed(2)),
+      subtotal: totalPaid,
+      totalPaid,
+      totalBaseAmount,
+      totalGstAmount,
       highestGstRate,
       status: "Not Processed"
     });
 
-    // 5️⃣ Handle COD
+    // 4️⃣ COD FLOW
     if (paymentMethod === "cod") {
-      return res.status(201).send({ success: true, message: "Order placed (COD)", order });
+      payment.status = "COD";
+      order.status = "Processing";
+
+      await payment.save();
+      await order.save();
+
+      return res.status(201).send({
+        success: true,
+        message: "Order placed with Cash on Delivery",
+        order
+      });
     }
 
-    // 🚀 6️⃣ PHONEPE V2 SDK HANDSHAKE
-    const amountInPaise = Math.round(totalPaid * 100); // 100 = ₹1.00
-    
+    // 5️⃣ PHONEPE V2 CHECKOUT
     const metaInfo = MetaInfo.builder()
       .udf1(req.user._id.toString())
       .udf2(orderNumber)
       .build();
 
-    const orderRequest = CreateSdkOrderRequest.StandardCheckoutBuilder()
+    const sdkOrder = CreateSdkOrderRequest.StandardCheckoutBuilder()
       .merchantOrderId(merchantOrderId)
-      .amount(amountInPaise)
+      .amount(Math.round(totalPaid * 100)) // paise
       .metaInfo(metaInfo)
-      .redirectUrl(`${process.env.BACKEND_URL}/api/v1/payment/status/${merchantOrderId}`)
+      .redirectUrl(`${process.env.FRONTEND_URL}/payment-processing/${orderNumber}`)
       .build();
 
-    // The pay() method automatically generates the V2 token and mapping
-    const phonePeResponse = await phonePeClient.pay(orderRequest);
-    
+    const phonePeResponse = await phonePeClient.pay(sdkOrder);
+
     return res.status(200).send({
       success: true,
-      url: phonePeResponse.redirectUrl
+      redirectUrl: phonePeResponse.redirectUrl,
+      orderId: order._id
     });
 
   } catch (error) {
-    console.error("SDK Implementation Error:", error.message);
-    return res.status(500).send({ success: false, message: "Payment initiation failed" });
+    console.error("Place Order Error:", error);
+    return res.status(500).send({
+      success: false,
+      message: "Order placement failed"
+    });
+  }
+};
+
+/**
+ * 📦 GET USER ORDERS
+ */
+export const getUserOrdersController = async (req, res) => {
+  try {
+    const orders = await OrderModel.find({ buyer: req.user._id })
+      .populate("products.product", "name photo")
+      .sort({ createdAt: -1 });
+
+    res.status(200).send({ success: true, orders });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Unable to fetch orders"
+    });
+  }
+};
+
+/**
+ * 🧾 GET SINGLE ORDER BY ORDER NUMBER
+ */
+export const getOrderByNumberController = async (req, res) => {
+  try {
+    const { orderNumber } = req.params;
+
+    const order = await OrderModel.findOne({ orderNumber })
+      .populate("products.product", "name photo")
+      .populate("buyer", "name email phone");
+
+    if (!order) {
+      return res.status(404).send({
+        success: false,
+        message: "Order not found"
+      });
+    }
+
+    // Security check
+    if (
+      req.user.role !== 1 &&
+      order.buyer._id.toString() !== req.user._id.toString()
+    ) {
+      return res.status(401).send({
+        success: false,
+        message: "Unauthorized"
+      });
+    }
+
+    res.status(200).send({ success: true, order });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Unable to fetch order"
+    });
   }
 };
 
