@@ -6,14 +6,20 @@ import PaymentModel from "../Models/paymentModel.js";
  * This is the ONLY trusted source of payment confirmation
  * PhonePe server → your server
  */
+
 export const phonePeWebhookController = async (req, res) => {
   try {
-    console.log("📩 PHONEPE WEBHOOK RAW PAYLOAD:", JSON.stringify(req.body, null, 2));
+    console.log(
+      "📩 PHONEPE WEBHOOK RAW PAYLOAD:",
+      JSON.stringify(req.body, null, 2)
+    );
 
     const data = req.body?.data;
     if (!data) return res.sendStatus(400);
 
-    const merchantTransactionId = data.merchantTransactionId;
+    const merchantTransactionId =
+      data.merchantTransactionId || data.merchantOrderId;
+
     const state = data.state;
     const transactionId = data.transactionId;
 
@@ -29,7 +35,10 @@ export const phonePeWebhookController = async (req, res) => {
     const payment = await PaymentModel.findById(order.paymentDetails);
     if (!payment) return res.sendStatus(404);
 
-    if (payment.status === "SUCCESS") return res.sendStatus(200);
+    // Idempotent guard
+    if (payment.status === "SUCCESS") {
+      return res.sendStatus(200);
+    }
 
     if (state === "COMPLETED") {
       payment.status = "SUCCESS";
