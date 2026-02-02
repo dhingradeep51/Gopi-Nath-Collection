@@ -34,7 +34,7 @@ export const placeOrderController = async (req, res) => {
   try {
     const { cart, address, paymentMethod, shippingFee = 0, discount = 0 } = req.body;
 
-    // 2️⃣ Validation: Ensure cart is not empty
+    // 2️⃣ Validation
     if (!cart || cart.length === 0) {
       return res.status(400).send({ success: false, message: "Cart is empty" });
     }
@@ -45,7 +45,7 @@ export const placeOrderController = async (req, res) => {
     let totalGstAmount = 0;
     let highestGstRate = 0;
 
-    // 3️⃣ Process Items & GST Calculations (Required by your Order Schema)
+    // 3️⃣ Process Items & GST Calculations
     for (const item of cart) {
       const product = await ProductModel.findById(item._id);
       if (!product) continue;
@@ -73,10 +73,10 @@ export const placeOrderController = async (req, res) => {
     }
 
     const totalPaid = subtotal + shippingFee - discount;
-    const merchantOrderId = `MT${Date.now()}`; // Unique order ID for PhonePe
+    const merchantOrderId = `MT${Date.now()}`; // Unique for PhonePe
     const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
 
-    // 4️⃣ Save Payment & Order Reference (Status: PENDING)
+    // 4️⃣ Save Order (Status: PENDING)
     const payment = await new PaymentModel({
       merchantTransactionId: merchantOrderId,
       amount: totalPaid,
@@ -95,12 +95,10 @@ export const placeOrderController = async (req, res) => {
       totalBaseAmount: Number(totalBaseAmount.toFixed(2)),
       totalGstAmount: Number(totalGstAmount.toFixed(2)),
       highestGstRate,
-      shippingFee,
-      discount,
       status: "Not Processed"
     });
 
-    // 5️⃣ Handle Cash on Delivery
+    // 5️⃣ Handle COD
     if (paymentMethod === "cod") {
       return res.status(201).send({ success: true, message: "Order placed (COD)", order });
     }
@@ -108,33 +106,28 @@ export const placeOrderController = async (req, res) => {
     // 🚀 6️⃣ PHONEPE V2 SDK HANDSHAKE
     const amountInPaise = Math.round(totalPaid * 100); // 100 = ₹1.00
     
-    // Build Metadata to track the user/order in PhonePe's dashboard
     const metaInfo = MetaInfo.builder()
       .udf1(req.user._id.toString())
       .udf2(orderNumber)
       .build();
 
     const orderRequest = CreateSdkOrderRequest.StandardCheckoutBuilder()
-      .merchantOrderId(merchantOrderId) // Unique order ID
-      .amount(amountInPaise) // Amount in paise
-      .metaInfo(metaInfo) // Custom metadata
-      .redirectUrl(`${process.env.BACKEND_URL}/api/v1/payment/status/${merchantOrderId}`) // Redirect URL
-      .expireAfter(3600) // 1 hour session
-      .message("Divine order from Gopi Nath Collection") // UI message
+      .merchantOrderId(merchantOrderId)
+      .amount(amountInPaise)
+      .metaInfo(metaInfo)
+      .redirectUrl(`${process.env.BACKEND_URL}/api/v1/payment/status/${merchantOrderId}`)
       .build();
 
-    // Initiate the payment link generation
+    // The pay() method automatically generates the V2 token and mapping
     const phonePeResponse = await phonePeClient.pay(orderRequest);
     
-    // Return the secure redirect URL to the frontend
     return res.status(200).send({
       success: true,
       url: phonePeResponse.redirectUrl
     });
 
   } catch (error) {
-    // 🔍 Precise logging for debugging in Render
-    console.error("SDK Integration Error:", error.message);
+    console.error("SDK Implementation Error:", error.message);
     return res.status(500).send({ success: false, message: "Payment initiation failed" });
   }
 };
