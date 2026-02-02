@@ -13,7 +13,7 @@ const phonePeClient = StandardCheckoutClient.getInstance(
 );
 
 /* =====================================================
-   🔔 PHONEPE V2 WEBHOOK (S2S READY)
+   🔔 PHONEPE V2 WEBHOOK (REAL PAYLOAD SAFE)
    ===================================================== */
 export const phonePeWebhookController = async (req, res) => {
   try {
@@ -22,7 +22,9 @@ export const phonePeWebhookController = async (req, res) => {
       JSON.stringify(req.body, null, 2)
     );
 
-    /* ---------- OPTIONAL S2S VALIDATION (FUTURE) ---------- */
+    /* =====================================================
+       🔐 OPTIONAL S2S VALIDATION (FUTURE SAFE)
+       ===================================================== */
     if (process.env.PHONEPE_ENABLE_S2S === "true") {
       const authorizationHeader = req.headers["authorization"];
       if (!authorizationHeader) {
@@ -43,9 +45,18 @@ export const phonePeWebhookController = async (req, res) => {
       }
     }
 
-    /* ---------- PAYLOAD ---------- */
-    const data = req.body?.data;
-    if (!data) return res.sendStatus(400);
+    /* =====================================================
+       📦 PAYLOAD PARSING (CRITICAL FIX)
+       ===================================================== */
+    const data =
+      req.body?.data ||
+      req.body?.payload ||
+      req.body?.event?.payload;
+
+    if (!data) {
+      console.error("❌ Invalid PhonePe payload structure:", req.body);
+      return res.sendStatus(400);
+    }
 
     const merchantTransactionId =
       data.merchantTransactionId || data.merchantOrderId;
@@ -54,10 +65,13 @@ export const phonePeWebhookController = async (req, res) => {
     const state = data.state; // COMPLETED | FAILED | CANCELLED
 
     if (!merchantTransactionId || !state) {
+      console.error("❌ Missing transactionId/state:", data);
       return res.sendStatus(400);
     }
 
-    /* ---------- DB LOOKUP ---------- */
+    /* =====================================================
+       🔎 DB LOOKUP
+       ===================================================== */
     const order = await OrderModel.findOne({
       merchantOrderId: merchantTransactionId
     });
@@ -68,14 +82,21 @@ export const phonePeWebhookController = async (req, res) => {
     }
 
     const payment = await PaymentModel.findById(order.paymentDetails);
-    if (!payment) return res.sendStatus(404);
+    if (!payment) {
+      console.error("❌ Payment not found for order:", order._id);
+      return res.sendStatus(404);
+    }
 
-    /* ---------- IDEMPOTENCY ---------- */
+    /* =====================================================
+       🛡 IDEMPOTENCY (PHONEPE RETRIES WEBHOOKS)
+       ===================================================== */
     if (payment.status === "SUCCESS" || payment.status === "FAILED") {
       return res.sendStatus(200);
     }
 
-    /* ---------- STATUS UPDATE ---------- */
+    /* =====================================================
+       ✅ STATE HANDLING
+       ===================================================== */
     if (state === "COMPLETED") {
       payment.status = "SUCCESS";
       payment.transactionId = transactionId || payment.transactionId;
@@ -132,7 +153,7 @@ export const getPaymentStatusController = async (req, res) => {
       return res.status(404).json({ success: false });
     }
 
-    // Disable caching
+    // Disable caching (important for polling)
     res.set({
       "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
       Pragma: "no-cache",
