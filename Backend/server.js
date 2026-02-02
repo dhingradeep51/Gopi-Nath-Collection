@@ -57,6 +57,7 @@ app.use(cors({
 
 app.use(express.json());
 app.use(morgan('dev'));
+app.use(express.urlencoded({ extended: true }));
 
 // Make 'io' accessible in your routes
 app.set("io", io);
