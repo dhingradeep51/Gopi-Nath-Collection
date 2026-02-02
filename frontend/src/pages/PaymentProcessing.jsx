@@ -19,54 +19,49 @@ const PaymentProcessing = () => {
     }, 1000);
 
     // Start polling for payment status
-    const pollPaymentStatus = async () => {
-      try {
-        const { data } = await axios.get(
-          `${BASE_URL}api/v1/payment/status/${orderNumber}?t=${Date.now()}`
-        );
+    const pollOrderStatus = async () => {
+  try {
+    const { data } = await axios.get(
+      `${BASE_URL}api/v1/order/${orderNumber}`
+    );
 
-        console.log("🔁 Polling response:", data);
+    if (!data?.success) return;
 
-        if (!data?.success) return;
+    const paymentStatus = data.order?.paymentDetails?.status;
 
-        if (data.paymentStatus === "PAID") {
-          setStatus("success");
-          clearInterval(intervalRef.current);
-          clearInterval(timerRef.current);
-          
-          // Show success message briefly before redirecting
-          setTimeout(() => {
-            navigate("/dashboard/user/orders", { replace: true });
-          }, 2000);
-        }
+    console.log("🔁 Order status:", paymentStatus);
 
-        if (data.paymentStatus === "FAILED") {
-          setStatus("failed");
-          clearInterval(intervalRef.current);
-          clearInterval(timerRef.current);
-          
-          // Show failure message briefly before redirecting
-          setTimeout(() => {
-            navigate("/cart", { replace: true });
-          }, 3000);
-        }
-      } catch (err) {
-        console.error("❌ Polling error:", err);
-        
-        // Optional: Handle network errors after too many retries
-        if (timeElapsed > 180) { // 3 minutes timeout
-          setStatus("failed");
-          clearInterval(intervalRef.current);
-          clearInterval(timerRef.current);
-        }
-      }
-    };
+    if (paymentStatus === "PAID") {
+      setStatus("success");
+      clearInterval(intervalRef.current);
+      clearInterval(timerRef.current);
 
-    // Initial poll
-    pollPaymentStatus();
-    
-    // Set up polling interval
-    intervalRef.current = setInterval(pollPaymentStatus, 3000);
+      setTimeout(() => {
+        navigate("/dashboard/user/orders", { replace: true });
+      }, 2000);
+    }
+
+    if (paymentStatus === "FAILED") {
+      setStatus("failed");
+      clearInterval(intervalRef.current);
+      clearInterval(timerRef.current);
+
+      setTimeout(() => {
+        navigate("/cart", { replace: true });
+      }, 3000);
+    }
+  } catch (err) {
+    console.error("❌ Polling error:", err);
+  }
+};
+
+
+   // Initial check
+pollOrderStatus();
+
+// Poll every 4 seconds
+intervalRef.current = setInterval(pollOrderStatus, 4000);
+
 
     // Cleanup function
     return () => {
