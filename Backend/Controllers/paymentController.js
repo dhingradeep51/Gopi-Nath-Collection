@@ -8,16 +8,8 @@ import PaymentModel from "../Models/paymentModel.js";
  */
 export const phonePeWebhookController = async (req, res) => {
   try {
-    /**
-     * Expected V2 webhook structure (simplified):
-     * {
-     *   data: {
-     *     merchantOrderId: "ORD123...",
-     *     transactionId: "T2309...",
-     *     state: "COMPLETED" | "FAILED"
-     *   }
-     * }
-     */
+    console.log("✅ PHONEPE WEBHOOK RECEIVED:", JSON.stringify(req.body));
+
     const event = req.body;
     const merchantOrderId = event?.data?.merchantOrderId;
     const phonePeTransactionId = event?.data?.transactionId;
@@ -27,40 +19,32 @@ export const phonePeWebhookController = async (req, res) => {
       return res.sendStatus(400);
     }
 
-    // 1️⃣ Find Order using merchantOrderId
     const order = await OrderModel.findOne({ merchantOrderId });
-    if (!order) {
-      return res.sendStatus(404);
-    }
+    if (!order) return res.sendStatus(404);
 
-    // 2️⃣ Get linked Payment document
     const payment = await PaymentModel.findById(order.paymentDetails);
-    if (!payment) {
-      return res.sendStatus(404);
+    if (!payment) return res.sendStatus(404);
+
+    // 🔁 Idempotency guard
+    if (payment.status === "PAID") {
+      return res.sendStatus(200);
     }
 
-    // 3️⃣ Update payment & order based on state
     if (state === "COMPLETED") {
       payment.status = "PAID";
       payment.transactionId = phonePeTransactionId;
       payment.paymentResponse = event;
-
-      // Order now moves into fulfilment lifecycle
       order.status = "Processing";
     } else {
       payment.status = "FAILED";
       payment.paymentResponse = event;
-
-      // Keep order unprocessed / failed
       order.status = "Not Processed";
     }
 
     await payment.save();
     await order.save();
 
-    // PhonePe requires HTTP 200 to stop retries
     return res.sendStatus(200);
-
   } catch (error) {
     console.error("PhonePe Webhook Error:", error);
     return res.sendStatus(500);
