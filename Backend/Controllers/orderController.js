@@ -13,6 +13,10 @@ import phonePeClient from "../Utils/phonepeClient.js";
  */
 export const placeOrderController = async (req, res) => {
   try {
+    // ✅ TEMPORARY DEBUG: Verify Authorization header
+    console.log("🔍 AUTH DEBUG - req.headers.authorization:", req.headers.authorization);
+    console.log("🔍 AUTH DEBUG - req.user._id:", req.user?._id);
+
     const { cart, address, paymentMethod } = req.body;
 
     if (!cart || cart.length === 0) {

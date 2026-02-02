@@ -158,7 +158,8 @@ const handlePlaceOrder = async () => {
       orderData,
       {
         headers: {
-          Authorization: auth?.token,
+          Authorization: `Bearer ${auth?.token}`,
+          "Content-Type": "application/json",
         },
       }
     );

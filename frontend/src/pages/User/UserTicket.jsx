@@ -21,7 +21,7 @@ const SecureImage = ({ url, width }) => {
         const fetchImage = async () => {
             try {
                 const { data } = await axios.get(url, {
-                    headers: { Authorization: auth?.token }, 
+                    headers: { Authorization: `Bearer ${auth?.token}` }, 
                     responseType: 'blob'
                 });
                 const objectUrl = URL.createObjectURL(data);
