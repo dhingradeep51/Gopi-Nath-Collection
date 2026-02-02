@@ -16,6 +16,11 @@ export const placeOrderController = async (req, res) => {
       couponType, giftProductId 
     } = req.body;
 
+    // 🔍 DEBUG: Check incoming request body
+    console.log("--- New Order Request ---");
+    console.log("Payment Method:", paymentMethod);
+    console.log("Received Subtotal:", subtotal); //
+
     // 1️⃣ Validation
     if (!cart || cart.length === 0) return res.status(400).send({ success: false, message: "Cart is empty" });
     if (!address) return res.status(400).send({ success: false, message: "Shipping address is required" });
@@ -67,7 +72,7 @@ export const placeOrderController = async (req, res) => {
     const merchantTransactionId = `MT${Date.now()}`; 
     const generatedOrderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
 
-    // 5️⃣ Create Payment Record (Status: PENDING)
+    // 5️⃣ Create Payment Record
     const paymentRecord = await new PaymentModel({
       merchantTransactionId,
       amount: totalAmount || (calculatedSubtotal + shippingFee - discount),
@@ -75,14 +80,17 @@ export const placeOrderController = async (req, res) => {
       method: paymentMethod
     }).save();
 
-    // 6️⃣ Save Order
+    // 6️⃣ Save Order (Fixed: Ensuring subtotal is defined)
+    const finalSubtotal = Number((subtotal || calculatedSubtotal).toFixed(2));
+    console.log("Saving to DB - Subtotal:", finalSubtotal); //
+
     const order = await orderModel.create({
       products,
       buyer: req.user._id,
       address,
       paymentDetails: paymentRecord._id, 
       orderNumber: generatedOrderNumber,
-      subtotal: Number((subtotal || calculatedSubtotal).toFixed(2)), 
+      subtotal: finalSubtotal, 
       discount: Number(discount.toFixed(2)),
       shippingFee: Number(shippingFee.toFixed(2)),
       totalPaid: Number((totalAmount || (calculatedSubtotal + shippingFee - discount)).toFixed(2)),
@@ -100,12 +108,16 @@ export const placeOrderController = async (req, res) => {
       sendNotification(req, "NEW_ORDER", { orderId: generatedOrderNumber });
       return res.status(201).send({ success: true, message: "Order placed (COD)", order });
     } else {
-      // 🚀 PHONEPE HANDSHAKE
+      // 🚀 PHONEPE HANDSHAKE DEBUGGING
+      console.log("--- PhonePe Handshake Start ---");
+      console.log("Merchant ID:", process.env.PHONEPE_MERCHANT_ID);
+      console.log("Salt Index:", process.env.PHONEPE_SALT_INDEX); //
+      
       const payload = {
         merchantId: process.env.PHONEPE_MERCHANT_ID,
         merchantTransactionId,
         merchantUserId: req.user._id,
-        amount: Math.round(order.totalPaid * 100), // Amount in Paise
+        amount: Math.round(order.totalPaid * 100), 
         redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
         redirectMode: "POST",
         callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
@@ -117,17 +129,29 @@ export const placeOrderController = async (req, res) => {
       const sha256 = crypto.createHash("sha256").update(string).digest("hex");
       const checksum = `${sha256}###${process.env.PHONEPE_SALT_INDEX}`;
 
+      console.log("Generated Checksum:", checksum); // Verify suffix matches Index
+
       const response = await axios.post(
         "https://api-preprod.phonepe.com/apis/hermes/pg/v1/pay",
         { request: base64Payload },
         { headers: { accept: "application/json", "Content-Type": "application/json", "X-VERIFY": checksum } }
       );
 
+      console.log("PhonePe API Status:", response.status);
+      console.log("--- Handshake Success ---");
+
       return res.status(200).send({ success: true, url: response.data.data.instrumentResponse.redirectInfo.url });
     }
   } catch (error) {
-    console.error("Order Error:", error.response?.data || error.message);
-    res.status(500).send({ success: false, message: "Internal Server Error" });
+    // 🔍 DEBUG: Catch the specific KEY_NOT_CONFIGURED or validation error reason
+    console.error("--- Critical Error Log ---");
+    if (error.response) {
+      console.error("API Response Data:", error.response.data); //
+      console.error("API Status Code:", error.response.status);
+    } else {
+      console.error("Error Message:", error.message);
+    }
+    res.status(500).send({ success: false, message: "Order processing failed", error: error.message });
   }
 };
 export const getAllOrdersController = async (req, res) => {
