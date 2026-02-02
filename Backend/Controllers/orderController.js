@@ -14,11 +14,9 @@ export const placeOrderController = async (req, res) => {
   try {
     const { cart, address, paymentMethod, shippingFee = 0, discount = 0 } = req.body;
 
+    // 1️⃣ Validation: Ensure cart is not empty
     if (!cart || cart.length === 0) {
-      return res.status(400).send({
-        success: false,
-        message: "Cart is empty"
-      });
+      return res.status(400).send({ success: false, message: "Cart is empty" });
     }
 
     const products = [];
@@ -27,19 +25,23 @@ export const placeOrderController = async (req, res) => {
     let totalGstAmount = 0;
     let highestGstRate = 0;
 
+    // 2️⃣ Process Items & GST Calculations
     for (const item of cart) {
       const product = await ProductModel.findById(item._id);
-      const qty = item.cartQuantity || 1;
+      if (!product) continue;
 
+      const qty = item.cartQuantity || 1;
       const price = product.price;
       const gstRate = product.gstRate || 18;
-
+      
+      // Calculate Base Price and GST Amount
       const basePrice = price / (1 + gstRate / 100);
-      const gstAmount = price - basePrice;
+      const gstAmount = price - basePrice; // ✅ Fixed variable name
 
       subtotal += price * qty;
       totalBaseAmount += basePrice * qty;
       totalGstAmount += gstAmount * qty;
+      
       if (gstRate > highestGstRate) highestGstRate = gstRate;
 
       products.push({
@@ -54,11 +56,10 @@ export const placeOrderController = async (req, res) => {
     }
 
     const totalPaid = subtotal + shippingFee - discount;
-
     const merchantTransactionId = `MT${Date.now()}`;
     const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
 
-    // 💾 Save payment
+    // 3️⃣ Save Payment Reference (Status: PENDING)
     const payment = await new PaymentModel({
       merchantTransactionId,
       amount: totalPaid,
@@ -66,7 +67,7 @@ export const placeOrderController = async (req, res) => {
       method: paymentMethod
     }).save();
 
-    // 💾 Save order (ALL required fields included)
+    // 4️⃣ Create Order: Include all 'required' schema fields
     const order = await orderModel.create({
       products,
       buyer: req.user._id,
@@ -83,53 +84,56 @@ export const placeOrderController = async (req, res) => {
       status: "Not Processed"
     });
 
-    // 💵 COD flow
+    // 5️⃣ Cash on Delivery Flow
     if (paymentMethod === "cod") {
-      return res.status(201).send({
-        success: true,
-        message: "Order placed (COD)",
-        order
-      });
+      return res.status(201).send({ success: true, message: "Order placed (COD)", order });
     }
 
-    // 🔑 PHONEPE V2
-    const accessToken = await getPhonePeAccessToken();
-
+    // 🚀 6️⃣ PHONEPE UAT SANDBOX HANDSHAKE
     const payload = {
-      merchantTransactionId: process.env.PHONEPE_MERCHANT_ID,
-      amount: Math.round(totalPaid * 100), // paise
+      merchantId: process.env.PHONEPE_MERCHANT_ID,
+      merchantTransactionId,
+      merchantUserId: req.user._id,
+      amount: Math.round(totalPaid * 100), // convert to paise
       redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
       redirectMode: "POST",
       callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
       paymentInstrument: { type: "PAY_PAGE" }
     };
 
-    console.log("PAY URL:", `${PHONEPE_BASE_URL}/pg/v2/pay`);
+    const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
+    const endpoint = "/pg/v1/pay"; // Standard path for Pay Page
+    
+    // Generate X-VERIFY Checksum
+    const checksum = crypto.createHash("sha256")
+      .update(base64Payload + endpoint + process.env.PHONEPE_SALT_KEY)
+      .digest("hex") + "###" + process.env.PHONEPE_SALT_INDEX;
+
+    // ✅ Hit UAT Sandbox Host URL to prevent Mapping error
     const response = await axios.post(
-      `${PHONEPE_BASE_URL}/pg/v2/pay`,
-      payload,
+      `https://api-preprod.phonepe.com/apis/pgsandbox${endpoint}`, 
+      { request: base64Payload },
       {
         headers: {
-          Authorization: `O-Bearer ${accessToken}`,
-          "Content-Type": "application/json"
+          accept: "application/json",
+          "Content-Type": "application/json",
+          "X-VERIFY": checksum
         }
       }
     );
 
+    // Return the secure redirect URL to the frontend
     return res.status(200).send({
       success: true,
-      url: response.data.data.redirectUrl
+      url: response.data.data.instrumentResponse.redirectInfo.url
     });
 
   } catch (error) {
-    console.error("Order Error:", error.response?.data || error.message);
-    return res.status(500).send({
-      success: false,
-      message: "Payment failed"
-    });
+    // 🔍 Log precise error details for debugging on Render
+    console.error("Critical Order Error:", error.response?.data || error.message);
+    return res.status(500).send({ success: false, message: "Payment initiation failed" });
   }
 };
-
 
 
 export const getAllOrdersController = async (req, res) => {
