@@ -1,6 +1,6 @@
 import express from "express";
-import { initiatePayment, checkStatus } from "../Controllers/paymentController.js";
-import { requireSignIn } from "../Middlewares/authMiddleware.js";
+import { checkStatus } from "../Controllers/paymentController.js";
+
 
 const router = express.Router();
 router.post("/status/:merchantTransactionId", checkStatus);
