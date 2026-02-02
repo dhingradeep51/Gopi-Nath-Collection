@@ -1,7 +1,7 @@
 import orderModel from "../Models/orderModel.js";
 import moment from "moment";
 import ProductModel from "../Models/productModel.js";
-import paymentModel from "../Models/paymentModel.js";
+import PaymentModel from "../Models/paymentModel.js";
 import userModel from "../Models/userModel.js";
 // ✅ Ensure the import path and filename match your utils folder exactly
 import { sendNotification } from "../Utils/notificationUtils.js";
