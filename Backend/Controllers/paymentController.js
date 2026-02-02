@@ -5,8 +5,6 @@ import { StandardCheckoutClient, Env } from "pg-sdk-node";
 /* =====================================================
    📌 PHONEPE CLIENT INITIALIZATION
    ===================================================== */
-import OrderModel from "../Models/orderModel.js";
-import PaymentModel from "../Models/paymentModel.js";
 import { phonePeClient } from "../Utils/phonepeClient.js";
 
 /**
