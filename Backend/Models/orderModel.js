@@ -44,17 +44,6 @@ const orderSchema = new mongoose.Schema(
     // 🛒 PRODUCTS SNAPSHOT WITH GST
     products: [orderProductSchema],
 
-    // 💳 PAYMENT INFO
-    payment: {
-      method: {
-        type: String,
-        enum: ["cod", "online"],
-        default: "cod"
-      },
-      transactionId: { type: String },
-      paidAt: { type: Date }
-    },
-
     // 👤 BUYER
     buyer: {
       type: mongoose.Schema.Types.ObjectId,
@@ -81,6 +70,11 @@ const orderSchema = new mongoose.Schema(
 
     // 🔢 BUSINESS IDENTIFIERS
     orderNumber: {
+      type: String,
+      required: true,
+      unique: true
+    },
+    merchantOrderId: {
       type: String,
       required: true,
       unique: true

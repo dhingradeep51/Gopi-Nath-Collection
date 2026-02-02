@@ -1,15 +1,12 @@
-import orderModel from "../Models/orderModel.js";
+import OrderModel from "../Models/orderModel.js";
 import moment from "moment";
 import ProductModel from "../Models/productModel.js";
 import PaymentModel from "../Models/paymentModel.js";
 import userModel from "../Models/userModel.js";
 // ✅ Ensure the import path and filename match your utils folder exactly
 import { sendNotification } from "../Utils/notificationUtils.js";
-import axios from "axios";
-import crypto from "crypto";
-// --- PLACE NEW ORDER ---
-import { getPhonePeV2Token } from "../Utils/phonepeAuth.js";
-import { MetaInfo, CreateSdkOrderRequest } from "phonepe-pg-sdk";
+import { MetaInfo, CreateSdkOrderRequest, StandardCheckoutClient } from "pg-sdk-node";
+import phonePeClient from "../Utils/phonepeClient.js";
 
 /**
  * 🚀 PLACE ORDER CONTROLLER (PURE V2)
@@ -63,22 +60,13 @@ export const placeOrderController = async (req, res) => {
     const merchantOrderId = `ORD${Date.now()}`;
     const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
 
-    // 2️⃣ Create Payment (PENDING)
-    const payment = await new PaymentModel({
-      merchantTransactionId: merchantOrderId,
-      amount: totalPaid,
-      method: paymentMethod === "cod" ? "cod" : "phonepe",
-      status: "PENDING_PAYMENT"
-    }).save();
-
-    // 3️⃣ Create Order
+    // 2️⃣ Create Order first
     const order = await OrderModel.create({
       merchantOrderId,
       orderNumber,
       products,
       buyer: req.user._id,
       address,
-      paymentDetails: payment._id,
       subtotal: totalPaid,
       totalPaid,
       totalBaseAmount,
@@ -86,6 +74,18 @@ export const placeOrderController = async (req, res) => {
       highestGstRate,
       status: "Not Processed"
     });
+
+    // 3️⃣ Create Payment (PENDING)
+    const payment = await new PaymentModel({
+      merchantTransactionId: merchantOrderId,
+      amount: totalPaid,
+      method: paymentMethod === "cod" ? "cod" : "phonepe",
+      status: "PENDING_PAYMENT"
+    }).save();
+
+    // 4️⃣ Update order with payment reference
+    order.paymentDetails = payment._id;
+    await order.save();
 
     // 4️⃣ COD FLOW
     if (paymentMethod === "cod") {
