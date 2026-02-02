@@ -32,7 +32,7 @@ export const placeOrderController = async (req, res) => {
       const price = product.price;
       const gstRate = product.gstRate || 18;
       const basePrice = price / (1 + (gstRate / 100));
-      const gstAmount = price - basePrice;
+      const gstAmount = price - basePrice; // ✅ Fixed variable name
 
       calculatedSubtotal += price * qty;
       totalBaseAmount += basePrice * qty;
@@ -46,7 +46,7 @@ export const placeOrderController = async (req, res) => {
         price: Number(price.toFixed(2)),
         gstRate,
         basePrice: Number(basePrice.toFixed(2)),
-        gstAmount: Number(gstAmountPerUnit.toFixed(2))
+        gstAmount: Number(gstAmount.toFixed(2))
       });
     }
 
@@ -101,7 +101,7 @@ export const placeOrderController = async (req, res) => {
       const sha256 = crypto.createHash("sha256").update(stringToHash).digest("hex");
       const checksum = `${sha256}###${process.env.PHONEPE_SALT_INDEX}`;
 
-      // Hit the Production URL
+      // Hit the Production URL exactly as mapped
       const response = await axios.post(
         `https://api.phonepe.com/apis/pg${endpoint}`, 
         { request: base64Payload },
