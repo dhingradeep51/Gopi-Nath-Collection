@@ -65,9 +65,9 @@ export const placeOrderController = async (req, res) => {
 
     // 4️⃣ Generate IDs
     const merchantTransactionId = `MT${Date.now()}`; 
-    const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
+    const generatedOrderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
 
-    // 5️⃣ Create Payment Record
+    // 5️⃣ Create Payment Record (Status: PENDING)
     const paymentRecord = await new PaymentModel({
       merchantTransactionId,
       amount: totalAmount || (calculatedSubtotal + shippingFee - discount),
@@ -81,7 +81,7 @@ export const placeOrderController = async (req, res) => {
       buyer: req.user._id,
       address,
       paymentDetails: paymentRecord._id, 
-      orderNumber,
+      orderNumber: generatedOrderNumber,
       subtotal: Number((subtotal || calculatedSubtotal).toFixed(2)), 
       discount: Number(discount.toFixed(2)),
       shippingFee: Number(shippingFee.toFixed(2)),
@@ -97,7 +97,7 @@ export const placeOrderController = async (req, res) => {
       for (const item of cart) {
         await ProductModel.findByIdAndUpdate(item._id, { $inc: { quantity: -(item.cartQuantity || 1) } });
       }
-      sendNotification(req, "NEW_ORDER", { orderId: orderNumber });
+      sendNotification(req, "NEW_ORDER", { orderId: generatedOrderNumber });
       return res.status(201).send({ success: true, message: "Order placed (COD)", order });
     } else {
       // 🚀 PHONEPE HANDSHAKE
@@ -106,9 +106,9 @@ export const placeOrderController = async (req, res) => {
         merchantTransactionId,
         merchantUserId: req.user._id,
         amount: Math.round(order.totalPaid * 100), // Amount in Paise
-        redirectUrl: `${process.env.BACKEND_URL}api/v1/payment/status/${merchantTransactionId}`,
+        redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
         redirectMode: "POST",
-        callbackUrl: `${process.env.BACKEND_URL}api/v1/payment/status/${merchantTransactionId}`,
+        callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
         paymentInstrument: { type: "PAY_PAGE" },
       };
 

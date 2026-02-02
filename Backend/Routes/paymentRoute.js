@@ -1,20 +1,18 @@
 import express from "express";
 import { initiatePayment, checkStatus } from "../Controllers/paymentController.js";
-import { requireSignIn } from "../Middlewares/authMiddleware.js";
+import { requireSignIn } from "../Middlewares/authMiddleware.js"; // Ensure 'Middlewares' matches your folder name
 
 const router = express.Router();
 
 /**
  * @description Initiate PhonePe Payment
  * @route POST /api/v1/payment/initiate
- * Used by the Checkout page to get the redirect URL
  */
 router.post("/initiate", requireSignIn, initiatePayment);
 
 /**
- * @description Handle PhonePe Payment Status
+ * @description Handle PhonePe Payment Status Redirect/Callback
  * @route POST /api/v1/payment/status/:merchantTransactionId
- * PhonePe sends a POST request here after the user completes payment
  */
 router.post("/status/:merchantTransactionId", checkStatus);
 

@@ -1,14 +1,14 @@
 import axios from "axios";
 import crypto from "crypto";
-import moment from "moment"; // ✅ Added missing import
-import Order from "../Models/orderModel.js";
+import moment from "moment";
+import orderModel from "../Models/orderModel.js";
 import PaymentModel from "../Models/paymentModel.js";
 import ProductModel from "../Models/productModel.js";
 
 // 🚀 INITIALIZE PAYMENT
 export const initiatePayment = async (req, res) => {
   try {
-    const { products, address, financials, buyerId } = req.body;
+    const { cart, address, financials, buyerId, paymentMethod } = req.body;
     
     const merchantTransactionId = `MT${Date.now()}`;
     const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
@@ -21,23 +21,26 @@ export const initiatePayment = async (req, res) => {
       method: "online"
     }).save();
 
-    // 2. Create Order record linked to Payment
-    const newOrder = await new Order({
-      products,
+    // 2. Create Order record (Fixes 'subtotal is required' error)
+    const newOrder = await new orderModel({
+      products: cart,
       buyer: buyerId,
       address,
       orderNumber,
       paymentDetails: newPayment._id,
-      ...financials,
+      subtotal: financials.subtotal, // ✅ Required field
+      totalPaid: financials.totalPaid,
+      shippingFee: financials.shippingFee || 0,
+      discount: financials.discount || 0,
       status: "Not Processed"
     }).save();
 
     // 3. PhonePe Payload
     const payload = {
       merchantId: process.env.PHONEPE_MERCHANT_ID,
-      merchantTransactionId: merchantTransactionId,
+      merchantTransactionId,
       merchantUserId: buyerId,
-      amount: Math.round(financials.totalPaid * 100), // ✅ Ensure Integer
+      amount: Math.round(financials.totalPaid * 100), // Amount in Paise
       redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
       redirectMode: "POST",
       callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
@@ -45,8 +48,6 @@ export const initiatePayment = async (req, res) => {
     };
 
     const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
-    
-    // ✅ Secure Checksum Generation
     const checksum = crypto.createHash('sha256')
       .update(base64Payload + "/pg/v1/pay" + process.env.PHONEPE_SALT_KEY)
       .digest('hex') + "###" + process.env.PHONEPE_SALT_INDEX;
@@ -68,70 +69,54 @@ export const initiatePayment = async (req, res) => {
     });
 
   } catch (error) {
-    // 🛡️ Log the specific API error for debugging
-    console.error("PhonePe API Error:", error.response?.data || error.message);
+    console.error("Payment Error:", error.response?.data || error.message);
     res.status(500).send({ success: false, message: "Payment initiation failed" });
   }
 };
-// ✅ CHECK PAYMENT STATUS (The Callback/Webhook)
+
+// ✅ CHECK PAYMENT STATUS
 export const checkStatus = async (req, res) => {
   const { merchantTransactionId } = req.params;
   const merchantId = process.env.PHONEPE_MERCHANT_ID;
 
-  // 1. Generate Status Check Checksum
   const string = `/pg/v1/status/${merchantId}/${merchantTransactionId}` + process.env.PHONEPE_SALT_KEY;
   const sha256 = crypto.createHash('sha256').update(string).digest('hex');
   const checksum = sha256 + "###" + process.env.PHONEPE_SALT_INDEX;
 
-  const options = {
-    method: 'GET',
-    url: `https://api-preprod.phonepe.com/apis/hermes/pg/v1/status/${merchantId}/${merchantTransactionId}`,
-    headers: {
-      accept: 'application/json',
-      'Content-Type': 'application/json',
-      'X-VERIFY': checksum,
-      'X-MERCHANT-ID': merchantId
-    }
-  };
-
   try {
-    const response = await axios.request(options);
+    const response = await axios.get(
+      `https://api-preprod.phonepe.com/apis/hermes/pg/v1/status/${merchantId}/${merchantTransactionId}`,
+      { headers: { 
+          "Content-Type": "application/json", 
+          "X-VERIFY": checksum, 
+          "X-MERCHANT-ID": merchantId 
+        } 
+      }
+    );
 
-    if (response.data.success === true && response.data.code === "PAYMENT_SUCCESS") {
-      // 2. Update Payment Model
-      const updatedPayment = await PaymentModel.findOneAndUpdate(
+    if (response.data.success && response.data.code === "PAYMENT_SUCCESS") {
+      const payment = await PaymentModel.findOneAndUpdate(
         { merchantTransactionId },
-        { 
-          status: "SUCCESS", 
-          transactionId: response.data.data.transactionId,
-          paymentResponse: response.data.data 
-        },
+        { status: "SUCCESS", transactionId: response.data.data.transactionId },
         { new: true }
       );
 
-      // 3. Update Order Model and Reduce Stock
-      const updatedOrder = await Order.findOneAndUpdate(
-        { paymentDetails: updatedPayment._id },
+      const order = await orderModel.findOneAndUpdate(
+        { paymentDetails: payment._id },
         { status: "Processing" },
         { new: true }
       );
 
-      // Stock reduction logic for divine items
-      for (const item of updatedOrder.products) {
-        await ProductModel.findByIdAndUpdate(item.product, {
-          $inc: { quantity: -item.qty },
-        });
+      // Stock reduction after confirmed payment
+      for (const item of order.products) {
+        await ProductModel.findByIdAndUpdate(item.product, { $inc: { quantity: -item.qty } });
       }
 
-      // 4. Redirect to Frontend Success Page
       res.redirect(`${process.env.FRONTEND_URL}/dashboard/user/orders?success=true`);
     } else {
-      // Handle failed payment state
-      await PaymentModel.findOneAndUpdate({ merchantTransactionId }, { status: "FAILED" });
       res.redirect(`${process.env.FRONTEND_URL}/dashboard/user/orders?success=false`);
     }
   } catch (error) {
-    console.error("Status Check Error:", error);
     res.redirect(`${process.env.FRONTEND_URL}/dashboard/user/orders?success=false`);
   }
 };
