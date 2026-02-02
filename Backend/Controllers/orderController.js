@@ -96,7 +96,7 @@ export const placeOrderController = async (req, res) => {
     const accessToken = await getPhonePeAccessToken();
 
     const payload = {
-      merchantTransactionId,
+      merchantTransactionId: process.env.PHONEPE_MERCHANT_ID,
       amount: Math.round(totalPaid * 100), // paise
       redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
       redirectMode: "POST",
@@ -104,6 +104,7 @@ export const placeOrderController = async (req, res) => {
       paymentInstrument: { type: "PAY_PAGE" }
     };
 
+    console.log("PAY URL:", `${PHONEPE_BASE_URL}/pg/v2/pay`);
     const response = await axios.post(
       `${PHONEPE_BASE_URL}/pg/v2/pay`,
       payload,
