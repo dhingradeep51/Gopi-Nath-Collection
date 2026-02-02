@@ -16,7 +16,7 @@ export const placeOrderController = async (req, res) => {
       couponType, giftProductId 
     } = req.body;
 
-    // 1️⃣ Basic Validations
+    // 1️⃣ Validation
     if (!cart || cart.length === 0) return res.status(400).send({ success: false, message: "Cart is empty" });
     if (!address) return res.status(400).send({ success: false, message: "Shipping address is required" });
 
@@ -26,20 +26,15 @@ export const placeOrderController = async (req, res) => {
     let totalGstAmount = 0;
     let highestGstRate = 0;
 
-    // 2️⃣ Process Cart Items & Calculate GST
+    // 2️⃣ Process Items (GST Calculation)
     for (const item of cart) {
       const product = await ProductModel.findById(item._id);
       if (!product) return res.status(404).send({ success: false, message: `Product not found` });
 
       const requestedQty = item.cartQuantity || 1;
-      if (product.quantity < requestedQty) {
-        return res.status(400).send({ success: false, message: `Insufficient stock for ${product.name}` });
-      }
-
       const pricePerUnit = product.price;
       const gstPercentage = product.gstRate || 18;
-      const gstDecimal = gstPercentage / 100;
-      const basePricePerUnit = pricePerUnit / (1 + gstDecimal);
+      const basePricePerUnit = pricePerUnit / (1 + (gstPercentage / 100));
       const gstAmountPerUnit = pricePerUnit - basePricePerUnit;
 
       calculatedSubtotal += pricePerUnit * requestedQty;
@@ -64,19 +59,15 @@ export const placeOrderController = async (req, res) => {
       const giftItem = await ProductModel.findById(giftProductId);
       if (giftItem && giftItem.quantity > 0) {
         products.push({ product: giftItem._id, name: `🎁 GIFT: ${giftItem.name}`, qty: 1, price: 0, gstRate: 0, basePrice: 0, gstAmount: 0 });
-        // Reduce gift stock immediately as it's a promotional item
         await ProductModel.findByIdAndUpdate(giftItem._id, { $inc: { quantity: -1 } });
       }
     }
 
-    // 4️⃣ Generate Identifiers
-    const datePart = moment().format("YYYYMMDD");
-    const todayCount = await orderModel.countDocuments({ orderNumber: { $regex: `^GN-${datePart}` } });
-    const sequence = String(todayCount + 1).padStart(3, "0");
-    const generatedOrderNumber = `GN-${datePart}-${sequence}`;
+    // 4️⃣ Generate IDs
     const merchantTransactionId = `MT${Date.now()}`; 
+    const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
 
-    // 5️⃣ Create Payment Record (Status: PENDING)
+    // 5️⃣ Create Payment Record
     const paymentRecord = await new PaymentModel({
       merchantTransactionId,
       amount: totalAmount || (calculatedSubtotal + shippingFee - discount),
@@ -84,37 +75,32 @@ export const placeOrderController = async (req, res) => {
       method: paymentMethod
     }).save();
 
-    // 6️⃣ Save Order (Link to Payment)
+    // 6️⃣ Save Order
     const order = await orderModel.create({
       products,
       buyer: req.user._id,
       address,
       paymentDetails: paymentRecord._id, 
-      orderNumber: generatedOrderNumber,
-      subtotal: Number((subtotal || calculatedSubtotal).toFixed(2)),
-      discount: Number(discount.toFixed(2)),
-      shippingFee: Number(shippingFee.toFixed(2)),
+      orderNumber,
       totalPaid: Number((totalAmount || (calculatedSubtotal + shippingFee - discount)).toFixed(2)),
       totalBaseAmount: Number(totalBaseAmount.toFixed(2)),
       totalGstAmount: Number(totalGstAmount.toFixed(2)),
-      highestGstRate: highestGstRate,
+      highestGstRate,
       status: "Not Processed"
     });
 
-    // 7️⃣ Handle COD vs ONLINE
+    // 7️⃣ COD vs Online
     if (paymentMethod === "cod") {
-      // For COD, reduce stock immediately
       for (const item of cart) {
         await ProductModel.findByIdAndUpdate(item._id, { $inc: { quantity: -(item.cartQuantity || 1) } });
       }
-      sendNotification(req, "NEW_ORDER", { orderId: generatedOrderNumber });
-      return res.status(201).send({ success: true, message: "Order placed successfully (COD)", order });
-      
+      sendNotification(req, "NEW_ORDER", { orderId: orderNumber });
+      return res.status(201).send({ success: true, message: "Order placed (COD)", order });
     } else {
-      // PHONEPE INTEGRATION
+      // 🚀 PHONEPE HANDSHAKE
       const payload = {
         merchantId: process.env.PHONEPE_MERCHANT_ID,
-        merchantTransactionId: merchantTransactionId,
+        merchantTransactionId,
         merchantUserId: req.user._id,
         amount: Math.round(order.totalPaid * 100), // Amount in Paise
         redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
@@ -126,29 +112,19 @@ export const placeOrderController = async (req, res) => {
       const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
       const string = base64Payload + "/pg/v1/pay" + process.env.PHONEPE_SALT_KEY;
       const sha256 = crypto.createHash("sha256").update(string).digest("hex");
-      const checksum = sha256 + "###" + process.env.PHONEPE_SALT_INDEX;
+      const checksum = `${sha256}###${process.env.PHONEPE_SALT_INDEX}`;
 
       const response = await axios.post(
         "https://api-preprod.phonepe.com/apis/hermes/pg/v1/pay",
         { request: base64Payload },
-        {
-          headers: {
-            accept: "application/json",
-            "Content-Type": "application/json",
-            "X-VERIFY": checksum,
-          },
-        }
+        { headers: { accept: "application/json", "Content-Type": "application/json", "X-VERIFY": checksum } }
       );
 
-      return res.status(200).send({
-        success: true,
-        url: response.data.data.instrumentResponse.redirectInfo.url,
-      });
+      return res.status(200).send({ success: true, url: response.data.data.instrumentResponse.redirectInfo.url });
     }
-
   } catch (error) {
-    console.error(error);
-    res.status(500).send({ success: false, message: "Internal Server Error", error: error.message });
+    console.error("Order Error:", error.response?.data || error.message);
+    res.status(500).send({ success: false, message: "Internal Server Error" });
   }
 };
 export const getAllOrdersController = async (req, res) => {
