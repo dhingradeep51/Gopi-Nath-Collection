@@ -1,5 +1,6 @@
 import axios from "axios";
 import crypto from "crypto";
+import moment from "moment"; // ✅ Added missing import
 import Order from "../Models/orderModel.js";
 import PaymentModel from "../Models/paymentModel.js";
 import ProductModel from "../Models/productModel.js";
@@ -10,7 +11,6 @@ export const initiatePayment = async (req, res) => {
     const { products, address, financials, buyerId } = req.body;
     
     const merchantTransactionId = `MT${Date.now()}`;
-    // Using your project's specific order naming convention
     const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
 
     // 1. Create Payment record (PENDING)
@@ -37,7 +37,7 @@ export const initiatePayment = async (req, res) => {
       merchantId: process.env.PHONEPE_MERCHANT_ID,
       merchantTransactionId: merchantTransactionId,
       merchantUserId: buyerId,
-      amount: Math.round(financials.totalPaid * 100), // Ensure amount is an integer in Paise
+      amount: Math.round(financials.totalPaid * 100), // ✅ Ensure Integer
       redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
       redirectMode: "POST",
       callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
@@ -45,6 +45,8 @@ export const initiatePayment = async (req, res) => {
     };
 
     const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
+    
+    // ✅ Secure Checksum Generation
     const checksum = crypto.createHash('sha256')
       .update(base64Payload + "/pg/v1/pay" + process.env.PHONEPE_SALT_KEY)
       .digest('hex') + "###" + process.env.PHONEPE_SALT_INDEX;
@@ -66,11 +68,11 @@ export const initiatePayment = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Payment Initiation Error:", error);
+    // 🛡️ Log the specific API error for debugging
+    console.error("PhonePe API Error:", error.response?.data || error.message);
     res.status(500).send({ success: false, message: "Payment initiation failed" });
   }
 };
-
 // ✅ CHECK PAYMENT STATUS (The Callback/Webhook)
 export const checkStatus = async (req, res) => {
   const { merchantTransactionId } = req.params;
