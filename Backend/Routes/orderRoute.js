@@ -3,7 +3,7 @@ import { isAdmin, requireSignIn } from "../Middlewares/authMiddleware.js";
 import {
   placeOrderController,
   getAllOrdersController,
-  getOrdersController,
+  getUserOrdersController,
   orderStatusController,
   updateOrderLogisticsController,
   userOrderStatusController,
@@ -16,7 +16,7 @@ const router = express.Router();
 
 // Public/User Routes
 router.post("/place-order", requireSignIn, placeOrderController);
-router.get("/orders", requireSignIn, getOrdersController);
+router.get("/orders", requireSignIn, getUserOrdersController);
 router.put("/user-order-status/:orderId", requireSignIn, userOrderStatusController);
 
 // ✅ ADD THIS ROUTE: This fixes the 404 error on the Order Details page
