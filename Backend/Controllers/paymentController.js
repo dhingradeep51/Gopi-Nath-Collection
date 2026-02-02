@@ -1,45 +1,81 @@
 import OrderModel from "../Models/orderModel.js";
 import PaymentModel from "../Models/paymentModel.js";
 
-/**
- * 🔔 PHONEPE WEBHOOK CONTROLLER (V2)
- * This is the ONLY trusted source of payment confirmation
- * PhonePe server → your server
- */
+const phonePeClient = StandardCheckoutClient.getInstance(
+  process.env.PHONEPE_CLIENT_ID,
+  process.env.PHONEPE_CLIENT_SECRET,
+  Number(process.env.PHONEPE_CLIENT_VERSION || 1),
+  process.env.PHONEPE_ENV === "PRODUCTION" ? Env.PRODUCTION : Env.SANDBOX
+);
 
+/**
+ * 🔔 PhonePe V2 Webhook (S2S Ready)
+ */
 export const phonePeWebhookController = async (req, res) => {
   try {
-    console.log(
-      "📩 PHONEPE WEBHOOK RAW PAYLOAD:",
-      JSON.stringify(req.body, null, 2)
-    );
+    console.log("📩 PHONEPE WEBHOOK:", JSON.stringify(req.body, null, 2));
 
+    /* =====================================================
+       🔐 OPTIONAL S2S VALIDATION (FUTURE SAFE)
+       ===================================================== */
+    if (process.env.PHONEPE_ENABLE_S2S === "true") {
+      const authorizationHeader = req.headers["authorization"];
+      if (!authorizationHeader) {
+        console.error("❌ Missing Authorization header");
+        return res.sendStatus(401);
+      }
+
+      try {
+        phonePeClient.validateCallback(
+          process.env.PHONEPE_WEBHOOK_USERNAME,
+          process.env.PHONEPE_WEBHOOK_PASSWORD,
+          authorizationHeader,
+          JSON.stringify(req.body)
+        );
+      } catch (err) {
+        console.error("❌ Invalid PhonePe signature");
+        return res.sendStatus(401);
+      }
+    }
+
+    /* =====================================================
+       📦 PAYLOAD PARSING
+       ===================================================== */
     const data = req.body?.data;
     if (!data) return res.sendStatus(400);
 
     const merchantTransactionId =
       data.merchantTransactionId || data.merchantOrderId;
 
-    const state = data.state;
     const transactionId = data.transactionId;
+    const state = data.state; // COMPLETED | FAILED | CANCELLED
 
+    if (!merchantTransactionId || !state) {
+      return res.sendStatus(400);
+    }
+
+    /* =====================================================
+       🔎 DB LOOKUP
+       ===================================================== */
     const order = await OrderModel.findOne({
       merchantOrderId: merchantTransactionId
     });
 
-    if (!order) {
-      console.error("❌ Order not found for:", merchantTransactionId);
-      return res.sendStatus(404);
-    }
+    if (!order) return res.sendStatus(404);
 
     const payment = await PaymentModel.findById(order.paymentDetails);
     if (!payment) return res.sendStatus(404);
 
-    // Idempotent guard
-    if (payment.status === "SUCCESS") {
+    /* =====================================================
+       🛡 IDEMPOTENCY
+       ===================================================== */
+    if (payment.status === "SUCCESS" || payment.status === "FAILED") {
       return res.sendStatus(200);
     }
 
+    /* =====================================================
+       ✅ STATE HANDLING
+       ===================================================== */
     if (state === "COMPLETED") {
       payment.status = "SUCCESS";
       payment.transactionId = transactionId;
@@ -54,9 +90,13 @@ export const phonePeWebhookController = async (req, res) => {
     await payment.save();
     await order.save();
 
+    console.log(
+      `✅ PAYMENT UPDATED: ${merchantTransactionId} → ${payment.status}`
+    );
+
     return res.sendStatus(200);
-  } catch (err) {
-    console.error("Webhook error:", err);
+  } catch (error) {
+    console.error("🚨 PhonePe Webhook Error:", error);
     return res.sendStatus(500);
   }
 };
