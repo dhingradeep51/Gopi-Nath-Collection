@@ -10,34 +10,42 @@ export const phonePeWebhookController = async (req, res) => {
   try {
     console.log("✅ PHONEPE WEBHOOK RECEIVED:", JSON.stringify(req.body));
 
-    const event = req.body;
-    const merchantOrderId = event?.data?.merchantOrderId;
-    const phonePeTransactionId = event?.data?.transactionId;
-    const state = event?.data?.state;
+    const data = req.body?.data || {};
+
+    // 🔥 SUPPORT BOTH KEYS (THIS IS THE FIX)
+    const merchantOrderId =
+      data.merchantOrderId || data.merchantTransactionId;
+
+    const transactionId = data.transactionId;
+    const state = data.state;
 
     if (!merchantOrderId || !state) {
+      console.error("❌ Missing merchantOrderId/state", data);
       return res.sendStatus(400);
     }
 
     const order = await OrderModel.findOne({ merchantOrderId });
-    if (!order) return res.sendStatus(404);
+    if (!order) {
+      console.error("❌ Order not found for", merchantOrderId);
+      return res.sendStatus(404);
+    }
 
     const payment = await PaymentModel.findById(order.paymentDetails);
     if (!payment) return res.sendStatus(404);
 
-    // 🔁 Idempotency guard
+    // Idempotent guard
     if (payment.status === "PAID") {
       return res.sendStatus(200);
     }
 
     if (state === "COMPLETED") {
       payment.status = "PAID";
-      payment.transactionId = phonePeTransactionId;
-      payment.paymentResponse = event;
+      payment.transactionId = transactionId;
+      payment.paymentResponse = req.body;
       order.status = "Processing";
     } else {
       payment.status = "FAILED";
-      payment.paymentResponse = event;
+      payment.paymentResponse = req.body;
       order.status = "Not Processed";
     }
 
@@ -45,8 +53,8 @@ export const phonePeWebhookController = async (req, res) => {
     await order.save();
 
     return res.sendStatus(200);
-  } catch (error) {
-    console.error("PhonePe Webhook Error:", error);
+  } catch (err) {
+    console.error("Webhook crash:", err);
     return res.sendStatus(500);
   }
 };
