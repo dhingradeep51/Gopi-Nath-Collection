@@ -8,57 +8,46 @@ import PaymentModel from "../Models/paymentModel.js";
  */
 export const phonePeWebhookController = async (req, res) => {
   try {
-    console.log("✅ PHONEPE WEBHOOK RECEIVED:", JSON.stringify(req.body));
-    console.log(
-      "📩 PHONEPE WEBHOOK RAW PAYLOAD:",
-      JSON.stringify(req.body, null, 2)
-    );
+    console.log("📩 PHONEPE WEBHOOK RAW PAYLOAD:", JSON.stringify(req.body, null, 2));
 
-    const data = req.body?.data || {};
+    const data = req.body?.data;
+    if (!data) return res.sendStatus(400);
 
-    // 🔥 SUPPORT BOTH KEYS
-    const merchantOrderId =
-      data.merchantOrderId || data.merchantTransactionId;
-
-    const transactionId = data.transactionId;
+    const merchantTransactionId = data.merchantTransactionId;
     const state = data.state;
+    const transactionId = data.transactionId;
 
-    if (!merchantOrderId || !state) {
-      console.error("❌ Missing merchantOrderId/state", data);
-      return res.sendStatus(400);
-    }
+    const order = await OrderModel.findOne({
+      merchantOrderId: merchantTransactionId
+    });
 
-    const order = await OrderModel.findOne({ merchantOrderId });
     if (!order) {
-      console.error("❌ Order not found for", merchantOrderId);
+      console.error("❌ Order not found for:", merchantTransactionId);
       return res.sendStatus(404);
     }
 
     const payment = await PaymentModel.findById(order.paymentDetails);
     if (!payment) return res.sendStatus(404);
 
-    // 🔁 Idempotency guard
-    if (payment.status === "PAID") {
-      return res.sendStatus(200);
+    if (payment.status === "SUCCESS") return res.sendStatus(200);
+
+    if (state === "COMPLETED") {
+      payment.status = "SUCCESS";
+      payment.transactionId = transactionId;
+      order.status = "Processing";
+    } else {
+      payment.status = "FAILED";
+      order.status = "Not Processed";
     }
 
-if (state === "COMPLETED") {
-  payment.status = "SUCCESS";   // ✅ MATCH ENUM
-  payment.transactionId = transactionId;
-  payment.paymentResponse = req.body;
-  order.status = "Processing";
-} else {
-  payment.status = "FAILED";
-  payment.paymentResponse = req.body;
-  order.status = "Not Processed";
-}
+    payment.paymentResponse = req.body;
 
     await payment.save();
     await order.save();
 
     return res.sendStatus(200);
   } catch (err) {
-    console.error("Webhook crash:", err);
+    console.error("Webhook error:", err);
     return res.sendStatus(500);
   }
 };
