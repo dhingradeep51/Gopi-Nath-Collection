@@ -9,6 +9,10 @@ import PaymentModel from "../Models/paymentModel.js";
 export const phonePeWebhookController = async (req, res) => {
   try {
     console.log("✅ PHONEPE WEBHOOK RECEIVED:", JSON.stringify(req.body));
+    onsole.log(
+  "📩 PHONEPE WEBHOOK RAW PAYLOAD:",
+  JSON.stringify(req.body, null, 2)
+);
 
     const data = req.body?.data || {};
 
