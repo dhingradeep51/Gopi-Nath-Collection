@@ -11,13 +11,21 @@ import crypto from "crypto";
 
 export const placeOrderController = async (req, res) => {
   try {
-    const { 
-      cart, address, paymentMethod, shippingFee = 0, 
-      discount = 0, subtotal, totalAmount 
+    const {
+      cart,
+      address,
+      paymentMethod,
+      shippingFee = 0,
+      discount = 0,
+      subtotal,
+      totalAmount
     } = req.body;
 
     if (!cart || cart.length === 0) {
-      return res.status(400).send({ success: false, message: "Cart is empty" });
+      return res.status(400).send({
+        success: false,
+        message: "Cart is empty"
+      });
     }
 
     const products = [];
@@ -52,10 +60,10 @@ export const placeOrderController = async (req, res) => {
     }
 
     const merchantTransactionId = `MT${Date.now()}`;
-    const generatedOrderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
-
+    const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
     const finalAmount = totalAmount || (calculatedSubtotal + shippingFee - discount);
 
+    // Save payment
     const paymentRecord = await new PaymentModel({
       merchantTransactionId,
       amount: finalAmount,
@@ -63,12 +71,13 @@ export const placeOrderController = async (req, res) => {
       method: paymentMethod
     }).save();
 
+    // Save order
     const order = await orderModel.create({
       products,
       buyer: req.user._id,
       address,
       paymentDetails: paymentRecord._id,
-      orderNumber: generatedOrderNumber,
+      orderNumber,
       subtotal: Number((subtotal || calculatedSubtotal).toFixed(2)),
       totalPaid: Number(finalAmount.toFixed(2)),
       totalBaseAmount: Number(totalBaseAmount.toFixed(2)),
@@ -79,6 +88,7 @@ export const placeOrderController = async (req, res) => {
       status: "Not Processed"
     });
 
+    // COD flow
     if (paymentMethod === "cod") {
       return res.status(201).send({
         success: true,
@@ -87,14 +97,15 @@ export const placeOrderController = async (req, res) => {
       });
     }
 
-    // ✅ PHONEPE SANDBOX CONFIG
-    const PHONEPE_BASE_URL = "https://api-preprod.phonepe.com/apis/pgsandbox";
+    // ================= PHONEPE UAT CONFIG =================
+    const PHONEPE_BASE_URL = "https://api-preprod.phonepe.com/apis";
+    const endpoint = "/pgsandbox/pg/v1/pay"; // ✅ MUST include pgsandbox
 
     const payload = {
       merchantId: process.env.PHONEPE_MERCHANT_ID,
       merchantTransactionId,
       merchantUserId: req.user._id.toString(),
-      amount: Math.round(order.totalPaid * 100),
+      amount: Math.round(order.totalPaid * 100), // paise
       redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
       redirectMode: "POST",
       callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
@@ -102,8 +113,8 @@ export const placeOrderController = async (req, res) => {
     };
 
     const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
-    const endpoint = "/pg/v1/pay";
 
+    // ✅ CHECKSUM MUST MATCH FULL PATH
     const checksum =
       crypto.createHash("sha256")
         .update(base64Payload + endpoint + process.env.PHONEPE_SALT_KEY)
@@ -136,6 +147,7 @@ export const placeOrderController = async (req, res) => {
     });
   }
 };
+
 
 export const getAllOrdersController = async (req, res) => {
 
