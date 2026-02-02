@@ -5,15 +5,14 @@ import orderModel from "../Models/orderModel.js";
 import PaymentModel from "../Models/paymentModel.js";
 import ProductModel from "../Models/productModel.js";
 
-// 🚀 INITIALIZE PAYMENT
 export const initiatePayment = async (req, res) => {
   try {
-    const { cart, address, financials, buyerId, paymentMethod } = req.body;
+    const { cart, address, financials, buyerId } = req.body;
     
     const merchantTransactionId = `MT${Date.now()}`;
     const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
 
-    // 1. Create Payment record (PENDING)
+    // 1. Create Payment record
     const newPayment = await new PaymentModel({
       merchantTransactionId,
       amount: financials.totalPaid,
@@ -21,26 +20,26 @@ export const initiatePayment = async (req, res) => {
       method: "online"
     }).save();
 
-    // 2. Create Order record (Fixes 'subtotal is required' error)
+    // 2. Create Order record (Includes 'subtotal' to fix your validation error)
     const newOrder = await new orderModel({
       products: cart,
       buyer: buyerId,
       address,
       orderNumber,
       paymentDetails: newPayment._id,
-      subtotal: financials.subtotal, // ✅ Required field
+      subtotal: financials.subtotal, 
       totalPaid: financials.totalPaid,
       shippingFee: financials.shippingFee || 0,
       discount: financials.discount || 0,
       status: "Not Processed"
     }).save();
 
-    // 3. PhonePe Payload
+    // 3. PhonePe Payload with your unique Merchant ID
     const payload = {
-      merchantId: process.env.PHONEPE_MERCHANT_ID,
+      merchantId: process.env.PHONEPE_MERCHANT_ID, 
       merchantTransactionId,
       merchantUserId: buyerId,
-      amount: Math.round(financials.totalPaid * 100), // Amount in Paise
+      amount: Math.round(financials.totalPaid * 100), 
       redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
       redirectMode: "POST",
       callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
@@ -48,6 +47,8 @@ export const initiatePayment = async (req, res) => {
     };
 
     const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
+    
+    // Checksum using your unique Salt Key
     const checksum = crypto.createHash('sha256')
       .update(base64Payload + "/pg/v1/pay" + process.env.PHONEPE_SALT_KEY)
       .digest('hex') + "###" + process.env.PHONEPE_SALT_INDEX;
@@ -69,12 +70,11 @@ export const initiatePayment = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Payment Error:", error.response?.data || error.message);
-    res.status(500).send({ success: false, message: "Payment initiation failed" });
+    console.error("API Error:", error.response?.data || error.message);
+    res.status(500).send({ success: false, message: "Handshake failed" });
   }
 };
 
-// ✅ CHECK PAYMENT STATUS
 export const checkStatus = async (req, res) => {
   const { merchantTransactionId } = req.params;
   const merchantId = process.env.PHONEPE_MERCHANT_ID;
@@ -107,7 +107,6 @@ export const checkStatus = async (req, res) => {
         { new: true }
       );
 
-      // Stock reduction after confirmed payment
       for (const item of order.products) {
         await ProductModel.findByIdAndUpdate(item.product, { $inc: { quantity: -item.qty } });
       }
