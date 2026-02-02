@@ -117,56 +117,95 @@ const CheckOutPage = () => {
   }, [cart, appliedCoupon]);
 
   // ✅ UPDATED: PhonePe Integration in handlePlaceOrder
-  const handlePlaceOrder = async () => {
-    if (!formData.phone || !formData.address || !formData.city || !formData.state) {
-      return toast.error("Please provide complete delivery details.");
-    }
+const handlePlaceOrder = async () => {
+  if (!formData.phone || !formData.address || !formData.city || !formData.state) {
+    return toast.error("Please provide complete delivery details.");
+  }
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const orderData = {
-        cart: cart.map((item) => ({
-          _id: item._id,
-          name: item.name,
-          price: item.price,
-          cartQuantity: item.cartQuantity || 1,
-          gstRate: item.gstRate || 18,
-        })),
-        address: `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`,
-        paymentMethod: paymentMethod, // "cod" or "online"
-        shippingFee: totals.ship,
-        discount: totals.discount,
-        subtotal: totals.sub,
-        totalAmount: totals.total,
-        highestGstRate: totals.highestGst,
-        couponCode: appliedCoupon?.name || null,
-        couponType: appliedCoupon?.discountType || null,
-        giftProductId: appliedCoupon?.giftProductId?._id || appliedCoupon?.giftProductId || null,
-      };
+    console.log("▶️ Place Order clicked");
+    console.log("▶️ Payment Method:", paymentMethod);
 
-      const { data } = await axios.post(`${BASE_URL}api/v1/order/place-order`, orderData);
+    const orderData = {
+      cart: cart.map((item) => ({
+        _id: item._id,
+        name: item.name,
+        price: item.price,
+        cartQuantity: item.cartQuantity || 1,
+        gstRate: item.gstRate || 18,
+      })),
+      address: `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`,
+      paymentMethod,
+      shippingFee: totals.ship,
+      discount: totals.discount,
+      subtotal: totals.sub,
+      totalAmount: totals.total,
+      highestGstRate: totals.highestGst,
+      couponCode: appliedCoupon?.name || null,
+      couponType: appliedCoupon?.discountType || null,
+      giftProductId:
+        appliedCoupon?.giftProductId?._id ||
+        appliedCoupon?.giftProductId ||
+        null,
+    };
 
-      if (data?.success) {
-        if (paymentMethod === "online" && data.url) {
-          // 🚀 REDIRECT TO PHONEPE GATEWAY
-          toast.loading("Redirecting to secure payment...");
-          window.location.href = data.url; 
-        } else {
-          // COD Flow
-          setFinalOrderId(data.order.orderNumber);
-          localStorage.removeItem("cart");
-          setCart([]);
-          setIsSuccess(true);
-          toast.success("Divine order placed via COD!");
-        }
+    console.log("▶️ Order payload:", orderData);
+
+    const { data } = await axios.post(
+      `${BASE_URL}api/v1/order/place-order`,
+      orderData,
+      {
+        headers: {
+          Authorization: auth?.token,
+        },
       }
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Order failed");
-    } finally {
-      setLoading(false);
+    );
+
+    console.log("▶️ API response:", data);
+
+    if (!data?.success) {
+      console.error("❌ Order failed response");
+      return toast.error("Order failed");
     }
-  };
+
+    // ✅ ONLINE PAYMENT → REDIRECT TO PHONEPE
+    if (paymentMethod === "online") {
+      console.log("▶️ Online payment selected");
+      console.log("▶️ Redirect URL from backend:", data.redirectUrl);
+
+      if (!data.redirectUrl) {
+        console.error("❌ redirectUrl missing in API response");
+        toast.error("Payment URL not received");
+        return;
+      }
+
+      toast.loading("Redirecting to secure PhonePe payment...");
+      window.location.href = data.redirectUrl;
+      return;
+    }
+
+    // ✅ COD FLOW
+    if (paymentMethod === "cod") {
+      console.log("▶️ COD order placed");
+      console.log("▶️ Order number:", data.order?.orderNumber);
+
+      setFinalOrderId(data.order.orderNumber);
+      localStorage.removeItem("cart");
+      setCart([]);
+      setIsSuccess(true);
+      toast.success("Order placed successfully (COD)");
+    }
+
+  } catch (error) {
+    console.error("❌ Place Order Error:", error);
+    console.error("❌ Error response:", error.response?.data);
+    toast.error(error.response?.data?.message || "Order failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleApplyCoupon = async () => { /* ... (Keep existing logic) ... */ };
   const handleUpdateAddress = async () => { /* ... (Keep existing logic) ... */ };
