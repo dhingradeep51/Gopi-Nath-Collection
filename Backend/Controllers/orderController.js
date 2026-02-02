@@ -16,11 +16,6 @@ export const placeOrderController = async (req, res) => {
       couponType, giftProductId 
     } = req.body;
 
-    // 🔍 DEBUG: Check incoming request body
-    console.log("--- New Order Request ---");
-    console.log("Payment Method:", paymentMethod);
-    console.log("Received Subtotal:", subtotal);
-
     // 1️⃣ Validation
     if (!cart || cart.length === 0) return res.status(400).send({ success: false, message: "Cart is empty" });
     if (!address) return res.status(400).send({ success: false, message: "Shipping address is required" });
@@ -34,45 +29,34 @@ export const placeOrderController = async (req, res) => {
     // 2️⃣ Process Items (GST Calculation)
     for (const item of cart) {
       const product = await ProductModel.findById(item._id);
-      if (!product) return res.status(404).send({ success: false, message: `Product not found` });
+      if (!product) return res.status(404).send({ success: false, message: "Product not found" });
 
-      const requestedQty = item.cartQuantity || 1;
-      const pricePerUnit = product.price;
-      const gstPercentage = product.gstRate || 18;
-      const basePricePerUnit = pricePerUnit / (1 + (gstPercentage / 100));
-      const gstAmountPerUnit = pricePerUnit - basePricePerUnit;
+      const qty = item.cartQuantity || 1;
+      const price = product.price;
+      const gstRate = product.gstRate || 18;
+      const basePrice = price / (1 + (gstRate / 100));
+      const gstAmount = price - basePrice;
 
-      calculatedSubtotal += pricePerUnit * requestedQty;
-      totalBaseAmount += basePricePerUnit * requestedQty;
-      totalGstAmount += gstAmountPerUnit * requestedQty;
-
-      if (gstPercentage > highestGstRate) highestGstRate = gstPercentage;
+      calculatedSubtotal += price * qty;
+      totalBaseAmount += basePrice * qty;
+      totalGstAmount += gstAmount * qty;
+      if (gstRate > highestGstRate) highestGstRate = gstRate;
 
       products.push({
         product: product._id,
         name: product.name,
-        qty: requestedQty,
-        price: Number(pricePerUnit.toFixed(2)),
-        gstRate: gstPercentage,
-        basePrice: Number(basePricePerUnit.toFixed(2)),
-        gstAmount: Number(gstAmountPerUnit.toFixed(2))
+        qty,
+        price: Number(price.toFixed(2)),
+        gstRate,
+        basePrice: Number(basePrice.toFixed(2)),
+        gstAmount: Number(gstAmount.toFixed(2))
       });
     }
 
-    // 3️⃣ Gift Logic
-    if (couponType === "gift" && giftProductId) {
-      const giftItem = await ProductModel.findById(giftProductId);
-      if (giftItem && giftItem.quantity > 0) {
-        products.push({ product: giftItem._id, name: `🎁 GIFT: ${giftItem.name}`, qty: 1, price: 0, gstRate: 0, basePrice: 0, gstAmount: 0 });
-        await ProductModel.findByIdAndUpdate(giftItem._id, { $inc: { quantity: -1 } });
-      }
-    }
-
-    // 4️⃣ Generate IDs
     const merchantTransactionId = `MT${Date.now()}`; 
-    const generatedOrderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
+    const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
 
-    // 5️⃣ Create Payment Record
+    // 3️⃣ Create Payment Reference
     const paymentRecord = await new PaymentModel({
       merchantTransactionId,
       amount: totalAmount || (calculatedSubtotal + shippingFee - discount),
@@ -80,42 +64,33 @@ export const placeOrderController = async (req, res) => {
       method: paymentMethod
     }).save();
 
-    // 6️⃣ Save Order (Includes subtotal to fix DB validation)
-    const finalSubtotal = Number((subtotal || calculatedSubtotal).toFixed(2));
-    console.log("Saving to DB - Subtotal:", finalSubtotal);
-
+    // 4️⃣ Create Order (Fixes: Path 'subtotal' is required)
     const order = await orderModel.create({
       products,
       buyer: req.user._id,
       address,
       paymentDetails: paymentRecord._id, 
-      orderNumber: generatedOrderNumber,
-      subtotal: finalSubtotal, 
-      discount: Number(discount.toFixed(2)),
-      shippingFee: Number(shippingFee.toFixed(2)),
+      orderNumber,
+      subtotal: Number((subtotal || calculatedSubtotal).toFixed(2)), 
       totalPaid: Number((totalAmount || (calculatedSubtotal + shippingFee - discount)).toFixed(2)),
       totalBaseAmount: Number(totalBaseAmount.toFixed(2)),
       totalGstAmount: Number(totalGstAmount.toFixed(2)),
       highestGstRate,
+      shippingFee,
+      discount,
       status: "Not Processed"
     });
 
-    // 7️⃣ COD vs Online
     if (paymentMethod === "cod") {
-      for (const item of cart) {
-        await ProductModel.findByIdAndUpdate(item._id, { $inc: { quantity: -(item.cartQuantity || 1) } });
-      }
-      sendNotification(req, "NEW_ORDER", { orderId: generatedOrderNumber });
+      // Handle COD logic here
       return res.status(201).send({ success: true, message: "Order placed (COD)", order });
     } else {
       // 🚀 PHONEPE LIVE HANDSHAKE
-      console.log("--- PhonePe Handshake Start ---");
-      
       const payload = {
         merchantId: process.env.PHONEPE_MERCHANT_ID,
         merchantTransactionId,
         merchantUserId: req.user._id,
-        amount: Math.round(order.totalPaid * 100), 
+        amount: Math.round(order.totalPaid * 100),
         redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
         redirectMode: "POST",
         callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
@@ -123,33 +98,22 @@ export const placeOrderController = async (req, res) => {
       };
 
       const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
-      
-      // ✅ FIX: Use the production endpoint path in the hash
-      const endpoint = "/pg/v1/pay";
-      const stringToHash = base64Payload + endpoint + process.env.PHONEPE_SALT_KEY;
-      const sha256 = crypto.createHash("sha256").update(stringToHash).digest("hex");
-      const checksum = `${sha256}###${process.env.PHONEPE_SALT_INDEX}`;
-
-      console.log("Generated X-VERIFY Checksum:", checksum);
+      const endpoint = "/pg/v1/pay"; 
+      const checksum = crypto.createHash("sha256")
+        .update(base64Payload + endpoint + process.env.PHONEPE_SALT_KEY)
+        .digest("hex") + "###" + process.env.PHONEPE_SALT_INDEX;
 
       const response = await axios.post(
-        `https://api.phonepe.com/apis/pg${endpoint}`, // ✅ LIVE Production URL
+        `https://api.phonepe.com/apis/pg${endpoint}`, // Live Production URL
         { request: base64Payload },
         { headers: { accept: "application/json", "Content-Type": "application/json", "X-VERIFY": checksum } }
       );
 
-      console.log("PhonePe API Status:", response.status);
       return res.status(200).send({ success: true, url: response.data.data.instrumentResponse.redirectInfo.url });
     }
   } catch (error) {
-    console.error("--- Critical Error Log ---");
-    if (error.response) {
-      console.error("API Response Data:", error.response.data); //
-      console.error("API Status Code:", error.response.status);
-    } else {
-      console.error("Error Message:", error.message);
-    }
-    res.status(500).send({ success: false, message: "Order processing failed", error: error.message });
+    console.error("Order Error:", error.response?.data || error.message);
+    res.status(500).send({ success: false, message: "Payment Gateway Error" });
   }
 };
 export const getAllOrdersController = async (req, res) => {
