@@ -10,13 +10,13 @@ export const phonePeWebhookController = async (req, res) => {
   try {
     console.log("✅ PHONEPE WEBHOOK RECEIVED:", JSON.stringify(req.body));
     console.log(
-  "📩 PHONEPE WEBHOOK RAW PAYLOAD:",
-  JSON.stringify(req.body, null, 2)
-);
+      "📩 PHONEPE WEBHOOK RAW PAYLOAD:",
+      JSON.stringify(req.body, null, 2)
+    );
 
     const data = req.body?.data || {};
 
-    // 🔥 SUPPORT BOTH KEYS (THIS IS THE FIX)
+    // 🔥 SUPPORT BOTH KEYS
     const merchantOrderId =
       data.merchantOrderId || data.merchantTransactionId;
 
@@ -37,7 +37,7 @@ export const phonePeWebhookController = async (req, res) => {
     const payment = await PaymentModel.findById(order.paymentDetails);
     if (!payment) return res.sendStatus(404);
 
-    // Idempotent guard
+    // 🔁 Idempotency guard
     if (payment.status === "PAID") {
       return res.sendStatus(200);
     }
@@ -62,6 +62,7 @@ export const phonePeWebhookController = async (req, res) => {
     return res.sendStatus(500);
   }
 };
+
 
 /**
  * 🧭 PAYMENT REDIRECT HANDLER (OPTIONAL)
