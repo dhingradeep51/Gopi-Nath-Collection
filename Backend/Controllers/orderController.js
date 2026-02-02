@@ -8,8 +8,13 @@ import { sendNotification } from "../Utils/notificationUtils.js";
 import axios from "axios";
 import crypto from "crypto";
 // --- PLACE NEW ORDER ---
-import { getPhonePeAccessToken } from "../Utils/phonepeAuth.js";
+import { getPhonePeV2Token } from "../Utils/phonepeAuth.js";
 
+
+/**
+ * 🚀 PLACE ORDER CONTROLLER
+ * Handles GST calculations, DB persistence, and PhonePe UAT Handshake
+ */
 export const placeOrderController = async (req, res) => {
   try {
     const { cart, address, paymentMethod, shippingFee = 0, discount = 0 } = req.body;
@@ -25,7 +30,7 @@ export const placeOrderController = async (req, res) => {
     let totalGstAmount = 0;
     let highestGstRate = 0;
 
-    // 2️⃣ Process Items & GST Calculations
+    // 2️⃣ Process Items & GST Calculations (Required for Schema)
     for (const item of cart) {
       const product = await ProductModel.findById(item._id);
       if (!product) continue;
@@ -36,7 +41,7 @@ export const placeOrderController = async (req, res) => {
       
       // Calculate Base Price and GST Amount
       const basePrice = price / (1 + gstRate / 100);
-      const gstAmount = price - basePrice; // ✅ Fixed variable name
+      const gstAmount = price - basePrice; // ✅ Fixed naming to avoid 'not defined' error
 
       subtotal += price * qty;
       totalBaseAmount += basePrice * qty;
@@ -59,7 +64,7 @@ export const placeOrderController = async (req, res) => {
     const merchantTransactionId = `MT${Date.now()}`;
     const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
 
-    // 3️⃣ Save Payment Reference (Status: PENDING)
+    // 3️⃣ Save Payment Reference (Initial Status: PENDING)
     const payment = await new PaymentModel({
       merchantTransactionId,
       amount: totalPaid,
@@ -74,7 +79,7 @@ export const placeOrderController = async (req, res) => {
       address,
       paymentDetails: payment._id,
       orderNumber,
-      subtotal: Number(subtotal.toFixed(2)),
+      subtotal: Number(subtotal.toFixed(2)), // ✅ Required field fix
       totalPaid: Number(totalPaid.toFixed(2)),
       totalBaseAmount: Number(totalBaseAmount.toFixed(2)),
       totalGstAmount: Number(totalGstAmount.toFixed(2)),
@@ -96,20 +101,22 @@ export const placeOrderController = async (req, res) => {
       merchantUserId: req.user._id,
       amount: Math.round(totalPaid * 100), // convert to paise
       redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
-      redirectMode: "POST",
+      redirectMode: "POST", // Standard for server callbacks
       callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
       paymentInstrument: { type: "PAY_PAGE" }
     };
 
     const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
-    const endpoint = "/pg/v1/pay"; // Standard path for Pay Page
     
-    // Generate X-VERIFY Checksum
-    const checksum = crypto.createHash("sha256")
-      .update(base64Payload + endpoint + process.env.PHONEPE_SALT_KEY)
-      .digest("hex") + "###" + process.env.PHONEPE_SALT_INDEX;
+    // ✅ CHECKSUM FIX: The path must be exactly /pg/v1/pay for the hash
+    const endpoint = "/pg/v1/pay"; 
+    const stringToHash = base64Payload + endpoint + process.env.PHONEPE_SALT_KEY;
+    const sha256 = crypto.createHash("sha256").update(stringToHash).digest("hex");
+    const checksum = `${sha256}###${process.env.PHONEPE_SALT_INDEX}`;
 
-    // ✅ Hit UAT Sandbox Host URL to prevent Mapping error
+    console.log("Generated X-VERIFY:", checksum);
+
+    // ✅ HOST URL FIX: Use pgsandbox to prevent 'Api Mapping Not Found'
     const response = await axios.post(
       `https://api-preprod.phonepe.com/apis/pgsandbox${endpoint}`, 
       { request: base64Payload },
@@ -129,7 +136,7 @@ export const placeOrderController = async (req, res) => {
     });
 
   } catch (error) {
-    // 🔍 Log precise error details for debugging on Render
+    // 🔍 Debug log for Render
     console.error("Critical Order Error:", error.response?.data || error.message);
     return res.status(500).send({ success: false, message: "Payment initiation failed" });
   }
