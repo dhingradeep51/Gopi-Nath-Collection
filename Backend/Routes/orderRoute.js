@@ -15,7 +15,7 @@ import {
 const router = express.Router();
 
 // Public/User Routes
-router.post("/place-order", requireSignIn, placeOrderController);
+router.post("/place-order", placeOrderController);
 router.get("/orders", requireSignIn, getOrdersController);
 router.put("/user-order-status/:orderId", requireSignIn, userOrderStatusController);
 
