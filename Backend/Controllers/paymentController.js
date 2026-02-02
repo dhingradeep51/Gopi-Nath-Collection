@@ -42,16 +42,16 @@ export const phonePeWebhookController = async (req, res) => {
       return res.sendStatus(200);
     }
 
-    if (state === "COMPLETED") {
-      payment.status = "PAID";
-      payment.transactionId = transactionId;
-      payment.paymentResponse = req.body;
-      order.status = "Processing";
-    } else {
-      payment.status = "FAILED";
-      payment.paymentResponse = req.body;
-      order.status = "Not Processed";
-    }
+if (state === "COMPLETED") {
+  payment.status = "SUCCESS";   // ✅ MATCH ENUM
+  payment.transactionId = transactionId;
+  payment.paymentResponse = req.body;
+  order.status = "Processing";
+} else {
+  payment.status = "FAILED";
+  payment.paymentResponse = req.body;
+  order.status = "Not Processed";
+}
 
     await payment.save();
     await order.save();
