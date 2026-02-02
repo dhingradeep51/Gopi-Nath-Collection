@@ -95,30 +95,34 @@ export const placeOrderController = async (req, res) => {
     }
 
     // 🚀 6️⃣ PHONEPE UAT SANDBOX HANDSHAKE
-    const payload = {
+ const payload = {
       merchantId: process.env.PHONEPE_MERCHANT_ID,
       merchantTransactionId,
       merchantUserId: req.user._id,
       amount: Math.round(totalPaid * 100), // convert to paise
       redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
-      redirectMode: "POST", // Standard for server callbacks
+      redirectMode: "POST", 
       callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
       paymentInstrument: { type: "PAY_PAGE" }
     };
 
     const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
     
-    // ✅ CHECKSUM FIX: The path must be exactly /pg/v1/pay for the hash
+    // ✅ CHECKSUM FIX: The path string in the hash must match the endpoint called below
     const endpoint = "/pg/v1/pay"; 
     const stringToHash = base64Payload + endpoint + process.env.PHONEPE_SALT_KEY;
     const sha256 = crypto.createHash("sha256").update(stringToHash).digest("hex");
     const checksum = `${sha256}###${process.env.PHONEPE_SALT_INDEX}`;
 
-    console.log("Generated X-VERIFY:", checksum);
+    // 🔍 DEBUG LOGS: Check these in your Render console
+    const fullURL = `https://api-preprod.phonepe.com/apis/pgsandbox${endpoint}`;
+    console.log("--- PhonePe API Request Details ---");
+    console.log("Full Request URL:", fullURL); // Checks for 'pgsandbox' mapping
+    console.log("Endpoint Path used in Checksum:", endpoint);
+    console.log("X-VERIFY Checksum:", checksum);
 
-    // ✅ HOST URL FIX: Use pgsandbox to prevent 'Api Mapping Not Found'
     const response = await axios.post(
-      `https://api-preprod.phonepe.com/apis/pgsandbox${endpoint}`, 
+      fullURL, 
       { request: base64Payload },
       {
         headers: {
@@ -128,7 +132,6 @@ export const placeOrderController = async (req, res) => {
         }
       }
     );
-
     // Return the secure redirect URL to the frontend
     return res.status(200).send({
       success: true,
