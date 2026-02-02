@@ -113,6 +113,7 @@ export const placeOrderController = async (req, res) => {
       .amount(Math.round(totalPaid * 100)) // paise
       .metaInfo(metaInfo)
       .redirectUrl(`${process.env.BACKEND_URL}/api/v1/payment/phonepe/redirect?orderNumber=${orderNumber}`)
+      .callbackUrl(`${process.env.BACKEND_URL}/api/v1/payment/phonepe/webhook`)
       .build();
 
     const phonePeResponse = await phonePeClient.pay(sdkOrder);
