@@ -13,7 +13,7 @@ export const initiatePayment = async (req, res) => {
   try {
     const { cart, address, financials, buyerId } = req.body;
     
-    // 🔍 DEBUG: Monitoring Environment Variables on Render
+    // 🔍 DEBUG: Monitoring Environment Variables
     console.log("--- Payment Initiation Start ---");
     console.log("Merchant ID:", process.env.PHONEPE_MERCHANT_ID);
     console.log("Salt Index:", process.env.PHONEPE_SALT_INDEX);
@@ -29,8 +29,7 @@ export const initiatePayment = async (req, res) => {
       method: "online"
     }).save();
 
-    // 2️⃣ Create Order record (Fixes 'subtotal is required' validation error)
-    console.log("Subtotal value for DB:", financials.subtotal);
+    // 2️⃣ Create Order record (Includes all required schema fields)
     const newOrder = await new orderModel({
       products: cart,
       buyer: buyerId,
@@ -52,37 +51,33 @@ export const initiatePayment = async (req, res) => {
       merchantId: process.env.PHONEPE_MERCHANT_ID,
       merchantTransactionId,
       merchantUserId: buyerId,
-      amount: Math.round(financials.totalPaid * 100), // Amount in Paise
+      amount: Math.round(financials.totalPaid * 100), // convert to paise
       redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
-      redirectMode: "POST", //
+      redirectMode: "POST",
       callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
       paymentInstrument: { type: "PAY_PAGE" },
     };
 
     const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
     
-    // ✅ CHECKSUM FIX: The path must be exactly /pg/v1/pay for the hash
+    // ✅ CHECKSUM FIX: The path string in the hash must match the endpoint called below
     const endpoint = "/pg/v1/pay"; 
     const stringToHash = base64Payload + endpoint + process.env.PHONEPE_SALT_KEY;
     const sha256 = crypto.createHash('sha256').update(stringToHash).digest('hex');
-    const checksum = sha256 + "###" + process.env.PHONEPE_SALT_INDEX;
+    const checksum = `${sha256}###${process.env.PHONEPE_SALT_INDEX}`;
 
-    console.log("Generated X-VERIFY:", checksum);
-
-    // ✅ HOST URL FIX: Use pgsandbox to avoid 'Api Mapping Not Found'
+    // ✅ HOST URL FIX: Use pgsandbox for UAT simulation
     const response = await axios.post(
       `https://api-preprod.phonepe.com/apis/pgsandbox${endpoint}`, 
       { request: base64Payload },
-      { headers: { 
-          "Content-Type": "application/json", 
-          "X-VERIFY": checksum, 
-          "accept": "application/json" 
-        } 
+      {
+        headers: {
+          accept: "application/json",
+          "Content-Type": "application/json",
+          "X-VERIFY": checksum
+        }
       }
     );
-
-    console.log("PhonePe API Response Status:", response.status);
-    console.log("--- Payment Initiation Success ---");
 
     res.status(200).send({
       success: true,
@@ -92,9 +87,9 @@ export const initiatePayment = async (req, res) => {
   } catch (error) {
     console.error("--- Payment Initiation Error ---");
     if (error.response) {
-      console.error("API Error Data:", error.response.data);
+      console.error("Data:", error.response.data);
     } else {
-      console.error("General Error Message:", error.message);
+      console.error("Message:", error.message);
     }
     res.status(500).send({ success: false, message: "Payment initiation failed" });
   }
@@ -102,7 +97,7 @@ export const initiatePayment = async (req, res) => {
 
 /**
  * 🔄 CHECK PAYMENT STATUS
- * Called by PhonePe after user completes transaction in UAT Sandbox
+ * Called by PhonePe after transaction completion in UAT Sandbox
  */
 export const checkStatus = async (req, res) => {
   try {
@@ -112,12 +107,12 @@ export const checkStatus = async (req, res) => {
     // ✅ FIX: Match the Sandbox status endpoint path
     const endpoint = `/pg/v1/status/${merchantId}/${merchantTransactionId}`;
     
-    // ✅ FIX: Generate X-VERIFY checksum for status API
+    // ✅ FIX: X-VERIFY checksum for status API
     const stringToHash = endpoint + process.env.PHONEPE_SALT_KEY;
     const sha256 = crypto.createHash('sha256').update(stringToHash).digest('hex');
-    const checksum = sha256 + "###" + process.env.PHONEPE_SALT_INDEX;
+    const checksum = `${sha256}###${process.env.PHONEPE_SALT_INDEX}`;
 
-    // ✅ HOST URL FIX: Use pgsandbox host for status check
+    // ✅ HOST URL FIX: Use pgsandbox for status check
     const response = await axios.get(
       `https://api-preprod.phonepe.com/apis/pgsandbox${endpoint}`,
       {
@@ -130,23 +125,21 @@ export const checkStatus = async (req, res) => {
       }
     );
 
-    // ✅ UAT Sandbox success code is PAYMENT_SUCCESS
+    // ✅ Success verification in Sandbox
     if (response.data.success && response.data.code === "PAYMENT_SUCCESS") {
-      // 1. Update Payment Record to SUCCESS
       const payment = await PaymentModel.findOneAndUpdate(
         { merchantTransactionId },
         { status: "SUCCESS", transactionId: response.data.data.transactionId },
         { new: true }
       );
 
-      // 2. Update Order Status to Processing
       const order = await orderModel.findOneAndUpdate(
         { paymentDetails: payment._id },
         { status: "Processing" },
         { new: true }
       );
 
-      // 3. Inventory Management: Deduct quantities
+      // Reduce Inventory for purchased items
       if (order) {
         for (const item of order.products) {
           await ProductModel.findByIdAndUpdate(item.product, { 

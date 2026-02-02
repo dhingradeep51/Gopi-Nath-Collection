@@ -15,11 +15,15 @@ import { getPhonePeV2Token } from "../Utils/phonepeAuth.js";
  * 🚀 PLACE ORDER CONTROLLER
  * Handles GST calculations, DB persistence, and PhonePe UAT Handshake
  */
+/**
+ * 🚀 PLACE ORDER CONTROLLER (V2 O-BEARER FLOW)
+ * Resolves 'Api Mapping Not Found' by using OAuth2 credentials.
+ */
 export const placeOrderController = async (req, res) => {
   try {
     const { cart, address, paymentMethod, shippingFee = 0, discount = 0 } = req.body;
 
-    // 1️⃣ Validation: Ensure cart is not empty
+    // 1️⃣ Validation
     if (!cart || cart.length === 0) {
       return res.status(400).send({ success: false, message: "Cart is empty" });
     }
@@ -30,7 +34,7 @@ export const placeOrderController = async (req, res) => {
     let totalGstAmount = 0;
     let highestGstRate = 0;
 
-    // 2️⃣ Process Items & GST Calculations (Required for Schema)
+    // 2️⃣ Process Items & GST Calculations
     for (const item of cart) {
       const product = await ProductModel.findById(item._id);
       if (!product) continue;
@@ -38,15 +42,12 @@ export const placeOrderController = async (req, res) => {
       const qty = item.cartQuantity || 1;
       const price = product.price;
       const gstRate = product.gstRate || 18;
-      
-      // Calculate Base Price and GST Amount
       const basePrice = price / (1 + gstRate / 100);
-      const gstAmount = price - basePrice; // ✅ Fixed naming to avoid 'not defined' error
+      const gstAmount = price - basePrice;
 
       subtotal += price * qty;
       totalBaseAmount += basePrice * qty;
       totalGstAmount += gstAmount * qty;
-      
       if (gstRate > highestGstRate) highestGstRate = gstRate;
 
       products.push({
@@ -64,7 +65,7 @@ export const placeOrderController = async (req, res) => {
     const merchantTransactionId = `MT${Date.now()}`;
     const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
 
-    // 3️⃣ Save Payment Reference (Initial Status: PENDING)
+    // 3️⃣ Save Local Database Records
     const payment = await new PaymentModel({
       merchantTransactionId,
       amount: totalPaid,
@@ -72,14 +73,13 @@ export const placeOrderController = async (req, res) => {
       method: paymentMethod
     }).save();
 
-    // 4️⃣ Create Order: Include all 'required' schema fields
     const order = await orderModel.create({
       products,
       buyer: req.user._id,
       address,
       paymentDetails: payment._id,
       orderNumber,
-      subtotal: Number(subtotal.toFixed(2)), // ✅ Required field fix
+      subtotal: Number(subtotal.toFixed(2)),
       totalPaid: Number(totalPaid.toFixed(2)),
       totalBaseAmount: Number(totalBaseAmount.toFixed(2)),
       totalGstAmount: Number(totalGstAmount.toFixed(2)),
@@ -89,58 +89,51 @@ export const placeOrderController = async (req, res) => {
       status: "Not Processed"
     });
 
-    // 5️⃣ Cash on Delivery Flow
+    // 4️⃣ Handle COD
     if (paymentMethod === "cod") {
       return res.status(201).send({ success: true, message: "Order placed (COD)", order });
     }
 
-    // 🚀 6️⃣ PHONEPE UAT SANDBOX HANDSHAKE
- const payload = {
+    // 🚀 5️⃣ PHONEPE V2 O-BEARER HANDSHAKE
+    // Fetch the Access Token using Client ID and Secret
+    const accessToken = await getPhonePeV2Token();
+
+    const payload = {
       merchantId: process.env.PHONEPE_MERCHANT_ID,
       merchantTransactionId,
       merchantUserId: req.user._id,
       amount: Math.round(totalPaid * 100), // convert to paise
       redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
-      redirectMode: "POST", 
+      redirectMode: "POST",
       callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
       paymentInstrument: { type: "PAY_PAGE" }
     };
 
-    const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
-    
-    // ✅ CHECKSUM FIX: The path string in the hash must match the endpoint called below
-    const endpoint = "/pg/v1/pay"; 
-    const stringToHash = base64Payload + endpoint + process.env.PHONEPE_SALT_KEY;
-    const sha256 = crypto.createHash("sha256").update(stringToHash).digest("hex");
-    const checksum = `${sha256}###${process.env.PHONEPE_SALT_INDEX}`;
-
-    // 🔍 DEBUG LOGS: Check these in your Render console
-    const fullURL = `https://api-preprod.phonepe.com/apis/pgsandbox${endpoint}`;
-    console.log("--- PhonePe API Request Details ---");
-    console.log("Full Request URL:", fullURL); // Checks for 'pgsandbox' mapping
-    console.log("Endpoint Path used in Checksum:", endpoint);
-    console.log("X-VERIFY Checksum:", checksum);
+    // 🔍 DEBUG LOGS
+    const v2URL = "https://api-preprod.phonepe.com/apis/pg/v1/pay";
+    console.log("--- PhonePe V2 Request Details ---");
+    console.log("Request URL:", v2URL);
+    console.log("Authorization: O-Bearer", accessToken.substring(0, 10) + "...");
 
     const response = await axios.post(
-      fullURL, 
-      { request: base64Payload },
+      v2URL, 
+      payload, // Send JSON payload directly
       {
         headers: {
-          accept: "application/json",
           "Content-Type": "application/json",
-          "X-VERIFY": checksum
+          "Authorization": `O-Bearer ${accessToken}`, // ✅ Space after O-Bearer is mandatory
+          "accept": "application/json"
         }
       }
     );
-    // Return the secure redirect URL to the frontend
+
     return res.status(200).send({
       success: true,
       url: response.data.data.instrumentResponse.redirectInfo.url
     });
 
   } catch (error) {
-    // 🔍 Debug log for Render
-    console.error("Critical Order Error:", error.response?.data || error.message);
+    console.error("Critical V2 Order Error:", error.response?.data || error.message);
     return res.status(500).send({ success: false, message: "Payment initiation failed" });
   }
 };
