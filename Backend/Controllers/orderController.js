@@ -153,13 +153,12 @@ export const getUserOrdersController = async (req, res) => {
 /**
  * 🧾 GET SINGLE ORDER BY ORDER NUMBER
  */
-export const getOrderByNumberController = async (req, res) => {
+export const getOrderByOrderNumberController = async (req, res) => {
   try {
     const { orderNumber } = req.params;
 
     const order = await OrderModel.findOne({ orderNumber })
-      .populate("products.product", "name photo")
-      .populate("buyer", "name email phone");
+      .populate("paymentDetails");
 
     if (!order) {
       return res.status(404).send({
@@ -168,25 +167,20 @@ export const getOrderByNumberController = async (req, res) => {
       });
     }
 
-    // Security check
-    if (
-      req.user.role !== 1 &&
-      order.buyer._id.toString() !== req.user._id.toString()
-    ) {
-      return res.status(401).send({
-        success: false,
-        message: "Unauthorized"
-      });
-    }
+    return res.status(200).send({
+      success: true,
+      order
+    });
 
-    res.status(200).send({ success: true, order });
   } catch (error) {
-    res.status(500).send({
+    console.error("Get order error:", error);
+    return res.status(500).send({
       success: false,
-      message: "Unable to fetch order"
+      message: "Server error"
     });
   }
 };
+
 
 
 export const getAllOrdersController = async (req, res) => {

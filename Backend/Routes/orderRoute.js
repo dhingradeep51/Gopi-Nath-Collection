@@ -20,7 +20,7 @@ router.get("/orders", requireSignIn, getUserOrdersController);
 router.put("/user-order-status/:orderId", requireSignIn, userOrderStatusController);
 
 // ✅ ADD THIS ROUTE: This fixes the 404 error on the Order Details page
-router.get("/order-details/:orderId", requireSignIn, getOrderByIdController);
+router.get("/:orderId", requireSignIn, getOrderByIdController);
 
 // Admin Routes
 router.get("/all-orders", requireSignIn, isAdmin, getAllOrdersController);
