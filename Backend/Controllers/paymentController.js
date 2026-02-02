@@ -1,6 +1,10 @@
 import OrderModel from "../Models/orderModel.js";
 import PaymentModel from "../Models/paymentModel.js";
+import { StandardCheckoutClient, Env } from "pg-sdk-node";
 
+/* =====================================================
+   📌 PHONEPE CLIENT INITIALIZATION
+   ===================================================== */
 const phonePeClient = StandardCheckoutClient.getInstance(
   process.env.PHONEPE_CLIENT_ID,
   process.env.PHONEPE_CLIENT_SECRET,
@@ -8,16 +12,17 @@ const phonePeClient = StandardCheckoutClient.getInstance(
   process.env.PHONEPE_ENV === "PRODUCTION" ? Env.PRODUCTION : Env.SANDBOX
 );
 
-/**
- * 🔔 PhonePe V2 Webhook (S2S Ready)
- */
+/* =====================================================
+   🔔 PHONEPE V2 WEBHOOK (S2S READY)
+   ===================================================== */
 export const phonePeWebhookController = async (req, res) => {
   try {
-    console.log("📩 PHONEPE WEBHOOK:", JSON.stringify(req.body, null, 2));
+    console.log(
+      "📩 PHONEPE WEBHOOK RECEIVED:",
+      JSON.stringify(req.body, null, 2)
+    );
 
-    /* =====================================================
-       🔐 OPTIONAL S2S VALIDATION (FUTURE SAFE)
-       ===================================================== */
+    /* ---------- OPTIONAL S2S VALIDATION (FUTURE) ---------- */
     if (process.env.PHONEPE_ENABLE_S2S === "true") {
       const authorizationHeader = req.headers["authorization"];
       if (!authorizationHeader) {
@@ -38,9 +43,7 @@ export const phonePeWebhookController = async (req, res) => {
       }
     }
 
-    /* =====================================================
-       📦 PAYLOAD PARSING
-       ===================================================== */
+    /* ---------- PAYLOAD ---------- */
     const data = req.body?.data;
     if (!data) return res.sendStatus(400);
 
@@ -54,31 +57,28 @@ export const phonePeWebhookController = async (req, res) => {
       return res.sendStatus(400);
     }
 
-    /* =====================================================
-       🔎 DB LOOKUP
-       ===================================================== */
+    /* ---------- DB LOOKUP ---------- */
     const order = await OrderModel.findOne({
       merchantOrderId: merchantTransactionId
     });
 
-    if (!order) return res.sendStatus(404);
+    if (!order) {
+      console.error("❌ Order not found:", merchantTransactionId);
+      return res.sendStatus(404);
+    }
 
     const payment = await PaymentModel.findById(order.paymentDetails);
     if (!payment) return res.sendStatus(404);
 
-    /* =====================================================
-       🛡 IDEMPOTENCY
-       ===================================================== */
+    /* ---------- IDEMPOTENCY ---------- */
     if (payment.status === "SUCCESS" || payment.status === "FAILED") {
       return res.sendStatus(200);
     }
 
-    /* =====================================================
-       ✅ STATE HANDLING
-       ===================================================== */
+    /* ---------- STATUS UPDATE ---------- */
     if (state === "COMPLETED") {
       payment.status = "SUCCESS";
-      payment.transactionId = transactionId;
+      payment.transactionId = transactionId || payment.transactionId;
       order.status = "Processing";
     } else {
       payment.status = "FAILED";
@@ -101,17 +101,13 @@ export const phonePeWebhookController = async (req, res) => {
   }
 };
 
-
-/**
- * 🧭 PAYMENT REDIRECT HANDLER (OPTIONAL)
- * This is called after user is redirected back from PhonePe
- * DO NOT update payment status here (UI only)
- */
+/* =====================================================
+   🧭 PHONEPE REDIRECT HANDLER (UI ONLY)
+   ===================================================== */
 export const phonePeRedirectHandler = async (req, res) => {
   try {
     const { orderNumber } = req.query;
-    // Just redirect user to frontend status page
-    // Actual confirmation comes from webhook
+
     return res.redirect(
       `${process.env.FRONTEND_URL}/payment-processing/${orderNumber}`
     );
@@ -121,6 +117,10 @@ export const phonePeRedirectHandler = async (req, res) => {
     );
   }
 };
+
+/* =====================================================
+   📊 PAYMENT STATUS (FRONTEND POLLING)
+   ===================================================== */
 export const getPaymentStatusController = async (req, res) => {
   try {
     const { orderNumber } = req.params;
@@ -132,12 +132,12 @@ export const getPaymentStatusController = async (req, res) => {
       return res.status(404).json({ success: false });
     }
 
-    // Disable caching for payment status
+    // Disable caching
     res.set({
-      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
-      'Surrogate-Control': 'no-store'
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+      Pragma: "no-cache",
+      Expires: "0",
+      "Surrogate-Control": "no-store"
     });
 
     return res.json({
@@ -146,6 +146,6 @@ export const getPaymentStatusController = async (req, res) => {
       orderStatus: order.status
     });
   } catch (err) {
-    res.status(500).json({ success: false });
+    return res.status(500).json({ success: false });
   }
 };
