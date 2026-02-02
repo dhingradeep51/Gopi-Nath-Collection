@@ -112,7 +112,7 @@ export const placeOrderController = async (req, res) => {
       .merchantOrderId(merchantOrderId)
       .amount(Math.round(totalPaid * 100)) // paise
       .metaInfo(metaInfo)
-      .redirectUrl(`${process.env.FRONTEND_URL}/payment-processing/${orderNumber}`)
+      .redirectUrl(`${process.env.BACKEND_URL}/api/v1/payment/phonepe/redirect?orderNumber=${orderNumber}`)
       .build();
 
     const phonePeResponse = await phonePeClient.pay(sdkOrder);

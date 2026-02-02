@@ -74,10 +74,11 @@ export const phonePeWebhookController = async (req, res) => {
  */
 export const phonePeRedirectHandler = async (req, res) => {
   try {
+    const { orderNumber } = req.query;
     // Just redirect user to frontend status page
     // Actual confirmation comes from webhook
     return res.redirect(
-      `${process.env.FRONTEND_URL}/payment-processing`
+      `${process.env.FRONTEND_URL}/payment-processing/${orderNumber}`
     );
   } catch (error) {
     return res.redirect(
