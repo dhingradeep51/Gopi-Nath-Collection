@@ -82,6 +82,9 @@ export const placeOrderController = async (req, res) => {
       address,
       paymentDetails: paymentRecord._id, 
       orderNumber,
+      subtotal: Number((subtotal || calculatedSubtotal).toFixed(2)), 
+      discount: Number(discount.toFixed(2)),
+      shippingFee: Number(shippingFee.toFixed(2)),
       totalPaid: Number((totalAmount || (calculatedSubtotal + shippingFee - discount)).toFixed(2)),
       totalBaseAmount: Number(totalBaseAmount.toFixed(2)),
       totalGstAmount: Number(totalGstAmount.toFixed(2)),
@@ -103,9 +106,9 @@ export const placeOrderController = async (req, res) => {
         merchantTransactionId,
         merchantUserId: req.user._id,
         amount: Math.round(order.totalPaid * 100), // Amount in Paise
-        redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
+        redirectUrl: `${process.env.BACKEND_URL}api/v1/payment/status/${merchantTransactionId}`,
         redirectMode: "POST",
-        callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
+        callbackUrl: `${process.env.BACKEND_URL}api/v1/payment/status/${merchantTransactionId}`,
         paymentInstrument: { type: "PAY_PAGE" },
       };
 
