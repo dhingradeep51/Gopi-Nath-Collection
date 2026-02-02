@@ -12,26 +12,26 @@ const PaymentProcessing = () => {
     const interval = setInterval(async () => {
       try {
         const { data } = await axios.get(
-          `${BASE_URL}api/v1/payment/status/${orderNumber}`
+          `${BASE_URL}api/v1/payment/status/${orderNumber}?t=${Date.now()}`
         );
+
+        console.log("🔁 Polling response:", data);
 
         if (!data?.success) return;
 
-        // ✅ PAYMENT SUCCESS
         if (data.paymentStatus === "PAID") {
           clearInterval(interval);
           navigate("/dashboard/user/orders", { replace: true });
         }
 
-        // ❌ PAYMENT FAILED
         if (data.paymentStatus === "FAILED") {
           clearInterval(interval);
           navigate("/cart", { replace: true });
         }
       } catch (err) {
-        console.error("Polling error", err);
+        console.error("❌ Polling error:", err);
       }
-    }, 3000); // every 3 seconds
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [orderNumber, navigate]);

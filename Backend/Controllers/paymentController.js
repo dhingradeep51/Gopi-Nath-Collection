@@ -81,6 +81,14 @@ export const getPaymentStatusController = async (req, res) => {
       return res.status(404).json({ success: false });
     }
 
+    // Disable caching for payment status
+    res.set({
+      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Surrogate-Control': 'no-store'
+    });
+
     return res.json({
       success: true,
       paymentStatus: order.paymentDetails.status,
