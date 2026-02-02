@@ -60,7 +60,24 @@ export const placeOrderController = async (req, res) => {
     const merchantOrderId = `ORD${Date.now()}`;
     const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
 
-    // 2️⃣ Create Order first
+    // 2️⃣ Create Payment FIRST (before Order)
+    const paymentStatus = paymentMethod === "cod" ? "COD" : "PENDING_PAYMENT";
+    const payment = await new PaymentModel({
+      merchantTransactionId: merchantOrderId,
+      amount: totalPaid,
+      method: paymentMethod === "cod" ? "cod" : "phonepe",
+      status: paymentStatus
+    }).save();
+
+    // Guard: Ensure payment was created successfully
+    if (!payment || !payment._id) {
+      return res.status(500).send({
+        success: false,
+        message: "Failed to create payment record"
+      });
+    }
+
+    // 3️⃣ Create Order with paymentDetails
     const order = await OrderModel.create({
       merchantOrderId,
       orderNumber,
@@ -72,29 +89,12 @@ export const placeOrderController = async (req, res) => {
       totalBaseAmount,
       totalGstAmount,
       highestGstRate,
-      status: "Not Processed"
+      status: paymentMethod === "cod" ? "Processing" : "Not Processed",
+      paymentDetails: payment._id // Always include this
     });
 
-    // 3️⃣ Create Payment (PENDING)
-    const payment = await new PaymentModel({
-      merchantTransactionId: merchantOrderId,
-      amount: totalPaid,
-      method: paymentMethod === "cod" ? "cod" : "phonepe",
-      status: "PENDING_PAYMENT"
-    }).save();
-
-    // 4️⃣ Update order with payment reference
-    order.paymentDetails = payment._id;
-    await order.save();
-
-    // 4️⃣ COD FLOW
+    // 4️⃣ COD FLOW - Already handled in Payment creation above
     if (paymentMethod === "cod") {
-      payment.status = "COD";
-      order.status = "Processing";
-
-      await payment.save();
-      await order.save();
-
       return res.status(201).send({
         success: true,
         message: "Order placed with Cash on Delivery",
