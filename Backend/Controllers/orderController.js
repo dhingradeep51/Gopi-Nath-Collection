@@ -19,11 +19,22 @@ import { getPhonePeV2Token } from "../Utils/phonepeAuth.js";
  * 🚀 PLACE ORDER CONTROLLER (V2 O-BEARER FLOW)
  * Resolves 'Api Mapping Not Found' by using OAuth2 credentials.
  */
+import { StandardCheckoutClient, Env, MetaInfo, CreateSdkOrderRequest } from 'pg-sdk-node';
+
+// 1️⃣ Initialize PhonePe SDK Client
+// Use V2 credentials (client_id, client_secret) from Developer Settings
+const clientId = process.env.PHONEPE_CLIENT_ID;
+const clientSecret = process.env.PHONEPE_CLIENT_SECRET;
+const clientVersion = 1; // Default for current V2 integration
+const env = Env.SANDBOX; // Change to Env.PRODUCTION for live site
+
+const phonePeClient = StandardCheckoutClient.getInstance(clientId, clientSecret, clientVersion, env);
+
 export const placeOrderController = async (req, res) => {
   try {
     const { cart, address, paymentMethod, shippingFee = 0, discount = 0 } = req.body;
 
-    // 1️⃣ Validation
+    // 2️⃣ Validation: Ensure cart is not empty
     if (!cart || cart.length === 0) {
       return res.status(400).send({ success: false, message: "Cart is empty" });
     }
@@ -34,7 +45,7 @@ export const placeOrderController = async (req, res) => {
     let totalGstAmount = 0;
     let highestGstRate = 0;
 
-    // 2️⃣ Process Items & GST Calculations
+    // 3️⃣ Process Items & GST Calculations (Required by your Order Schema)
     for (const item of cart) {
       const product = await ProductModel.findById(item._id);
       if (!product) continue;
@@ -62,12 +73,12 @@ export const placeOrderController = async (req, res) => {
     }
 
     const totalPaid = subtotal + shippingFee - discount;
-    const merchantTransactionId = `MT${Date.now()}`;
+    const merchantOrderId = `MT${Date.now()}`; // Unique order ID for PhonePe
     const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
 
-    // 3️⃣ Save Local Database Records
+    // 4️⃣ Save Payment & Order Reference (Status: PENDING)
     const payment = await new PaymentModel({
-      merchantTransactionId,
+      merchantTransactionId: merchantOrderId,
       amount: totalPaid,
       status: "PENDING",
       method: paymentMethod
@@ -89,51 +100,41 @@ export const placeOrderController = async (req, res) => {
       status: "Not Processed"
     });
 
-    // 4️⃣ Handle COD
+    // 5️⃣ Handle Cash on Delivery
     if (paymentMethod === "cod") {
       return res.status(201).send({ success: true, message: "Order placed (COD)", order });
     }
 
-    // 🚀 5️⃣ PHONEPE V2 O-BEARER HANDSHAKE
-    // Fetch the Access Token using Client ID and Secret
-    const accessToken = await getPhonePeV2Token();
+    // 🚀 6️⃣ PHONEPE V2 SDK HANDSHAKE
+    const amountInPaise = Math.round(totalPaid * 100); // 100 = ₹1.00
+    
+    // Build Metadata to track the user/order in PhonePe's dashboard
+    const metaInfo = MetaInfo.builder()
+      .udf1(req.user._id.toString())
+      .udf2(orderNumber)
+      .build();
 
-    const payload = {
-      merchantId: process.env.PHONEPE_MERCHANT_ID,
-      merchantTransactionId,
-      merchantUserId: req.user._id,
-      amount: Math.round(totalPaid * 100), // convert to paise
-      redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
-      redirectMode: "POST",
-      callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
-      paymentInstrument: { type: "PAY_PAGE" }
-    };
+    const orderRequest = CreateSdkOrderRequest.StandardCheckoutBuilder()
+      .merchantOrderId(merchantOrderId) // Unique order ID
+      .amount(amountInPaise) // Amount in paise
+      .metaInfo(metaInfo) // Custom metadata
+      .redirectUrl(`${process.env.BACKEND_URL}/api/v1/payment/status/${merchantOrderId}`) // Redirect URL
+      .expireAfter(3600) // 1 hour session
+      .message("Divine order from Gopi Nath Collection") // UI message
+      .build();
 
-    // 🔍 DEBUG LOGS
-    const v2URL = "https://api-preprod.phonepe.com/apis/pg/v1/pay";
-    console.log("--- PhonePe V2 Request Details ---");
-    console.log("Request URL:", v2URL);
-    console.log("Authorization: O-Bearer", accessToken.substring(0, 10) + "...");
-
-    const response = await axios.post(
-      v2URL, 
-      payload, // Send JSON payload directly
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `O-Bearer ${accessToken}`, // ✅ Space after O-Bearer is mandatory
-          "accept": "application/json"
-        }
-      }
-    );
-
+    // Initiate the payment link generation
+    const phonePeResponse = await phonePeClient.pay(orderRequest);
+    
+    // Return the secure redirect URL to the frontend
     return res.status(200).send({
       success: true,
-      url: response.data.data.instrumentResponse.redirectInfo.url
+      url: phonePeResponse.redirectUrl
     });
 
   } catch (error) {
-    console.error("Critical V2 Order Error:", error.response?.data || error.message);
+    // 🔍 Precise logging for debugging in Render
+    console.error("SDK Integration Error:", error.message);
     return res.status(500).send({ success: false, message: "Payment initiation failed" });
   }
 };
