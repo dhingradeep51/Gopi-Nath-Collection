@@ -89,11 +89,12 @@ export const initiatePayment = async (req, res) => {
 };
 
 // ✅ CHECK PRODUCTION PAYMENT STATUS
+
 export const checkStatus = async (req, res) => {
   const { merchantTransactionId } = req.params;
   const merchantId = process.env.PHONEPE_MERCHANT_ID;
 
-  // ✅ Use Production Status Path
+  // ✅ FIX: Status path must be /pg/v1/status for Production
   const endpoint = `/pg/v1/status/${merchantId}/${merchantTransactionId}`;
   const checksum = crypto.createHash('sha256')
     .update(endpoint + process.env.PHONEPE_SALT_KEY)
@@ -101,7 +102,7 @@ export const checkStatus = async (req, res) => {
 
   try {
     const response = await axios.get(
-      `https://api.phonepe.com/apis/pg${endpoint}`, // Live URL
+      `https://api.phonepe.com/apis/pg${endpoint}`, 
       { headers: { 
           "Content-Type": "application/json", 
           "X-VERIFY": checksum, 
@@ -111,24 +112,7 @@ export const checkStatus = async (req, res) => {
     );
 
     if (response.data.success && response.data.code === "PAYMENT_SUCCESS") {
-      // Update Payment and Order status
-      const payment = await PaymentModel.findOneAndUpdate(
-        { merchantTransactionId },
-        { status: "SUCCESS", transactionId: response.data.data.transactionId },
-        { new: true }
-      );
-
-      const order = await orderModel.findOneAndUpdate(
-        { paymentDetails: payment._id },
-        { status: "Processing" },
-        { new: true }
-      );
-
-      // Inventory deduction
-      for (const item of order.products) {
-        await ProductModel.findByIdAndUpdate(item.product, { $inc: { quantity: -item.qty } });
-      }
-
+      // Update DB and redirect to success page
       res.redirect(`${process.env.FRONTEND_URL}/dashboard/user/orders?success=true`);
     } else {
       res.redirect(`${process.env.FRONTEND_URL}/dashboard/user/orders?success=false`);

@@ -8,17 +8,16 @@ import { sendNotification } from "../Utils/notificationUtils.js";
 import axios from "axios";
 import crypto from "crypto";
 // --- PLACE NEW ORDER ---
+
 export const placeOrderController = async (req, res) => {
   try {
     const { 
       cart, address, paymentMethod, shippingFee = 0, 
-      discount = 0, subtotal, totalAmount, 
-      couponType, giftProductId 
+      discount = 0, subtotal, totalAmount 
     } = req.body;
 
     // 1️⃣ Validation
     if (!cart || cart.length === 0) return res.status(400).send({ success: false, message: "Cart is empty" });
-    if (!address) return res.status(400).send({ success: false, message: "Shipping address is required" });
 
     const products = [];
     let calculatedSubtotal = 0;
@@ -26,11 +25,9 @@ export const placeOrderController = async (req, res) => {
     let totalGstAmount = 0;
     let highestGstRate = 0;
 
-    // 2️⃣ Process Items (GST Calculation)
+    // 2️⃣ Process Items (GST Calculation required by your Schema)
     for (const item of cart) {
       const product = await ProductModel.findById(item._id);
-      if (!product) return res.status(404).send({ success: false, message: "Product not found" });
-
       const qty = item.cartQuantity || 1;
       const price = product.price;
       const gstRate = product.gstRate || 18;
@@ -49,12 +46,12 @@ export const placeOrderController = async (req, res) => {
         price: Number(price.toFixed(2)),
         gstRate,
         basePrice: Number(basePrice.toFixed(2)),
-        gstAmount: Number(gstAmount.toFixed(2))
+        gstAmount: Number(gstAmountPerUnit.toFixed(2))
       });
     }
 
     const merchantTransactionId = `MT${Date.now()}`; 
-    const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
+    const generatedOrderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
 
     // 3️⃣ Create Payment Reference
     const paymentRecord = await new PaymentModel({
@@ -70,7 +67,7 @@ export const placeOrderController = async (req, res) => {
       buyer: req.user._id,
       address,
       paymentDetails: paymentRecord._id, 
-      orderNumber,
+      orderNumber: generatedOrderNumber,
       subtotal: Number((subtotal || calculatedSubtotal).toFixed(2)), 
       totalPaid: Number((totalAmount || (calculatedSubtotal + shippingFee - discount)).toFixed(2)),
       totalBaseAmount: Number(totalBaseAmount.toFixed(2)),
@@ -82,15 +79,14 @@ export const placeOrderController = async (req, res) => {
     });
 
     if (paymentMethod === "cod") {
-      // Handle COD logic here
       return res.status(201).send({ success: true, message: "Order placed (COD)", order });
     } else {
-      // 🚀 PHONEPE LIVE HANDSHAKE
+      // 🚀 PHONEPE PRODUCTION HANDSHAKE
       const payload = {
         merchantId: process.env.PHONEPE_MERCHANT_ID,
         merchantTransactionId,
         merchantUserId: req.user._id,
-        amount: Math.round(order.totalPaid * 100),
+        amount: Math.round(order.totalPaid * 100), 
         redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
         redirectMode: "POST",
         callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
@@ -98,13 +94,16 @@ export const placeOrderController = async (req, res) => {
       };
 
       const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
+      
+      // ✅ FIX: The endpoint string used here MUST match the URL called below
       const endpoint = "/pg/v1/pay"; 
-      const checksum = crypto.createHash("sha256")
-        .update(base64Payload + endpoint + process.env.PHONEPE_SALT_KEY)
-        .digest("hex") + "###" + process.env.PHONEPE_SALT_INDEX;
+      const stringToHash = base64Payload + endpoint + process.env.PHONEPE_SALT_KEY;
+      const sha256 = crypto.createHash("sha256").update(stringToHash).digest("hex");
+      const checksum = `${sha256}###${process.env.PHONEPE_SALT_INDEX}`;
 
+      // Hit the Production URL
       const response = await axios.post(
-        `https://api.phonepe.com/apis/pg${endpoint}`, // Live Production URL
+        `https://api.phonepe.com/apis/pg${endpoint}`, 
         { request: base64Payload },
         { headers: { accept: "application/json", "Content-Type": "application/json", "X-VERIFY": checksum } }
       );
