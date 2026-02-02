@@ -1,16 +1,22 @@
 import orderModel from "../Models/orderModel.js";
 import moment from "moment";
 import ProductModel from "../Models/productModel.js";
+import paymentModel from "../Models/paymentModel.js";
 import userModel from "../Models/userModel.js";
 // ✅ Ensure the import path and filename match your utils folder exactly
 import { sendNotification } from "../Utils/notificationUtils.js";
-
+import axios from "axios";
+import crypto from "crypto";
 // --- PLACE NEW ORDER ---
 export const placeOrderController = async (req, res) => {
   try {
-    const { cart, address, paymentMethod, shippingFee = 0, discount = 0, subtotal, totalAmount, transactionId, couponType, giftProductId } = req.body;
+    const { 
+      cart, address, paymentMethod, shippingFee = 0, 
+      discount = 0, subtotal, totalAmount, 
+      couponType, giftProductId 
+    } = req.body;
 
-    // 1️⃣ Validate core requirements
+    // 1️⃣ Basic Validations
     if (!cart || cart.length === 0) return res.status(400).send({ success: false, message: "Cart is empty" });
     if (!address) return res.status(400).send({ success: false, message: "Shipping address is required" });
 
@@ -20,14 +26,14 @@ export const placeOrderController = async (req, res) => {
     let totalGstAmount = 0;
     let highestGstRate = 0;
 
-    // 2️⃣ Process Cart Items
+    // 2️⃣ Process Cart Items & Calculate GST
     for (const item of cart) {
       const product = await ProductModel.findById(item._id);
-      if (!product) return res.status(404).send({ success: false, message: `Product "${item.name}" not found` });
+      if (!product) return res.status(404).send({ success: false, message: `Product not found` });
 
       const requestedQty = item.cartQuantity || 1;
       if (product.quantity < requestedQty) {
-        return res.status(400).send({ success: false, message: `Only ${product.quantity} units of "${product.name}" available` });
+        return res.status(400).send({ success: false, message: `Insufficient stock for ${product.name}` });
       }
 
       const pricePerUnit = product.price;
@@ -58,27 +64,32 @@ export const placeOrderController = async (req, res) => {
       const giftItem = await ProductModel.findById(giftProductId);
       if (giftItem && giftItem.quantity > 0) {
         products.push({ product: giftItem._id, name: `🎁 GIFT: ${giftItem.name}`, qty: 1, price: 0, gstRate: 0, basePrice: 0, gstAmount: 0 });
+        // Reduce gift stock immediately as it's a promotional item
         await ProductModel.findByIdAndUpdate(giftItem._id, { $inc: { quantity: -1 } });
       }
     }
 
-    // 5️⃣ Generate Order Number
+    // 4️⃣ Generate Identifiers
     const datePart = moment().format("YYYYMMDD");
     const todayCount = await orderModel.countDocuments({ orderNumber: { $regex: `^GN-${datePart}` } });
     const sequence = String(todayCount + 1).padStart(3, "0");
     const generatedOrderNumber = `GN-${datePart}-${sequence}`;
+    const merchantTransactionId = `MT${Date.now()}`; 
 
-    // 6️⃣ Save Order
+    // 5️⃣ Create Payment Record (Status: PENDING)
+    const paymentRecord = await new PaymentModel({
+      merchantTransactionId,
+      amount: totalAmount || (calculatedSubtotal + shippingFee - discount),
+      status: "PENDING",
+      method: paymentMethod
+    }).save();
+
+    // 6️⃣ Save Order (Link to Payment)
     const order = await orderModel.create({
       products,
       buyer: req.user._id,
       address,
-      payment: {
-        success: paymentMethod === "cod" ? false : true,
-        method: paymentMethod,
-        transactionId: transactionId || null,
-        paidAt: paymentMethod === "cod" ? null : new Date()
-      },
+      paymentDetails: paymentRecord._id, 
       orderNumber: generatedOrderNumber,
       subtotal: Number((subtotal || calculatedSubtotal).toFixed(2)),
       discount: Number(discount.toFixed(2)),
@@ -90,18 +101,54 @@ export const placeOrderController = async (req, res) => {
       status: "Not Processed"
     });
 
-    // ✅ TRIGGER REAL-TIME NOTIFICATION FOR ADMIN
-    sendNotification(req, "NEW_ORDER", { orderId: generatedOrderNumber });
+    // 7️⃣ Handle COD vs ONLINE
+    if (paymentMethod === "cod") {
+      // For COD, reduce stock immediately
+      for (const item of cart) {
+        await ProductModel.findByIdAndUpdate(item._id, { $inc: { quantity: -(item.cartQuantity || 1) } });
+      }
+      sendNotification(req, "NEW_ORDER", { orderId: generatedOrderNumber });
+      return res.status(201).send({ success: true, message: "Order placed successfully (COD)", order });
+      
+    } else {
+      // PHONEPE INTEGRATION
+      const payload = {
+        merchantId: process.env.PHONEPE_MERCHANT_ID,
+        merchantTransactionId: merchantTransactionId,
+        merchantUserId: req.user._id,
+        amount: Math.round(order.totalPaid * 100), // Amount in Paise
+        redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
+        redirectMode: "POST",
+        callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
+        paymentInstrument: { type: "PAY_PAGE" },
+      };
 
-    // 7️⃣ Stock Reduction
-    for (const item of cart) {
-      await ProductModel.findByIdAndUpdate(item._id, { $inc: { quantity: -(item.cartQuantity || 1) } });
+      const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
+      const string = base64Payload + "/pg/v1/pay" + process.env.PHONEPE_SALT_KEY;
+      const sha256 = crypto.createHash("sha256").update(string).digest("hex");
+      const checksum = sha256 + "###" + process.env.PHONEPE_SALT_INDEX;
+
+      const response = await axios.post(
+        "https://api-preprod.phonepe.com/apis/hermes/pg/v1/pay",
+        { request: base64Payload },
+        {
+          headers: {
+            accept: "application/json",
+            "Content-Type": "application/json",
+            "X-VERIFY": checksum,
+          },
+        }
+      );
+
+      return res.status(200).send({
+        success: true,
+        url: response.data.data.instrumentResponse.redirectInfo.url,
+      });
     }
 
-    return res.status(201).send({ success: true, message: "Order placed successfully", order });
-
   } catch (error) {
-    res.status(500).send({ success: false, error: error.message });
+    console.error(error);
+    res.status(500).send({ success: false, message: "Internal Server Error", error: error.message });
   }
 };
 export const getAllOrdersController = async (req, res) => {

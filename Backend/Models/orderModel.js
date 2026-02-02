@@ -46,7 +46,6 @@ const orderSchema = new mongoose.Schema(
 
     // 💳 PAYMENT INFO
     payment: {
-      success: { type: Boolean, default: false },
       method: {
         type: String,
         enum: ["cod", "online"],
@@ -156,6 +155,12 @@ const orderSchema = new mongoose.Schema(
     returnReason: {
       type: String,
       default: null
+    },
+    // 💳 PAYMENT REFERENCE (Link to your separate model)
+    paymentDetails:{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Payment",
+      required: true // Must match your Payment model name
     }
   },
   { timestamps: true }
