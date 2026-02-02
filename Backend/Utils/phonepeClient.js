@@ -11,3 +11,4 @@ export const phonePeClient = StandardCheckoutClient.getInstance(
   Number(process.env.PHONEPE_CLIENT_VERSION || 1),
   env
 );
+export default phonePeClient;
