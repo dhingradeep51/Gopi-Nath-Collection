@@ -9,6 +9,14 @@ export const initiatePayment = async (req, res) => {
   try {
     const { cart, address, financials, buyerId } = req.body;
     
+    // 🔍 DEBUG: Check incoming data and env variables
+    console.log("--- Payment Initiation Start ---");
+    console.log("Merchant ID:", process.env.PHONEPE_MERCHANT_ID);
+    console.log("Salt Index:", process.env.PHONEPE_SALT_INDEX);
+    // Only log the first/last few chars of the key for security
+    const key = process.env.PHONEPE_SALT_KEY || "";
+    console.log("Salt Key Check:", `${key.substring(0, 3)}...${key.substring(key.length - 3)}`);
+
     const merchantTransactionId = `MT${Date.now()}`;
     const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
 
@@ -20,23 +28,26 @@ export const initiatePayment = async (req, res) => {
       method: "online"
     }).save();
 
-    // 2. Create Order record (Includes 'subtotal' to fix your validation error)
+    // 2. Create Order record (Fixes 'subtotal is required' error)
+    // 🔍 DEBUG: Ensure financials.subtotal exists
+    console.log("Subtotal value for DB:", financials.subtotal);
+
     const newOrder = await new orderModel({
       products: cart,
       buyer: buyerId,
       address,
       orderNumber,
       paymentDetails: newPayment._id,
-      subtotal: financials.subtotal, 
+      subtotal: financials.subtotal, // ✅ Required field fix
       totalPaid: financials.totalPaid,
       shippingFee: financials.shippingFee || 0,
       discount: financials.discount || 0,
       status: "Not Processed"
     }).save();
 
-    // 3. PhonePe Payload with your unique Merchant ID
+    // 3. PhonePe Payload
     const payload = {
-      merchantId: process.env.PHONEPE_MERCHANT_ID, 
+      merchantId: process.env.PHONEPE_MERCHANT_ID,
       merchantTransactionId,
       merchantUserId: buyerId,
       amount: Math.round(financials.totalPaid * 100), 
@@ -47,11 +58,12 @@ export const initiatePayment = async (req, res) => {
     };
 
     const base64Payload = Buffer.from(JSON.stringify(payload)).toString("base64");
-    
-    // Checksum using your unique Salt Key
-    const checksum = crypto.createHash('sha256')
-      .update(base64Payload + "/pg/v1/pay" + process.env.PHONEPE_SALT_KEY)
-      .digest('hex') + "###" + process.env.PHONEPE_SALT_INDEX;
+    const stringToHash = base64Payload + "/pg/v1/pay" + process.env.PHONEPE_SALT_KEY;
+    const sha256 = crypto.createHash('sha256').update(stringToHash).digest('hex');
+    const checksum = sha256 + "###" + process.env.PHONEPE_SALT_INDEX;
+
+    // 🔍 DEBUG: Check the final Header
+    console.log("Generated X-VERIFY:", checksum);
 
     const response = await axios.post(
       "https://api-preprod.phonepe.com/apis/hermes/pg/v1/pay",
@@ -64,17 +76,26 @@ export const initiatePayment = async (req, res) => {
       }
     );
 
+    console.log("PhonePe API Response Status:", response.status);
+    console.log("--- Payment Initiation Success ---");
+
     res.status(200).send({
       success: true,
       url: response.data.data.instrumentResponse.redirectInfo.url,
     });
 
   } catch (error) {
-    console.error("API Error:", error.response?.data || error.message);
-    res.status(500).send({ success: false, message: "Handshake failed" });
+    // 🔍 DEBUG: Catch the exact reason for the 400 error
+    console.error("--- Payment Error Log ---");
+    if (error.response) {
+      console.error("Data:", error.response.data);
+      console.error("Status:", error.response.status);
+    } else {
+      console.error("Message:", error.message);
+    }
+    res.status(500).send({ success: false, message: "Payment failed" });
   }
 };
-
 export const checkStatus = async (req, res) => {
   const { merchantTransactionId } = req.params;
   const merchantId = process.env.PHONEPE_MERCHANT_ID;
