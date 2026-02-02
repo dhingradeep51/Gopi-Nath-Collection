@@ -86,3 +86,23 @@ export const phonePeRedirectHandler = async (req, res) => {
     );
   }
 };
+export const getPaymentStatusController = async (req, res) => {
+  try {
+    const { orderNumber } = req.params;
+
+    const order = await OrderModel.findOne({ orderNumber })
+      .populate("paymentDetails");
+
+    if (!order) {
+      return res.status(404).json({ success: false });
+    }
+
+    return res.json({
+      success: true,
+      paymentStatus: order.paymentDetails.status,
+      orderStatus: order.status
+    });
+  } catch (err) {
+    res.status(500).json({ success: false });
+  }
+};
