@@ -39,6 +39,7 @@ import CancellationPolicy from './pages/POLICY&CONTACT/CancellationPolicy';
 import OrderDetails from './pages/User/OrderDetail';
 import AdminOrderDetails from './pages/Admin/AdminOrderDetails';
 import AdminNotifications from './pages/Admin/AdminNotifications';
+import PaymentProcessing from './pages/paymentprocessing';
 
 function App() {
   return (
@@ -74,6 +75,7 @@ function App() {
         <Route path='/privacy' element={<PrivacyPolicy />} />
         <Route path='cancel-policy' element={<CancellationPolicy />} />
         <Route path="/search-results/:keyword" element={<SearchResults />} />
+        <Route path="/payment-processing/:orderNumber" element={<PaymentProcessing />} />
 
         {/* USER PRIVATE routes*/}
         <Route path="/dashboard" element={<PrivateRoute />}>
