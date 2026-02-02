@@ -15,29 +15,50 @@ export const placeOrderController = async (req, res) => {
     const { cart, address, paymentMethod, shippingFee = 0, discount = 0 } = req.body;
 
     if (!cart || cart.length === 0) {
-      return res.status(400).send({ success: false, message: "Cart is empty" });
+      return res.status(400).send({
+        success: false,
+        message: "Cart is empty"
+      });
     }
 
-    let subtotal = 0;
     const products = [];
+    let subtotal = 0;
+    let totalBaseAmount = 0;
+    let totalGstAmount = 0;
+    let highestGstRate = 0;
 
     for (const item of cart) {
       const product = await ProductModel.findById(item._id);
       const qty = item.cartQuantity || 1;
-      subtotal += product.price * qty;
+
+      const price = product.price;
+      const gstRate = product.gstRate || 18;
+
+      const basePrice = price / (1 + gstRate / 100);
+      const gstAmount = price - basePrice;
+
+      subtotal += price * qty;
+      totalBaseAmount += basePrice * qty;
+      totalGstAmount += gstAmount * qty;
+      if (gstRate > highestGstRate) highestGstRate = gstRate;
 
       products.push({
         product: product._id,
         name: product.name,
         qty,
-        price: product.price
+        price: Number(price.toFixed(2)),
+        gstRate,
+        basePrice: Number(basePrice.toFixed(2)),
+        gstAmount: Number(gstAmount.toFixed(2))
       });
     }
 
     const totalPaid = subtotal + shippingFee - discount;
+
     const merchantTransactionId = `MT${Date.now()}`;
     const orderNumber = `GN-${moment().format("YYYYMMDD")}-${Math.floor(Math.random() * 1000)}`;
 
+    // 💾 Save payment
     const payment = await new PaymentModel({
       merchantTransactionId,
       amount: totalPaid,
@@ -45,30 +66,38 @@ export const placeOrderController = async (req, res) => {
       method: paymentMethod
     }).save();
 
+    // 💾 Save order (ALL required fields included)
     const order = await orderModel.create({
       products,
       buyer: req.user._id,
       address,
       paymentDetails: payment._id,
       orderNumber,
-      subtotal,
-      totalPaid,
+      subtotal: Number(subtotal.toFixed(2)),
+      totalPaid: Number(totalPaid.toFixed(2)),
+      totalBaseAmount: Number(totalBaseAmount.toFixed(2)),
+      totalGstAmount: Number(totalGstAmount.toFixed(2)),
+      highestGstRate,
       shippingFee,
       discount,
       status: "Not Processed"
     });
 
+    // 💵 COD flow
     if (paymentMethod === "cod") {
-      return res.status(201).send({ success: true, order });
+      return res.status(201).send({
+        success: true,
+        message: "Order placed (COD)",
+        order
+      });
     }
 
-    // 🔑 V2 TOKEN
+    // 🔑 PHONEPE V2
     const accessToken = await getPhonePeAccessToken();
 
-    // 📦 V2 PAYLOAD
     const payload = {
       merchantTransactionId,
-      amount: Math.round(totalPaid * 100),
+      amount: Math.round(totalPaid * 100), // paise
       redirectUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
       redirectMode: "POST",
       callbackUrl: `${process.env.BACKEND_URL}/api/v1/payment/status/${merchantTransactionId}`,
@@ -92,10 +121,14 @@ export const placeOrderController = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("PhonePe V2 Error:", error.response?.data || error.message);
-    return res.status(500).send({ success: false, message: "Payment failed" });
+    console.error("Order Error:", error.response?.data || error.message);
+    return res.status(500).send({
+      success: false,
+      message: "Payment failed"
+    });
   }
 };
+
 
 
 export const getAllOrdersController = async (req, res) => {
