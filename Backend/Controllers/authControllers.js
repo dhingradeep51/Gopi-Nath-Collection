@@ -4,10 +4,12 @@ import nodemailer from "nodemailer";
 import JWT from "jsonwebtoken";
 import axios from "axios"; // ✅ Ensure axios is installed: npm install axios
 
+
 export const sendOTPController = async (req, res) => {
   try {
     const { email, purpose } = req.body;
 
+    // 1. Better Input Validation
     if (!email || !purpose) {
       return res.status(400).send({
         success: false,
@@ -15,15 +17,17 @@ export const sendOTPController = async (req, res) => {
       });
     }
 
-    // Generate OTP
+    // Convert email to lowercase to prevent duplicate records
+    const normalizedEmail = email.toLowerCase().trim();
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
 
-    // ✅ Update User in Database
+    // 2. Database Operation
     await UserModel.findOneAndUpdate(
-      { email },
+      { email: normalizedEmail },
       {
-        $set: { email, otp, otpExpires },
+        $set: { email: normalizedEmail, otp, otpExpires },
         $setOnInsert: {
           name: "Pending",
           phone: "0000000000",
@@ -47,21 +51,21 @@ export const sendOTPController = async (req, res) => {
       </div>
     `;
 
-    // ✅ BREVO API CALL (Replaces Nodemailer)
-    // This uses Port 443 which is never blocked by Render or Mobile Networks
+    // 3. Robust Brevo API Call
     await axios.post(
       "https://api.brevo.com/v3/smtp/email",
       {
         sender: { name: "GNC Support", email: "noreply@gopinathcollection.co.in" },
-        to: [{ email: email }],
+        to: [{ email: normalizedEmail }],
         subject: "Verification Code - Gopi Nath Collection",
         htmlContent: htmlContent,
       },
       {
         headers: {
-          "api-key": process.env.BREVO_API_KEY, // ✅ Use your Brevo API Key from Dashboard
+          "api-key": process.env.BREVO_API_KEY,
           "Content-Type": "application/json",
         },
+        timeout: 8000, // 👈 Stop the "Pending" state if API doesn't respond in 8s
       }
     );
 
@@ -69,11 +73,32 @@ export const sendOTPController = async (req, res) => {
       success: true,
       message: "OTP sent successfully via API",
     });
+
   } catch (error) {
-    console.error("SEND OTP ERROR:", error.response?.data || error.message);
+    // 4. Detailed Error Handling
+    console.error("--- SEND OTP ERROR ---");
+    
+    // Check if it's a Brevo error (e.g., wrong API key or unverified sender)
+    if (error.response) {
+      console.error("Brevo Response:", error.response.data);
+      return res.status(error.response.status).send({
+        success: false,
+        message: "Email service rejected the request",
+        error: error.response.data.message || "Brevo configuration error",
+      });
+    }
+
+    // Check for timeouts
+    if (error.code === 'ECONNABORTED') {
+      return res.status(504).send({
+        success: false,
+        message: "Email service timed out. Please try again.",
+      });
+    }
+
     res.status(500).send({
       success: false,
-      message: "Failed to send OTP",
+      message: "An internal server error occurred",
       error: error.message,
     });
   }
