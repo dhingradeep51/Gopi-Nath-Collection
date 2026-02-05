@@ -34,7 +34,7 @@ router.get("/get-product", getAllProductsController);
 router.get("/get-product/:slug", getSingleProductController);
 
 // Get Photo
-router.get("/product-photo/:pid/:index?", productPhotoController);
+router.get("/product-photo/:pid/:index", productPhotoController);
 
 // Delete Product
 router.delete("/delete-product/:pid", requireSignIn, isAdmin, deleteProductController);
