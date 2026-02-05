@@ -6,17 +6,14 @@ import { Spin, message, Rate, Badge } from "antd";
 import { useCart } from "../../context/cart";
 import {
   ShoppingOutlined,
-  HeartOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  UserOutlined,
   HomeOutlined,
   RightOutlined,
   TruckOutlined,
   SafetyOutlined,
   SyncOutlined,
 } from "@ant-design/icons";
-import moment from "moment";
 
 const ProductDetails = () => {
   const params = useParams();
@@ -26,16 +23,28 @@ const ProductDetails = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("description");
   const [quantity, setQuantity] = useState(1);
-  
-  // ✅ New State for Gallery
   const [mainImageIndex, setMainImageIndex] = useState(0);
-
-  const isMobile = window.innerWidth <= 768;
-  const gold = "#D4AF37";
-  const burgundy = "#2D0A14";
-  const darkBg = "#1a050b";
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
 
   const BASE_URL = import.meta.env.VITE_API_URL;
+
+  // Color scheme
+  const colors = {
+    gold: "#D4AF37",
+    burgundy: "#2D0A14",
+    darkBg: "#1a050b",
+    goldFade: "rgba(212, 175, 55, 0.1)",
+    goldBorder: "rgba(212, 175, 55, 0.27)",
+  };
+
+  // Handle window resize for responsive design
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     if (params?.slug) getProduct();
@@ -45,7 +54,9 @@ const ProductDetails = () => {
   const getProduct = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`${BASE_URL}api/v1/product/get-product/${params.slug}`);
+      const { data } = await axios.get(
+        `${BASE_URL}api/v1/product/get-product/${params.slug}`
+      );
       if (data?.success) {
         setProduct(data.product);
       }
@@ -61,15 +72,21 @@ const ProductDetails = () => {
       return message.warning("This divine creation is currently out of stock");
     }
     try {
-      const existingProductIndex = cart.findIndex((item) => item._id === product._id);
+      const existingProductIndex = cart.findIndex(
+        (item) => item._id === product._id
+      );
       let updatedCart;
       if (existingProductIndex !== -1) {
         updatedCart = [...cart];
         updatedCart[existingProductIndex] = {
           ...updatedCart[existingProductIndex],
-          cartQuantity: (updatedCart[existingProductIndex].cartQuantity || 1) + quantity,
+          cartQuantity:
+            (updatedCart[existingProductIndex].cartQuantity || 1) + quantity,
         };
-        message.success(`Quantity updated to ${updatedCart[existingProductIndex].cartQuantity}`, 2);
+        message.success(
+          `Quantity updated to ${updatedCart[existingProductIndex].cartQuantity}`,
+          2
+        );
       } else {
         updatedCart = [...cart, { ...product, cartQuantity: quantity }];
         message.success(`${product.name} added to your collection`, 2);
@@ -81,49 +98,500 @@ const ProductDetails = () => {
     }
   };
 
-  if (loading) return <Layout title="Revealing Elegance..."><Spin size="large" className="loading-spinner" /></Layout>;
+  const handleQuantityChange = (type) => {
+    if (type === "decrease") {
+      setQuantity(Math.max(1, quantity - 1));
+    } else {
+      setQuantity(Math.min(product.quantity, quantity + 1));
+    }
+  };
+
+  const handleImageError = (e) => {
+    e.target.parentElement.style.display = "none";
+  };
+
+  // Inline Styles Object
+  const styles = {
+    page: {
+      background: colors.darkBg,
+      minHeight: "100vh",
+      color: "white",
+      paddingBottom: "60px",
+    },
+    loadingContainer: {
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      minHeight: "60vh",
+    },
+    container: {
+      maxWidth: "1300px",
+      margin: "0 auto",
+      padding: isMobile ? "20px 15px" : "40px 20px",
+    },
+    breadcrumb: {
+      maxWidth: "1300px",
+      margin: "0 auto",
+      padding: isMobile ? "15px 15px 0" : "20px 20px 0",
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+      fontSize: isMobile ? "10px" : "12px",
+      letterSpacing: "1px",
+      color: "rgba(255, 255, 255, 0.6)",
+      flexWrap: isMobile ? "wrap" : "nowrap",
+    },
+    breadcrumbItem: {
+      cursor: "pointer",
+      transition: "all 0.3s ease",
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+    },
+    breadcrumbSep: {
+      fontSize: "10px",
+      opacity: 0.4,
+    },
+    breadcrumbCurrent: {
+      color: colors.gold,
+      fontWeight: 600,
+    },
+    productMain: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr",
+      gap: isMobile ? "30px" : "60px",
+      marginBottom: isMobile ? "40px" : "60px",
+    },
+    imageSection: {
+      position: "relative",
+    },
+    mainImageWrapper: {
+      border: `1px solid ${colors.goldBorder}`,
+      borderRadius: "12px",
+      overflow: "hidden",
+      background: "#000",
+      height: isMobile ? "300px" : "550px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      position: "relative",
+      boxShadow: "0 10px 40px rgba(0, 0, 0, 0.5)",
+    },
+    mainImage: {
+      maxWidth: "100%",
+      maxHeight: "100%",
+      objectFit: "contain",
+      transition: "transform 0.4s ease",
+    },
+    outOfStockBadge: {
+      position: "absolute",
+      top: "20px",
+      left: "20px",
+      background: "rgba(220, 38, 38, 0.95)",
+      color: "white",
+      padding: "8px 16px",
+      borderRadius: "4px",
+      fontSize: "11px",
+      fontWeight: "bold",
+      letterSpacing: "1.5px",
+      zIndex: 10,
+      boxShadow: "0 4px 12px rgba(220, 38, 38, 0.4)",
+    },
+    thumbnailGallery: {
+      display: "flex",
+      gap: isMobile ? "8px" : "12px",
+      marginTop: "20px",
+      flexWrap: "wrap",
+    },
+    thumbItem: {
+      width: isMobile ? "70px" : "90px",
+      height: isMobile ? "70px" : "90px",
+      border: `2px solid ${colors.goldBorder}`,
+      cursor: "pointer",
+      borderRadius: "6px",
+      overflow: "hidden",
+      opacity: 0.5,
+      transition: "all 0.3s ease",
+      background: "#000",
+    },
+    thumbItemActive: {
+      width: isMobile ? "70px" : "90px",
+      height: isMobile ? "70px" : "90px",
+      border: `2px solid ${colors.gold}`,
+      cursor: "pointer",
+      borderRadius: "6px",
+      overflow: "hidden",
+      opacity: 1,
+      transition: "all 0.3s ease",
+      background: "#000",
+      boxShadow: `0 4px 12px rgba(212, 175, 55, 0.3)`,
+    },
+    thumbImage: {
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
+    },
+    infoSection: {
+      display: "flex",
+      flexDirection: "column",
+      gap: "20px",
+    },
+    productMeta: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingBottom: "10px",
+    },
+    skuCode: {
+      fontSize: "12px",
+      color: "rgba(255, 255, 255, 0.5)",
+      letterSpacing: "1px",
+    },
+    productTitle: {
+      color: colors.gold,
+      fontFamily: "Georgia, 'Times New Roman', serif",
+      fontSize: isMobile ? "24px" : "42px",
+      fontWeight: 400,
+      margin: 0,
+      lineHeight: 1.2,
+      letterSpacing: "0.5px",
+    },
+    ratingStockRow: {
+      display: "flex",
+      alignItems: "center",
+      gap: isMobile ? "15px" : "20px",
+      padding: "15px 0",
+      borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+      borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+      flexWrap: isMobile ? "wrap" : "nowrap",
+    },
+    ratingWrapper: {
+      display: "flex",
+      alignItems: "center",
+      gap: "10px",
+    },
+    reviewCount: {
+      fontSize: "13px",
+      color: "rgba(255, 255, 255, 0.6)",
+    },
+    dividerVertical: {
+      width: "1px",
+      height: "20px",
+      background: "rgba(255, 255, 255, 0.2)",
+      display: isMobile ? "none" : "block",
+    },
+    stockStatus: {
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+      fontSize: "14px",
+      fontWeight: 500,
+    },
+    priceSection: {
+      display: "flex",
+      alignItems: "baseline",
+      gap: "15px",
+      margin: "10px 0",
+      flexWrap: "wrap",
+    },
+    productPrice: {
+      color: colors.gold,
+      fontSize: isMobile ? "28px" : "44px",
+      fontWeight: 700,
+      margin: 0,
+      fontFamily: "'Arial', sans-serif",
+    },
+    gstInfo: {
+      fontSize: "12px",
+      color: "rgba(255, 255, 255, 0.5)",
+      fontStyle: "italic",
+    },
+    shortDescription: {
+      fontSize: "15px",
+      lineHeight: 1.7,
+      color: "rgba(255, 255, 255, 0.8)",
+      margin: "15px 0",
+    },
+    quantityActionRow: {
+      display: "flex",
+      gap: "15px",
+      margin: "30px 0",
+      alignItems: "stretch",
+      flexDirection: isMobile ? "column" : "row",
+    },
+    qtyBox: {
+      display: "flex",
+      alignItems: "center",
+      border: `2px solid ${colors.gold}`,
+      borderRadius: "6px",
+      overflow: "hidden",
+      background: "rgba(0, 0, 0, 0.3)",
+      width: isMobile ? "100%" : "auto",
+      justifyContent: isMobile ? "center" : "flex-start",
+    },
+    qtyBtn: {
+      background: "none",
+      border: "none",
+      color: colors.gold,
+      width: "45px",
+      height: "48px",
+      cursor: "pointer",
+      fontSize: "20px",
+      fontWeight: "bold",
+      transition: "all 0.3s ease",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    qtyValue: {
+      width: "50px",
+      textAlign: "center",
+      fontSize: "16px",
+      fontWeight: 600,
+      color: "white",
+    },
+    btnAddCart: {
+      background: colors.gold,
+      color: colors.burgundy,
+      border: "none",
+      padding: "0 40px",
+      fontWeight: 700,
+      cursor: "pointer",
+      flex: isMobile ? "none" : 1,
+      borderRadius: "6px",
+      fontSize: "14px",
+      letterSpacing: "1px",
+      transition: "all 0.3s ease",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "10px",
+      boxShadow: "0 4px 15px rgba(212, 175, 55, 0.3)",
+      height: "48px",
+      width: isMobile ? "100%" : "auto",
+    },
+    btnDisabled: {
+      opacity: 0.5,
+      cursor: "not-allowed",
+    },
+    trustBadges: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)",
+      gap: "15px",
+      marginTop: "30px",
+      paddingTop: "30px",
+      borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+    },
+    badgeItem: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      textAlign: "center",
+      gap: "8px",
+      padding: isMobile ? "12px" : "15px",
+      background: colors.goldFade,
+      borderRadius: "8px",
+      border: `1px solid ${colors.goldBorder}`,
+    },
+    badgeIcon: {
+      fontSize: isMobile ? "20px" : "24px",
+      color: colors.gold,
+    },
+    badgeText: {
+      fontSize: isMobile ? "11px" : "12px",
+      color: "rgba(255, 255, 255, 0.9)",
+      fontWeight: 600,
+    },
+    tabsSection: {
+      marginTop: isMobile ? "40px" : "60px",
+    },
+    tabsHeader: {
+      borderBottom: `2px solid ${colors.goldBorder}`,
+      display: "flex",
+      gap: isMobile ? "20px" : "40px",
+      overflowX: "auto",
+    },
+    tabButton: {
+      background: "none",
+      border: "none",
+      color: "rgba(255, 255, 255, 0.6)",
+      padding: isMobile ? "15px 0" : "18px 0",
+      cursor: "pointer",
+      fontSize: isMobile ? "11px" : "13px",
+      fontWeight: 600,
+      letterSpacing: "1.5px",
+      borderBottom: "3px solid transparent",
+      transition: "all 0.3s ease",
+      whiteSpace: "nowrap",
+    },
+    tabButtonActive: {
+      background: "none",
+      border: "none",
+      color: colors.gold,
+      padding: isMobile ? "15px 0" : "18px 0",
+      cursor: "pointer",
+      fontSize: isMobile ? "11px" : "13px",
+      fontWeight: 600,
+      letterSpacing: "1.5px",
+      borderBottom: `3px solid ${colors.gold}`,
+      transition: "all 0.3s ease",
+      whiteSpace: "nowrap",
+    },
+    tabsContent: {
+      padding: "40px 0",
+    },
+    tabPane: {
+      animation: "fadeIn 0.3s ease",
+    },
+    descriptionText: {
+      fontSize: "15px",
+      lineHeight: 1.8,
+      color: "rgba(255, 255, 255, 0.8)",
+      maxWidth: "900px",
+    },
+    specsGrid: {
+      display: "grid",
+      gridTemplateColumns: isMobile ? "1fr" : "repeat(2, 1fr)",
+      gap: "20px",
+      maxWidth: "900px",
+    },
+    specItem: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: "18px 20px",
+      background: colors.goldFade,
+      borderRadius: "8px",
+      border: `1px solid ${colors.goldBorder}`,
+      transition: "all 0.3s ease",
+    },
+    specLabel: {
+      opacity: 0.7,
+      fontSize: "13px",
+      fontWeight: 500,
+      textTransform: "uppercase",
+      letterSpacing: "0.5px",
+    },
+    specValue: {
+      color: colors.gold,
+      fontWeight: 600,
+      fontSize: "14px",
+      textAlign: "right",
+    },
+    shippingInfo: {
+      maxWidth: "900px",
+    },
+    sectionTitle: {
+      color: colors.gold,
+      fontSize: "22px",
+      marginBottom: "20px",
+      fontWeight: 600,
+    },
+    shippingList: {
+      listStyle: "none",
+      padding: 0,
+      margin: 0,
+    },
+    shippingListItem: {
+      padding: "12px 0",
+      borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+      color: "rgba(255, 255, 255, 0.8)",
+      fontSize: "14px",
+      lineHeight: 1.6,
+    },
+    noReviews: {
+      color: "rgba(255, 255, 255, 0.6)",
+      fontStyle: "italic",
+      fontSize: "14px",
+    },
+  };
+
+  if (loading) {
+    return (
+      <Layout title="Revealing Elegance...">
+        <div style={styles.loadingContainer}>
+          <Spin size="large" />
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout title={`${product?.name || "Product"} - Gopi Nath Collection`}>
-      <div className="product-details-page">
+      <div style={styles.page}>
         {/* Breadcrumb Navigation */}
-        <div className="breadcrumb-nav">
-          <span className="breadcrumb-item" onClick={() => navigate("/")}><HomeOutlined /> HOME</span>
-          <RightOutlined className="breadcrumb-sep" />
-          <span className="breadcrumb-item" onClick={() => navigate("/all-products")}>
+        <div style={styles.breadcrumb}>
+          <span
+            style={styles.breadcrumbItem}
+            onClick={() => navigate("/")}
+            onMouseEnter={(e) => (e.target.style.color = colors.gold)}
+            onMouseLeave={(e) =>
+              (e.target.style.color = "rgba(255, 255, 255, 0.6)")
+            }
+          >
+            <HomeOutlined /> HOME
+          </span>
+          <RightOutlined style={styles.breadcrumbSep} />
+          <span
+            style={styles.breadcrumbItem}
+            onClick={() => navigate("/all-products")}
+            onMouseEnter={(e) => (e.target.style.color = colors.gold)}
+            onMouseLeave={(e) =>
+              (e.target.style.color = "rgba(255, 255, 255, 0.6)")
+            }
+          >
             {product?.category?.name?.toUpperCase() || "COLLECTION"}
           </span>
-          <RightOutlined className="breadcrumb-sep" />
-          <span className="breadcrumb-current">{product?.name?.toUpperCase()}</span>
+          <RightOutlined style={styles.breadcrumbSep} />
+          <span style={styles.breadcrumbCurrent}>
+            {product?.name?.toUpperCase()}
+          </span>
         </div>
 
-        <div className="product-container">
-          <div className="product-main">
-            
+        <div style={styles.container}>
+          <div style={styles.productMain}>
             {/* LEFT: Product Image Gallery */}
-            <div className="image-section">
-              <div className="main-image-wrapper">
-                {product?.quantity < 1 && <div className="out-of-stock-badge">OUT OF STOCK</div>}
+            <div style={styles.imageSection}>
+              <div style={styles.mainImageWrapper}>
+                {product?.quantity < 1 && (
+                  <div style={styles.outOfStockBadge}>OUT OF STOCK</div>
+                )}
                 <img
-                  // ✅ Load photo based on selected index
                   src={`${BASE_URL}api/v1/product/product-photo/${product?._id}/${mainImageIndex}`}
                   alt={product?.name}
-                  className="main-image"
+                  style={styles.mainImage}
+                  onMouseEnter={(e) => (e.target.style.transform = "scale(1.05)")}
+                  onMouseLeave={(e) => (e.target.style.transform = "scale(1)")}
                 />
               </div>
-              
-              {/* ✅ THUMBNAIL LIST */}
-              <div className="thumbnail-gallery">
+
+              {/* Thumbnail Gallery */}
+              <div style={styles.thumbnailGallery}>
                 {[0, 1, 2].map((idx) => (
-                  <div 
-                    key={idx} 
-                    className={`thumb-item ${mainImageIndex === idx ? "active" : ""}`}
+                  <div
+                    key={idx}
+                    style={
+                      mainImageIndex === idx
+                        ? styles.thumbItemActive
+                        : styles.thumbItem
+                    }
                     onClick={() => setMainImageIndex(idx)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = "0.8";
+                      e.currentTarget.style.transform = "translateY(-2px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      if (mainImageIndex !== idx) {
+                        e.currentTarget.style.opacity = "0.5";
+                      }
+                      e.currentTarget.style.transform = "translateY(0)";
+                    }}
                   >
-                    <img 
-                      src={`${BASE_URL}api/v1/product/product-photo/${product?._id}/${idx}`} 
-                      alt="Thumbnail"
-                      onError={(e) => { e.target.parentElement.style.display = 'none'; }}
+                    <img
+                      src={`${BASE_URL}api/v1/product/product-photo/${product?._id}/${idx}`}
+                      alt={`Thumbnail ${idx + 1}`}
+                      style={styles.thumbImage}
+                      onError={handleImageError}
                     />
                   </div>
                 ))}
@@ -131,123 +599,320 @@ const ProductDetails = () => {
             </div>
 
             {/* RIGHT: Product Info */}
-            <div className="info-section">
-              <div className="product-meta">
-                <Badge count="EXCLUSIVE" style={{ backgroundColor: gold, color: burgundy, fontSize: "9px", fontWeight: "bold" }} />
-                <span className="sku-code">SKU: {product?.productID || "N/A"}</span>
+            <div style={styles.infoSection}>
+              <div style={styles.productMeta}>
+                <Badge
+                  count="EXCLUSIVE"
+                  style={{
+                    backgroundColor: colors.gold,
+                    color: colors.burgundy,
+                    fontSize: "9px",
+                    fontWeight: "bold",
+                  }}
+                />
+                <span style={styles.skuCode}>
+                  SKU: {product?.productID || "N/A"}
+                </span>
               </div>
 
-              <h1 className="product-title">{product?.name}</h1>
+              <h1 style={styles.productTitle}>{product?.name}</h1>
 
-              <div className="rating-stock-row">
-                <div className="rating-wrapper">
-                  <Rate disabled value={product?.averageRating || 5} style={{ fontSize: "14px", color: gold }} />
-                  <span className="review-count">({product?.numReviews || 0} Reviews)</span>
+              <div style={styles.ratingStockRow}>
+                <div style={styles.ratingWrapper}>
+                  <Rate
+                    disabled
+                    value={product?.averageRating || 5}
+                    style={{ fontSize: "14px", color: colors.gold }}
+                  />
+                  <span style={styles.reviewCount}>
+                    ({product?.numReviews || 0} Reviews)
+                  </span>
                 </div>
-                <div className="divider-vertical"></div>
-                <span className="stock-status">
+                <div style={styles.dividerVertical}></div>
+                <span style={styles.stockStatus}>
                   {product?.quantity > 0 ? (
-                    <><CheckCircleOutlined className="stock-icon-success" /> In Stock</>
+                    <>
+                      <CheckCircleOutlined
+                        style={{ color: "#10b981", fontSize: "16px" }}
+                      />{" "}
+                      In Stock
+                    </>
                   ) : (
-                    <><CloseCircleOutlined className="stock-icon-error" /> Out of Stock</>
+                    <>
+                      <CloseCircleOutlined
+                        style={{ color: "#ef4444", fontSize: "16px" }}
+                      />{" "}
+                      Out of Stock
+                    </>
                   )}
                 </span>
               </div>
 
-              <div className="price-section">
-                <h2 className="product-price">₹{product?.price?.toLocaleString()}</h2>
-                {product?.gstRate && <span className="gst-info">GST {product.gstRate}% Included</span>}
+              <div style={styles.priceSection}>
+                <h2 style={styles.productPrice}>
+                  ₹{product?.price?.toLocaleString()}
+                </h2>
+                {product?.gstRate && (
+                  <span style={styles.gstInfo}>
+                    GST {product.gstRate}% Included
+                  </span>
+                )}
               </div>
 
-              <p className="short-description">{product?.shortDescription}</p>
+              <p style={styles.shortDescription}>{product?.shortDescription}</p>
 
               {/* Action Buttons */}
-              <div className="quantity-action-row">
+              <div style={styles.quantityActionRow}>
                 {product?.quantity > 0 && (
-                  <div className="qty-box">
-                    <button className="qty-btn" onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
-                    <span className="qty-value">{quantity}</span>
-                    <button className="qty-btn" onClick={() => setQuantity(Math.min(product.quantity, quantity + 1))}>+</button>
+                  <div style={styles.qtyBox}>
+                    <button
+                      style={styles.qtyBtn}
+                      onClick={() => handleQuantityChange("decrease")}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = colors.gold;
+                        e.target.style.color = colors.burgundy;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = "none";
+                        e.target.style.color = colors.gold;
+                      }}
+                      aria-label="Decrease quantity"
+                    >
+                      -
+                    </button>
+                    <span style={styles.qtyValue}>{quantity}</span>
+                    <button
+                      style={styles.qtyBtn}
+                      onClick={() => handleQuantityChange("increase")}
+                      onMouseEnter={(e) => {
+                        e.target.style.background = colors.gold;
+                        e.target.style.color = colors.burgundy;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = "none";
+                        e.target.style.color = colors.gold;
+                      }}
+                      aria-label="Increase quantity"
+                    >
+                      +
+                    </button>
                   </div>
                 )}
-                <button onClick={handleAddToCart} disabled={product?.quantity < 1} className="btn-add-cart">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={product?.quantity < 1}
+                  style={{
+                    ...styles.btnAddCart,
+                    ...(product?.quantity < 1 ? styles.btnDisabled : {}),
+                  }}
+                  onMouseEnter={(e) => {
+                    if (product?.quantity >= 1) {
+                      e.target.style.background = "#e8c547";
+                      e.target.style.transform = "translateY(-2px)";
+                      e.target.style.boxShadow =
+                        "0 6px 20px rgba(212, 175, 55, 0.4)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (product?.quantity >= 1) {
+                      e.target.style.background = colors.gold;
+                      e.target.style.transform = "translateY(0)";
+                      e.target.style.boxShadow =
+                        "0 4px 15px rgba(212, 175, 55, 0.3)";
+                    }
+                  }}
+                >
                   <ShoppingOutlined /> ADD TO COLLECTION
                 </button>
               </div>
 
-              <div className="trust-badges">
-                <div className="badge-item"><TruckOutlined className="badge-icon" /> <strong>Free Delivery</strong></div>
-                <div className="badge-item"><SafetyOutlined className="badge-icon" /> <strong>Secure Payment</strong></div>
-                <div className="badge-item"><SyncOutlined className="badge-icon" /> <strong>Easy Returns</strong></div>
+              <div style={styles.trustBadges}>
+                <div style={styles.badgeItem}>
+                  <TruckOutlined style={styles.badgeIcon} />
+                  <strong style={styles.badgeText}>Free Delivery</strong>
+                </div>
+                <div style={styles.badgeItem}>
+                  <SafetyOutlined style={styles.badgeIcon} />
+                  <strong style={styles.badgeText}>Secure Payment</strong>
+                </div>
+                <div style={styles.badgeItem}>
+                  <SyncOutlined style={styles.badgeIcon} />
+                  <strong style={styles.badgeText}>Easy Returns</strong>
+                </div>
               </div>
             </div>
           </div>
 
           {/* TABS SECTION */}
-          <div className="tabs-section">
-            <div className="tabs-header">
-              {["description", "specifications", "shipping", "reviews"].map((tab) => (
-                <button key={tab} onClick={() => setActiveTab(tab)} className={`tab-button ${activeTab === tab ? "active" : ""}`}>
-                  {tab.toUpperCase()}
-                </button>
-              ))}
+          <div style={styles.tabsSection}>
+            <div style={styles.tabsHeader}>
+              {["description", "specifications", "shipping", "reviews"].map(
+                (tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    style={
+                      activeTab === tab
+                        ? styles.tabButtonActive
+                        : styles.tabButton
+                    }
+                    onMouseEnter={(e) => {
+                      if (activeTab !== tab) {
+                        e.target.style.color = colors.gold;
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (activeTab !== tab) {
+                        e.target.style.color = "rgba(255, 255, 255, 0.6)";
+                      }
+                    }}
+                  >
+                    {tab.toUpperCase()}
+                  </button>
+                )
+              )}
             </div>
 
-            <div className="tabs-content">
+            <div style={styles.tabsContent}>
               {activeTab === "description" && (
-                <div className="tab-pane">
-                  <p className="description-text">{product?.description}</p>
+                <div style={styles.tabPane}>
+                  <p style={styles.descriptionText}>{product?.description}</p>
                 </div>
               )}
 
-              {/* ✅ DETAILED SPECIFICATIONS */}
               {activeTab === "specifications" && (
-                <div className="tab-pane">
-                  <div className="specs-grid">
-                    <div className="spec-item"><span className="spec-label">Material</span><span className="spec-value">{product?.specifications?.material || "Premium Quality"}</span></div>
-                    <div className="spec-item"><span className="spec-label">Available Sizes</span><span className="spec-value">{product?.specifications?.sizes?.join(", ") || "One Size"}</span></div>
-                    <div className="spec-item"><span className="spec-label">Available Colors</span><span className="spec-value">{product?.specifications?.colors?.join(", ") || "As Shown"}</span></div>
-                    <div className="spec-item"><span className="spec-label">Product ID</span><span className="spec-value">{product?.productID}</span></div>
-                    <div className="spec-item"><span className="spec-label">Category</span><span className="spec-value">{product?.category?.name}</span></div>
+                <div style={styles.tabPane}>
+                  <div style={styles.specsGrid}>
+                    <div
+                      style={styles.specItem}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background =
+                          "rgba(212, 175, 55, 0.15)";
+                        e.currentTarget.style.borderColor = colors.gold;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = colors.goldFade;
+                        e.currentTarget.style.borderColor = colors.goldBorder;
+                      }}
+                    >
+                      <span style={styles.specLabel}>Material</span>
+                      <span style={styles.specValue}>
+                        {product?.specifications?.material || "Premium Quality"}
+                      </span>
+                    </div>
+                    <div
+                      style={styles.specItem}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background =
+                          "rgba(212, 175, 55, 0.15)";
+                        e.currentTarget.style.borderColor = colors.gold;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = colors.goldFade;
+                        e.currentTarget.style.borderColor = colors.goldBorder;
+                      }}
+                    >
+                      <span style={styles.specLabel}>Available Sizes</span>
+                      <span style={styles.specValue}>
+                        {product?.specifications?.sizes?.join(", ") ||
+                          "One Size"}
+                      </span>
+                    </div>
+                    <div
+                      style={styles.specItem}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background =
+                          "rgba(212, 175, 55, 0.15)";
+                        e.currentTarget.style.borderColor = colors.gold;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = colors.goldFade;
+                        e.currentTarget.style.borderColor = colors.goldBorder;
+                      }}
+                    >
+                      <span style={styles.specLabel}>Available Colors</span>
+                      <span style={styles.specValue}>
+                        {product?.specifications?.colors?.join(", ") ||
+                          "As Shown"}
+                      </span>
+                    </div>
+                    <div
+                      style={styles.specItem}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background =
+                          "rgba(212, 175, 55, 0.15)";
+                        e.currentTarget.style.borderColor = colors.gold;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = colors.goldFade;
+                        e.currentTarget.style.borderColor = colors.goldBorder;
+                      }}
+                    >
+                      <span style={styles.specLabel}>Product ID</span>
+                      <span style={styles.specValue}>{product?.productID}</span>
+                    </div>
+                    <div
+                      style={styles.specItem}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background =
+                          "rgba(212, 175, 55, 0.15)";
+                        e.currentTarget.style.borderColor = colors.gold;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = colors.goldFade;
+                        e.currentTarget.style.borderColor = colors.goldBorder;
+                      }}
+                    >
+                      <span style={styles.specLabel}>Category</span>
+                      <span style={styles.specValue}>
+                        {product?.category?.name}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
-              {/* ... Other Tabs remain same */}
+
+              {activeTab === "shipping" && (
+                <div style={styles.tabPane}>
+                  <div style={styles.shippingInfo}>
+                    <h3 style={styles.sectionTitle}>Shipping & Delivery</h3>
+                    <ul style={styles.shippingList}>
+                      <li style={styles.shippingListItem}>
+                        Free shipping on all orders
+                      </li>
+                      <li style={styles.shippingListItem}>
+                        Estimated delivery: 3-5 business days
+                      </li>
+                      <li style={styles.shippingListItem}>
+                        Express shipping available at checkout
+                      </li>
+                      <li
+                        style={{
+                          ...styles.shippingListItem,
+                          borderBottom: "none",
+                        }}
+                      >
+                        International shipping available
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "reviews" && (
+                <div style={styles.tabPane}>
+                  <div style={styles.shippingInfo}>
+                    <h3 style={styles.sectionTitle}>Customer Reviews</h3>
+                    <p style={styles.noReviews}>
+                      No reviews yet. Be the first to review this product!
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
-
-      <style>{`
-        .product-details-page { background: ${darkBg}; min-height: 100vh; color: white; }
-        .product-container { max-width: 1300px; margin: 0 auto; padding: 40px 20px; }
-        .product-main { display: grid; grid-template-columns: ${isMobile ? "1fr" : "1fr 1fr"}; gap: 50px; }
-        
-        /* ✅ Image Gallery Styles */
-        .main-image-wrapper { border: 1px solid ${gold}44; border-radius: 8px; overflow: hidden; background: #000; height: 500px; display: flex; align-items: center; justify-content: center; position: relative; }
-        .main-image { max-width: 100%; max-height: 100%; object-fit: contain; transition: 0.3s; }
-        .thumbnail-gallery { display: flex; gap: 10px; margin-top: 15px; }
-        .thumb-item { width: 80px; height: 80px; border: 1px solid ${gold}22; cursor: pointer; border-radius: 4px; overflow: hidden; opacity: 0.6; }
-        .thumb-item.active { border-color: ${gold}; opacity: 1; }
-        .thumb-item img { width: 100%; height: 100%; object-fit: cover; }
-
-        .product-title { color: ${gold}; font-family: serif; font-size: 40px; }
-        .product-price { color: ${gold}; font-size: 36px; font-weight: bold; }
-        .quantity-action-row { display: flex; gap: 15px; margin: 30px 0; }
-        .qty-box { display: flex; align-items: center; border: 1px solid ${gold}; border-radius: 4px; }
-        .qty-btn { background: none; border: none; color: ${gold}; width: 40px; height: 40px; cursor: pointer; }
-        .qty-value { width: 40px; text-align: center; }
-        .btn-add-cart { background: ${gold}; color: ${burgundy}; border: none; padding: 0 30px; font-weight: bold; cursor: pointer; flex: 1; border-radius: 4px; }
-        
-        /* ✅ Tabs & Specs */
-        .tabs-header { border-bottom: 1px solid ${gold}22; display: flex; gap: 30px; }
-        .tab-button { background: none; border: none; color: #fff; padding: 15px 0; cursor: pointer; opacity: 0.5; border-bottom: 2px solid transparent; }
-        .tab-button.active { opacity: 1; color: ${gold}; border-bottom-color: ${gold}; }
-        .specs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .spec-item { display: flex; justify-content: space-between; padding: 12px; background: rgba(212,175,55,0.05); border-radius: 4px; border: 1px solid ${gold}11; }
-        .spec-label { opacity: 0.6; font-size: 13px; }
-        .spec-value { color: ${gold}; font-weight: bold; font-size: 13px; }
-      `}</style>
     </Layout>
   );
 };
