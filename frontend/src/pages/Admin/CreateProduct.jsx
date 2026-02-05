@@ -17,12 +17,17 @@ const CreateProduct = () => {
   const [description, setDescription] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [gstRate, setGstRate] = useState("18"); // ✅ GST Rate as percentage (default 18%)
+  const [gstRate, setGstRate] = useState("18");
   const [category, setCategory] = useState("");
   const [quantity, setQuantity] = useState("");
   const [shipping, setShipping] = useState("");
-  const [photo, setPhoto] = useState("");
   const [productID, setProductID] = useState("");
+
+  // ✅ NEW STATES FOR MULTIPLE PHOTOS & SPECS
+  const [photos, setPhotos] = useState([]); // Array for multiple files
+  const [colors, setColors] = useState(""); // Input as comma separated string
+  const [sizes, setSizes] = useState("");   // Input as comma separated string
+  const [material, setMaterial] = useState("");
 
   const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -52,12 +57,10 @@ const CreateProduct = () => {
     outline: "none" 
   };
 
-  // ✅ Calculate GST breakdown for preview
   const calculateGSTBreakdown = () => {
     if (!price) return { basePrice: 0, gstAmount: 0, totalPrice: 0 };
-    
     const total = Number(price);
-    const rate = Number(gstRate);
+    const rate = Number(gstRate) / 100;
     const basePrice = total / (1 + rate);
     const gstAmount = total - basePrice;
     
@@ -85,12 +88,7 @@ const CreateProduct = () => {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    
-    // Validation
-    if (!productID) {
-      return toast.error("Please enter a unique Product ID");
-    }
-
+    if (!productID) return toast.error("Please enter a unique Product ID");
     if (!name || !description || !price || !category || !quantity) {
       return toast.error("Please fill all required fields");
     }
@@ -102,12 +100,24 @@ const CreateProduct = () => {
       productData.append("description", description);
       productData.append("shortDescription", shortDescription);
       productData.append("price", price);
-      productData.append("gstRate", gstRate); // ✅ Send GST rate
+      productData.append("gstRate", gstRate);
       productData.append("quantity", quantity);
-      productData.append("photo", photo);
       productData.append("category", category);
       productData.append("shipping", shipping);
       productData.append("productID", productID);
+
+      // ✅ APPEND MULTIPLE PHOTOS
+      photos.forEach((file) => {
+        productData.append("photos", file);
+      });
+
+      // ✅ ATTACH SPECIFICATIONS (Stringified JSON)
+      const specs = {
+        colors: colors.split(",").map(c => c.trim()).filter(c => c !== ""),
+        sizes: sizes.split(",").map(s => s.trim()).filter(s => s !== ""),
+        material: material
+      };
+      productData.append("specifications", JSON.stringify(specs));
 
       const { data } = await axios.post(`${BASE_URL}api/v1/product/create-product`, productData);
       
@@ -120,11 +130,7 @@ const CreateProduct = () => {
       }
     } catch (error) {
       setLoading(false); 
-      if (error.response?.data?.message?.includes("Duplicate")) {
-        toast.error("This Product ID is already taken. Please try another.");
-      } else {
-        toast.error(error.response?.data?.message || "Something went wrong");
-      }
+      toast.error(error.response?.data?.message || "Something went wrong");
       console.error(error);
     }
   };
@@ -150,29 +156,35 @@ const CreateProduct = () => {
           pointerEvents: loading ? "none" : "auto" 
         }}>
           
-          {/* Column 1: Image & Category */}
+          {/* Column 1: Multiple Images & Category */}
           <div>
-            <span style={labelStyle}>Product Image</span>
+            <span style={labelStyle}>Product Images (Multiple)</span>
             <div style={{ 
               background: "white", 
               width: "100%", 
-              height: "250px", 
+              minHeight: "250px", 
               border: `1px solid ${gold}44`, 
               display: "flex", 
+              flexWrap: "wrap",
+              gap: "10px",
+              padding: "10px",
               alignItems: "center", 
               justifyContent: "center", 
               marginBottom: "15px", 
               borderRadius: "2px", 
-              overflow: "hidden" 
+              overflowY: "auto" 
             }}>
-              {photo ? (
-                <img 
-                  src={URL.createObjectURL(photo)} 
-                  alt="preview" 
-                  style={{ width: "100%", height: "100%", objectFit: "contain", padding: "10px" }} 
-                />
+              {photos.length > 0 ? (
+                photos.map((p, index) => (
+                  <img 
+                    key={index}
+                    src={URL.createObjectURL(p)} 
+                    alt="preview" 
+                    style={{ width: "80px", height: "80px", objectFit: "cover", border: `1px solid ${gold}22` }} 
+                  />
+                ))
               ) : (
-                <span style={{ color: "#999", fontSize: "12px" }}>No Image Uploaded</span>
+                <span style={{ color: "#999", fontSize: "12px" }}>No Images Uploaded</span>
               )}
             </div>
             <label style={{ 
@@ -185,11 +197,12 @@ const CreateProduct = () => {
               fontSize: "12px", 
               fontWeight: "bold" 
             }}>
-              CHOOSE FILE
+              CHOOSE FILES
               <input 
                 type="file" 
                 accept="image/*" 
-                onChange={(e) => setPhoto(e.target.files[0])} 
+                multiple // ✅ Allows multiple selection
+                onChange={(e) => setPhotos([...e.target.files])} 
                 hidden 
               />
             </label>
@@ -209,113 +222,70 @@ const CreateProduct = () => {
             </div>
           </div>
 
-          {/* Column 2: Descriptions */}
+          {/* Column 2: Descriptions & Specifications */}
           <div>
             <span style={labelStyle}>Product Title</span>
-            <input 
-              type="text" 
-              value={name} 
-              placeholder="Name" 
-              style={inputStyle} 
-              onChange={(e) => setName(e.target.value)} 
-            />
+            <input type="text" value={name} placeholder="Name" style={inputStyle} onChange={(e) => setName(e.target.value)} />
+            
+            {/* ✅ NEW SPECIFICATIONS FIELDS */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
+              <div>
+                <span style={labelStyle}>Available Colors</span>
+                <input type="text" value={colors} placeholder="Red, Gold, White" style={inputStyle} onChange={(e) => setColors(e.target.value)} />
+              </div>
+              <div>
+                <span style={labelStyle}>Available Sizes</span>
+                <input type="text" value={sizes} placeholder="S, M, L, XL" style={inputStyle} onChange={(e) => setSizes(e.target.value)} />
+              </div>
+            </div>
+
+            <span style={labelStyle}>Material / Fabric</span>
+            <input type="text" value={material} placeholder="e.g. Pure Cotton, Brass" style={inputStyle} onChange={(e) => setMaterial(e.target.value)} />
             
             <span style={labelStyle}>Short Description</span>
-            <textarea 
-              rows="3" 
-              value={shortDescription} 
-              placeholder="Summary..." 
-              style={{ ...inputStyle, resize: "none" }} 
-              onChange={(e) => setShortDescription(e.target.value)} 
-            />
+            <textarea rows="2" value={shortDescription} placeholder="Summary..." style={{ ...inputStyle, resize: "none" }} onChange={(e) => setShortDescription(e.target.value)} />
             
             <span style={labelStyle}>Full Description</span>
-            <textarea 
-              rows="10" 
-              value={description} 
-              placeholder="Full details..." 
-              style={{ ...inputStyle, resize: "none" }} 
-              onChange={(e) => setDescription(e.target.value)} 
-            />
+            <textarea rows="6" value={description} placeholder="Full details..." style={{ ...inputStyle, resize: "none" }} onChange={(e) => setDescription(e.target.value)} />
           </div>
 
           {/* Column 3: Pricing, GST & Submit */}
           <div>
             <span style={labelStyle}>Price (₹) - GST Inclusive</span>
-            <input 
-              type="number" 
-              value={price} 
-              placeholder="Final Price" 
-              style={inputStyle} 
-              onChange={(e) => setPrice(e.target.value)} 
-            />
+            <input type="number" value={price} placeholder="Final Price" style={inputStyle} onChange={(e) => setPrice(e.target.value)} />
 
-            {/* ✅ GST RATE SELECTOR */}
             <span style={labelStyle}>GST Rate</span>
-            <Select 
-              variant="borderless" 
-              value={gstRate}
-              style={{ ...inputStyle, padding: "0" }} 
-              onChange={(v) => setGstRate(v)}
-            >
+            <Select variant="borderless" value={gstRate} style={{ ...inputStyle, padding: "0" }} onChange={(v) => setGstRate(v)}>
               <Option value="0">0% (No GST)</Option>
-              <Option value="0.05">5%</Option>
-              <Option value="0.12">12%</Option>
-              <Option value="0.18">18%</Option>
+              <Option value="5">5%</Option>
+              <Option value="12">12%</Option>
+              <Option value="18">18%</Option>
             </Select>
 
-            {/* ✅ GST BREAKDOWN PREVIEW */}
             {price && (
-              <div style={{ 
-                backgroundColor: "rgba(212, 175, 55, 0.1)", 
-                padding: "12px", 
-                borderRadius: "4px",
-                marginBottom: "20px",
-                border: `1px solid ${gold}33`
-              }}>
-                <div style={{ fontSize: "10px", color: gold, marginBottom: "8px", fontWeight: "600" }}>
-                  PRICE BREAKDOWN
+              <div style={{ backgroundColor: "rgba(212, 175, 55, 0.1)", padding: "12px", borderRadius: "4px", marginBottom: "20px", border: `1px solid ${gold}33` }}>
+                <div style={{ fontSize: "10px", color: gold, marginBottom: "8px", fontWeight: "600" }}>PRICE BREAKDOWN</div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: softCream, marginBottom: "4px" }}>
+                  <span>Base Price:</span><span>₹{breakdown.basePrice}</span>
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: softCream, marginBottom: "4px" }}>
-                  <span>Base Price:</span>
-                  <span>₹{breakdown.basePrice}</span>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: softCream, marginBottom: "4px" }}>
-                  <span>GST ({(Number(gstRate) * 100).toFixed(0)}%):</span>
-                  <span>₹{breakdown.gstAmount}</span>
+                  <span>GST ({gstRate}%):</span><span>₹{breakdown.gstAmount}</span>
                 </div>
                 <hr style={{ border: `0.5px solid ${gold}44`, margin: "8px 0" }} />
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", color: gold, fontWeight: "700" }}>
-                  <span>Total Price:</span>
-                  <span>₹{breakdown.totalPrice}</span>
+                  <span>Total Price:</span><span>₹{breakdown.totalPrice}</span>
                 </div>
               </div>
             )}
             
             <span style={labelStyle}>Stock Quantity</span>
-            <input 
-              type="number" 
-              value={quantity} 
-              placeholder="Stock" 
-              style={inputStyle} 
-              onChange={(e) => setQuantity(e.target.value)} 
-            />
+            <input type="number" value={quantity} placeholder="Stock" style={inputStyle} onChange={(e) => setQuantity(e.target.value)} />
 
             <span style={labelStyle}>Product ID (Unique)</span>
-            <input 
-              type="text" 
-              value={productID} 
-              placeholder="e.g. PROD-Ladoo-01" 
-              style={inputStyle} 
-              onChange={(e) => setProductID(e.target.value)} 
-            />
+            <input type="text" value={productID} placeholder="e.g. PROD-Ladoo-01" style={inputStyle} onChange={(e) => setProductID(e.target.value)} />
 
             <span style={labelStyle}>Shipping</span>
-            <Select 
-              variant="borderless" 
-              style={{ ...inputStyle, padding: "0" }} 
-              onChange={(v) => setShipping(v)}
-            >
+            <Select variant="borderless" value={shipping} style={{ ...inputStyle, padding: "0" }} onChange={(v) => setShipping(v)}>
               <Option value="0">No</Option>
               <Option value="1">Yes</Option>
             </Select>
@@ -324,14 +294,9 @@ const CreateProduct = () => {
               disabled={loading} 
               onClick={handleCreate} 
               style={{ 
-                width: "100%", 
-                padding: "18px", 
-                background: loading ? "#ccc" : gold, 
-                color: primary, 
-                fontWeight: "900", 
-                border: "none", 
-                cursor: loading ? "not-allowed" : "pointer", 
-                marginTop: "20px" 
+                width: "100%", padding: "18px", background: loading ? "#ccc" : gold, 
+                color: primary, fontWeight: "900", border: "none", 
+                cursor: loading ? "not-allowed" : "pointer", marginTop: "20px" 
               }}
             >
               {loading ? "PROCESSING..." : "CREATE PRODUCT"}

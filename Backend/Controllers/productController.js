@@ -6,53 +6,71 @@ import slugify from "slugify";
 /* =====================================================
    CREATE PRODUCTa
    ===================================================== */
+import ProductModel from "../Models/productModel.js";
+import categoryModel from "../Models/categoryModel.js";
+import fs from "fs";
+import slugify from "slugify";
+
+/* =====================================================
+   CREATE PRODUCT (Updated for Multi-Photo & Specs)
+   ===================================================== */
 export const createProductController = async (req, res) => {
   try {
-    const { name, description, price, gstRate, category, quantity, productID } = req.fields;
-    const { photo } = req.files;
+    const { name, description, price, gstRate, category, quantity, productID, specifications } = req.fields;
+    const { photos } = req.files; // Note: 'photos' should be the key in your frontend form-data
 
     // 1. Validation
-    if (!name || !description || !price || !gstRate || !category || !quantity || !productID) {
-      return res.status(400).send({ success: false, message: "All fields are required" });
+    if (!name || !description || !price || !category || !quantity || !productID) {
+      return res.status(400).send({ success: false, message: "All required fields must be filled" });
     }
 
-    // 2. GST Validation (parseInt ensures it's a number)
-    const numericGst = parseInt(gstRate, 10);
-    if (![0, 5, 12, 18].includes(numericGst)) {
-      return res.status(400).send({ success: false, message: "Invalid GST rate" });
+    // 2. Parse Specifications
+    // Frontend should send specifications as a JSON string
+    let parsedSpecs = {};
+    if (specifications) {
+      try {
+        parsedSpecs = JSON.parse(specifications);
+      } catch (err) {
+        return res.status(400).send({ success: false, message: "Invalid specifications format" });
+      }
     }
 
-    // 3. Unique Slug (Prevents E11000 error)
     const uniqueSlug = slugify(`${name}-${productID}`);
 
     const product = new ProductModel({
       ...req.fields,
+      specifications: parsedSpecs,
       price: parseFloat(price),
-      gstRate: numericGst,
+      gstRate: parseInt(gstRate, 10),
       slug: uniqueSlug,
     });
 
-    // 4. Photo Handling
-    if (photo) {
-      if (photo.size > 1000000) {
-        return res.status(400).send({ success: false, message: "Photo must be less than 1MB" });
-      }
-      product.photo.data = fs.readFileSync(photo.path);
-      product.photo.contentType = photo.type;
+    // 3. Multi-Photo Handling
+    if (photos) {
+      // If only one photo is uploaded, formidable might not wrap it in an array
+      const photoArray = Array.isArray(photos) ? photos : [photos];
+
+      const processedPhotos = photoArray.map((file) => {
+        if (file.size > 1000000) throw new Error(`${file.name} is too large (max 1MB)`);
+        return {
+          data: fs.readFileSync(file.path),
+          contentType: file.type,
+        };
+      });
+      product.photos = processedPhotos;
     }
 
     await product.save();
     res.status(201).send({
       success: true,
       message: "Product Created Successfully",
-      product,
+      product: { ...product._doc, photos: undefined }, // Don't send buffer back in response
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     res.status(500).send({
       success: false,
-      message: "Error in creating product",
-      error: error.message,
+      message: error.message || "Error in creating product",
     });
   }
 };
@@ -62,82 +80,62 @@ export const createProductController = async (req, res) => {
    ===================================================== */
 export const updateProductController = async (req, res) => {
   try {
-    const {
-      name,
-      description,
-      shortDescription,
-      price,
-      gstRate,          // ✅ REQUIRED (as percentage)
-      category,
-      quantity,
-      shipping,
-    } = req.fields;
+    const { name, description, price, gstRate, category, quantity, specifications } = req.fields;
+    const { photos } = req.files;
 
-    const { photo } = req.files;
-
-    if (
-      !name ||
-      !description ||
-      !price ||
-      !gstRate ||
-      !category ||
-      !quantity
-    ) {
-      return res.status(400).send({
-        success: false,
-        message: "All required fields including GST rate must be provided",
-      });
-    }
-
-    // ✅ CHANGED: Accept percentages instead of decimals
-    if (![0, 5, 12, 18].includes(Number(gstRate))) {
-      return res.status(400).send({
-        success: false,
-        message: "Invalid GST rate. Must be 0, 5, 12, or 18",
-      });
+    let parsedSpecs = {};
+    if (specifications) {
+      parsedSpecs = JSON.parse(specifications);
     }
 
     const product = await ProductModel.findByIdAndUpdate(
       req.params.pid,
       {
-        name,
-        description,
-        shortDescription,
-        price: Number(price),
-        gstRate: Number(gstRate),  // ✅ stored as percentage
-        category,
-        quantity,
-        shipping,
+        ...req.fields,
+        specifications: parsedSpecs,
         slug: slugify(name),
       },
       { new: true }
     );
 
-    if (photo) {
-      if (photo.size > 1000000) {
-        return res.status(400).send({
-          success: false,
-          message: "Photo should be less than 1MB",
-        });
-      }
-      product.photo.data = fs.readFileSync(photo.path);
-      product.photo.contentType = photo.type;
+    // Update Photos only if new ones are uploaded
+    if (photos) {
+      const photoArray = Array.isArray(photos) ? photos : [photos];
+      product.photos = photoArray.map((file) => ({
+        data: fs.readFileSync(file.path),
+        contentType: file.type,
+      }));
     }
 
     await product.save();
-
     res.status(200).send({
       success: true,
-      message: "Product updated successfully",
-      product,
+      message: "Product Updated Successfully",
     });
   } catch (error) {
-    console.error("PRODUCT UPDATE ERROR:", error);
-    res.status(500).send({
-      success: false,
-      message: "Update failed",
-      error: error.message,
-    });
+    res.status(500).send({ success: false, message: "Update failed", error: error.message });
+  }
+};
+
+/* =====================================================
+   UPDATED PHOTO CONTROLLER (Handles Multiple)
+   ===================================================== */
+// This gets a SPECIFIC photo from the array by index
+export const productPhotoController = async (req, res) => {
+  try {
+    const { pid, index } = req.params; // Expecting /product-photo/:pid/:index
+    const product = await ProductModel.findById(pid).select("photos");
+
+    const photoIndex = index ? parseInt(index) : 0;
+
+    if (product?.photos && product.photos[photoIndex]) {
+      res.set("Content-Type", product.photos[photoIndex].contentType);
+      return res.status(200).send(product.photos[photoIndex].data);
+    }
+
+    res.status(404).send({ success: false, message: "Photo not found" });
+  } catch (error) {
+    res.status(500).send({ success: false, error: error.message });
   }
 };
 
@@ -218,33 +216,6 @@ export const getAllProductsController = async (req, res) => {
 /* =====================================================
    PRODUCT PHOTO
    ===================================================== */
-export const productPhotoController = async (req, res) => {
-  try {
-    if (!req.params.pid || req.params.pid === "undefined") {
-      return res.status(400).send({
-        success: false,
-        message: "Invalid product ID",
-      });
-    }
-
-    const product = await ProductModel.findById(req.params.pid).select("photo");
-
-    if (product?.photo?.data) {
-      res.set("Content-Type", product.photo.contentType);
-      return res.status(200).send(product.photo.data);
-    }
-
-    res.status(404).send({
-      success: false,
-      message: "Photo not found",
-    });
-  } catch (error) {
-    res.status(500).send({
-      success: false,
-      error: error.message,
-    });
-  }
-};
 
 /* =====================================================
    CATEGORY BASED PRODUCTS
