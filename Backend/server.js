@@ -66,7 +66,7 @@ app.use(
 app.use(formidable({
   multiples: true, // Allows req.files.photos to be an array
   maxFileSize: 20* 1024 * 1024, 
-  maxFieldsSize: 20 * 1024 * 1024,// Matches MongoDB's 16MB document limit
+  maxFields: 50,// Matches MongoDB's 16MB document limit
 }));
 
 // Make 'io' accessible in your routes

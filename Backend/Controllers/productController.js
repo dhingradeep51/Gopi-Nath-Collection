@@ -6,11 +6,23 @@ import slugify from "slugify";
 
 export const createProductController = async (req, res) => {
   try {
+    // 🔍 LOG 1: Check all incoming text fields
+    console.log("--- CREATE PRODUCT START ---");
+    console.log("Fields received:", req.fields);
+
     const { name, description, price, gstRate, category, quantity, productID, specifications } = req.fields;
     const { photos } = req.files;
 
+    // 🔍 LOG 2: Check the raw 'photos' object from Formidable
+    if (photos) {
+      console.log("Photos received in req.files:", Array.isArray(photos) ? `Array of ${photos.length}` : "Single Object");
+    } else {
+      console.log("❌ No photos found in req.files");
+    }
+
     // 1. Validation
     if (!name || !description || !price || !category || !quantity || !productID) {
+      console.log("❌ Validation failed: Missing required fields");
       return res.status(400).send({ success: false, message: "All required fields must be filled" });
     }
 
@@ -19,7 +31,9 @@ export const createProductController = async (req, res) => {
     if (specifications) {
       try {
         parsedSpecs = typeof specifications === 'string' ? JSON.parse(specifications) : specifications;
+        console.log("✅ Specifications parsed successfully");
       } catch (err) {
+        console.log("❌ Specifications parsing failed:", err.message);
         return res.status(400).send({ success: false, message: "Invalid specifications format" });
       }
     }
@@ -35,27 +49,38 @@ export const createProductController = async (req, res) => {
 
     // 3. ✅ ROBUST MULTI-PHOTO HANDLING
     if (photos) {
-      // Force photos into an array to handle 1 or more files consistently
       const photoArray = Array.isArray(photos) ? photos : [photos];
+      
+      console.log(`📸 Processing ${photoArray.length} photos...`);
 
-      product.photos = photoArray.map((file) => {
-        // Validation: 1MB limit per photo to stay within 16MB BSON limit
-        if (file.size > 1000000) throw new Error(`${file.name || 'Photo'} is too large (max 1MB)`);
+      product.photos = photoArray.map((file, index) => {
+        const filePath = file.path || file.filepath;
+        console.log(`Photo [${index}] - Name: ${file.name}, Size: ${file.size}, Path: ${filePath}`);
+
+        // Validation: 1MB limit per photo
+        if (file.size > 1000000) {
+           console.log(`❌ Photo [${index}] exceeds 1MB limit`);
+           throw new Error(`${file.name || 'Photo'} is too large (max 1MB)`);
+        }
         
         return {
-          data: fs.readFileSync(file.path || file.filepath),
+          data: fs.readFileSync(filePath),
           contentType: file.type || file.mimetype,
         };
       });
     }
 
     await product.save();
+    console.log("✅ Product saved successfully to Database");
+    console.log("--- CREATE PRODUCT END ---");
+
     res.status(201).send({
       success: true,
       message: "Product Created Successfully",
       product: { ...product._doc, photos: undefined }, 
     });
   } catch (error) {
+    console.error("--- CREATE PRODUCT ERROR ---");
     console.error(error);
     res.status(500).send({ success: false, message: error.message || "Error in creating product" });
   }
@@ -66,15 +91,31 @@ export const createProductController = async (req, res) => {
    ===================================================== */
 export const updateProductController = async (req, res) => {
   try {
+    // 🔍 LOG 1: Check incoming text fields
+    console.log("--- UPDATE START ---");
+    console.log("Fields received:", req.fields);
+
     const { name, description, price, gstRate, category, quantity, specifications, productID } = req.fields;
     const { photos } = req.files;
+
+    // 🔍 LOG 2: Check incoming files
+    if (photos) {
+      console.log("Photos received in req.files:", Array.isArray(photos) ? `Array of ${photos.length}` : "Single Object");
+    } else {
+      console.log("No photos found in req.files");
+    }
 
     const product = await ProductModel.findById(req.params.pid);
     if (!product) return res.status(404).send({ success: false, message: "Product not found" });
 
     let parsedSpecs = specifications;
     if (typeof specifications === 'string') {
-        try { parsedSpecs = JSON.parse(specifications); } catch (e) {}
+      try { 
+        parsedSpecs = JSON.parse(specifications); 
+        console.log("Specifications successfully parsed");
+      } catch (e) {
+        console.log("Specifications parsing failed:", e.message);
+      }
     }
 
     // Update standard fields
@@ -93,16 +134,24 @@ export const updateProductController = async (req, res) => {
     if (photos) {
       const photoArray = Array.isArray(photos) ? photos : [photos];
       
-      // Map all uploaded photos into the array
-      product.photos = photoArray.map((file) => ({
-        data: fs.readFileSync(file.path || file.filepath),
-        contentType: file.type || file.mimetype,
-      }));
+      console.log(`Processing ${photoArray.length} total photos for database save...`);
+
+      product.photos = photoArray.map((file, index) => {
+        const filePath = file.path || file.filepath;
+        console.log(`Photo ${index} Path: ${filePath}, Size: ${file.size}`);
+        
+        return {
+          data: fs.readFileSync(filePath),
+          contentType: file.type || file.mimetype,
+        };
+      });
     }
 
     await product.save();
+    console.log("--- UPDATE SUCCESSFUL ---");
     res.status(200).send({ success: true, message: "Product Updated Successfully" });
   } catch (error) {
+    console.error("--- UPDATE ERROR ---");
     console.error(error);
     res.status(500).send({ success: false, message: "Update failed", error: error.message });
   }
