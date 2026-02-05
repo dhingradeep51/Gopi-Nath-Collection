@@ -12,7 +12,7 @@ const CreateProduct = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false); 
   
-  // Form States
+  // Standard Form States
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [shortDescription, setShortDescription] = useState("");
@@ -23,7 +23,7 @@ const CreateProduct = () => {
   const [shipping, setShipping] = useState("");
   const [productID, setProductID] = useState("");
 
-  // ✅ NEW STATES FOR MULTIPLE PHOTOS & SPECS
+  // ✅ MULTIPLE PHOTOS & SPECIFICATIONS STATES
   const [photos, setPhotos] = useState([]); // Array for multiple files
   const [colors, setColors] = useState(""); // Input as comma separated string
   const [sizes, setSizes] = useState("");   // Input as comma separated string
@@ -31,6 +31,7 @@ const CreateProduct = () => {
 
   const BASE_URL = import.meta.env.VITE_API_URL;
 
+  // Theme Styles
   const gold = "#D4AF37";
   const softCream = "#FDF5E6"; 
   const primary = "#0f0c29";
@@ -106,12 +107,12 @@ const CreateProduct = () => {
       productData.append("shipping", shipping);
       productData.append("productID", productID);
 
-      // ✅ APPEND MULTIPLE PHOTOS
+      // ✅ APPEND EACH PHOTO INDIVIDUALLY TO THE SAME KEY "photos"
       photos.forEach((file) => {
         productData.append("photos", file);
       });
 
-      // ✅ ATTACH SPECIFICATIONS (Stringified JSON)
+      // ✅ CONSTRUCT SPECIFICATIONS (Stringified JSON)
       const specs = {
         colors: colors.split(",").map(c => c.trim()).filter(c => c !== ""),
         sizes: sizes.split(",").map(s => s.trim()).filter(s => s !== ""),
@@ -156,7 +157,7 @@ const CreateProduct = () => {
           pointerEvents: loading ? "none" : "auto" 
         }}>
           
-          {/* Column 1: Multiple Images & Category */}
+          {/* Column 1: Multi-Image Preview */}
           <div>
             <span style={labelStyle}>Product Images (Multiple)</span>
             <div style={{ 
@@ -201,7 +202,7 @@ const CreateProduct = () => {
               <input 
                 type="file" 
                 accept="image/*" 
-                multiple // ✅ Allows multiple selection
+                multiple // ✅ CRITICAL: Allows multiple selection
                 onChange={(e) => setPhotos([...e.target.files])} 
                 hidden 
               />
@@ -227,7 +228,6 @@ const CreateProduct = () => {
             <span style={labelStyle}>Product Title</span>
             <input type="text" value={name} placeholder="Name" style={inputStyle} onChange={(e) => setName(e.target.value)} />
             
-            {/* ✅ NEW SPECIFICATIONS FIELDS */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
               <div>
                 <span style={labelStyle}>Available Colors</span>
