@@ -2,27 +2,26 @@ import ProductModel from "../Models/productModel.js";
 import categoryModel from "../Models/categoryModel.js";
 import fs from "fs";
 import slugify from "slugify";
-
+import sharp from "sharp";
 
 export const createProductController = async (req, res) => {
   try {
-    // 🔍 LOG 1: Check all incoming text fields
+    // 🔍 LOG 1: Verify text fields (name, price, category, etc.)
     console.log("--- CREATE PRODUCT START ---");
     console.log("Fields received:", req.fields);
 
     const { name, description, price, gstRate, category, quantity, productID, specifications } = req.fields;
     const { photos } = req.files;
 
-    // 🔍 LOG 2: Check the raw 'photos' object from Formidable
+    // 🔍 LOG 2: Verify if photos are arriving as an Array
     if (photos) {
       console.log("Photos received in req.files:", Array.isArray(photos) ? `Array of ${photos.length}` : "Single Object");
     } else {
-      console.log("❌ No photos found in req.files");
+      console.log("❌ No photos found in req.files - Check frontend FormData append logic");
     }
 
     // 1. Validation
     if (!name || !description || !price || !category || !quantity || !productID) {
-      console.log("❌ Validation failed: Missing required fields");
       return res.status(400).send({ success: false, message: "All required fields must be filled" });
     }
 
@@ -31,9 +30,7 @@ export const createProductController = async (req, res) => {
     if (specifications) {
       try {
         parsedSpecs = typeof specifications === 'string' ? JSON.parse(specifications) : specifications;
-        console.log("✅ Specifications parsed successfully");
       } catch (err) {
-        console.log("❌ Specifications parsing failed:", err.message);
         return res.status(400).send({ success: false, message: "Invalid specifications format" });
       }
     }
@@ -47,27 +44,31 @@ export const createProductController = async (req, res) => {
       slug: uniqueSlug,
     });
 
-    // 3. ✅ ROBUST MULTI-PHOTO HANDLING
+    // 3. ✅ UPDATED MULTI-PHOTO HANDLING WITH BACKEND COMPRESSION
     if (photos) {
       const photoArray = Array.isArray(photos) ? photos : [photos];
       
-      console.log(`📸 Processing ${photoArray.length} photos...`);
+      console.log(`📸 Compressing ${photoArray.length} photos in Backend...`);
 
-      product.photos = photoArray.map((file, index) => {
+      // We use Promise.all because sharp operations are asynchronous
+      product.photos = await Promise.all(photoArray.map(async (file, index) => {
         const filePath = file.path || file.filepath;
-        console.log(`Photo [${index}] - Name: ${file.name}, Size: ${file.size}, Path: ${filePath}`);
-
-        // Validation: 1MB limit per photo
-        if (file.size > 1000000) {
-           console.log(`❌ Photo [${index}] exceeds 1MB limit`);
-           throw new Error(`${file.name || 'Photo'} is too large (max 1MB)`);
-        }
         
+        console.log(`Processing Photo [${index}] - Name: ${file.name}, Original Size: ${(file.size / 1024).toFixed(2)} KB`);
+
+        // ✅ SHARP COMPRESSION: Resize and set quality to reduce BSON size
+        const compressedBuffer = await sharp(filePath)
+          .resize(1000) // Max width 1000px
+          .jpeg({ quality: 80 }) // Convert to JPEG and compress to 80% quality
+          .toBuffer();
+
+        console.log(`Compressed Photo [${index}] - New Size: ${(compressedBuffer.length / 1024).toFixed(2)} KB`);
+
         return {
-          data: fs.readFileSync(filePath),
-          contentType: file.type || file.mimetype,
+          data: compressedBuffer, // Save the compressed buffer
+          contentType: "image/jpeg",
         };
-      });
+      }));
     }
 
     await product.save();
@@ -91,7 +92,7 @@ export const createProductController = async (req, res) => {
    ===================================================== */
 export const updateProductController = async (req, res) => {
   try {
-    // 🔍 LOG 1: Check incoming text fields
+    // 🔍 LOG 1: Monitor incoming text data
     console.log("--- UPDATE START ---");
     console.log("Fields received:", req.fields);
 
@@ -100,21 +101,21 @@ export const updateProductController = async (req, res) => {
 
     // 🔍 LOG 2: Check incoming files
     if (photos) {
-      console.log("Photos received in req.files:", Array.isArray(photos) ? `Array of ${photos.length}` : "Single Object");
+      console.log("Photos in req.files:", Array.isArray(photos) ? `Array of ${photos.length}` : "Single Object");
     } else {
-      console.log("No photos found in req.files");
+      console.log("No new photos uploaded in this update");
     }
 
     const product = await ProductModel.findById(req.params.pid);
     if (!product) return res.status(404).send({ success: false, message: "Product not found" });
 
+    // 2. Parse Specifications
     let parsedSpecs = specifications;
     if (typeof specifications === 'string') {
       try { 
         parsedSpecs = JSON.parse(specifications); 
-        console.log("Specifications successfully parsed");
       } catch (e) {
-        console.log("Specifications parsing failed:", e.message);
+        console.log("Specs parse error (using existing):", e.message);
       }
     }
 
@@ -130,21 +131,30 @@ export const updateProductController = async (req, res) => {
     
     if (name) product.slug = slugify(name);
 
-    // ✅ ROBUST PHOTO UPDATE LOGIC
+    // ✅ UPDATED PHOTO UPDATE LOGIC WITH BACKEND COMPRESSION
     if (photos) {
       const photoArray = Array.isArray(photos) ? photos : [photos];
       
-      console.log(`Processing ${photoArray.length} total photos for database save...`);
+      console.log(`📸 Compressing ${photoArray.length} updated photos in Backend...`);
 
-      product.photos = photoArray.map((file, index) => {
+      product.photos = await Promise.all(photoArray.map(async (file, index) => {
         const filePath = file.path || file.filepath;
-        console.log(`Photo ${index} Path: ${filePath}, Size: ${file.size}`);
         
+        console.log(`Processing Slot [${index}] - Name: ${file.name}, Original: ${(file.size / 1024).toFixed(2)} KB`);
+        
+        // ✅ SHARP COMPRESSION
+        const compressedBuffer = await sharp(filePath)
+          .resize(1000)
+          .jpeg({ quality: 80 })
+          .toBuffer();
+
+        console.log(`Compressed Slot [${index}] - New: ${(compressedBuffer.length / 1024).toFixed(2)} KB`);
+
         return {
-          data: fs.readFileSync(filePath),
-          contentType: file.type || file.mimetype,
+          data: compressedBuffer,
+          contentType: "image/jpeg",
         };
-      });
+      }));
     }
 
     await product.save();

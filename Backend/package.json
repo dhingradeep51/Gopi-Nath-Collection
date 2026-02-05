@@ -17,6 +17,7 @@
   "dependencies": {
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
+    "browser-image-compression": "^2.0.2",
     "colors": "^1.4.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -36,6 +37,7 @@
     "pdfkit": "^0.17.2",
     "pg-sdk-node": "https://phonepe.mycloudrepo.io/public/repositories/phonepe-pg-sdk-node/releases/v2/phonepe-pg-sdk-node-2.0.3.tgz",
     "react-toastify": "^11.0.5",
+    "sharp": "^0.34.5",
     "slugify": "^1.6.6",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3"
