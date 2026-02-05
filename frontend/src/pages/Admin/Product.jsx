@@ -3,20 +3,19 @@ import AdminMenu from "../../components/Menus/AdminMenu";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
-import { FaTrash, FaEdit, FaPlus } from "react-icons/fa";
+import { FaTrash, FaEdit, FaPlus, FaImage } from "react-icons/fa";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
 
   const BASE_URL = import.meta.env.VITE_API_URL;
 
-  // ─── Unified Theme Colors (matches Coupon + Notification pages) ───
+  // ─── Unified Theme Colors ───
   const gold = "#D4AF37";
   const goldLight = "#FFD700";
   const bgDark = "#0f0c29";
   const bgMid = "#302b63";
   const bgEnd = "#24243e";
-  // ──────────────────────────────────────────────────────────────────
 
   const getAllProducts = async () => {
     try {
@@ -52,7 +51,6 @@ const Products = () => {
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        /* ── Page Shell ── */
         .prod-page {
           background: linear-gradient(135deg, ${bgDark} 0%, ${bgMid} 50%, ${bgEnd} 100%);
           min-height: 100vh;
@@ -67,7 +65,6 @@ const Products = () => {
           padding: 60px 30px;
         }
 
-        /* ── Header ── */
         .prod-header {
           display: flex;
           align-items: center;
@@ -116,7 +113,6 @@ const Products = () => {
           align-items: center;
           gap: 8px;
           transition: all 0.3s ease;
-          white-space: nowrap;
         }
 
         .prod-create-btn:hover {
@@ -126,14 +122,12 @@ const Products = () => {
           box-shadow: 0 4px 15px rgba(212,175,55,0.3);
         }
 
-        /* ── Product Grid ── */
         .prod-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
           gap: 28px;
         }
 
-        /* ── Single Card ── */
         .prod-card {
           background: rgba(255,255,255,0.06);
           backdrop-filter: blur(20px);
@@ -148,7 +142,6 @@ const Products = () => {
           box-shadow: 0 8px 30px rgba(212,175,55,0.15);
         }
 
-        /* Image */
         .prod-img-wrap {
           height: 240px;
           background: #fff;
@@ -185,7 +178,6 @@ const Products = () => {
         .prod-stock-badge.low      { background: #8B0000; }
         .prod-stock-badge.outstock { background: #8B0000; }
 
-        /* Info */
         .prod-info { padding: 22px; }
 
         .prod-meta {
@@ -207,12 +199,6 @@ const Products = () => {
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.5px;
-        }
-
-        .prod-cat-id {
-          font-size: 0.65rem;
-          color: rgba(255,255,255,0.3);
-          letter-spacing: 0.8px;
         }
 
         .prod-product-id {
@@ -254,12 +240,6 @@ const Products = () => {
           font-weight: 700;
         }
 
-        .prod-shipping {
-          font-size: 0.85rem;
-          opacity: 0.7;
-        }
-
-        /* Buttons */
         .prod-actions {
           display: flex;
           gap: 10px;
@@ -280,13 +260,7 @@ const Products = () => {
           justify-content: center;
           gap: 7px;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
           transition: all 0.3s;
-        }
-
-        .prod-btn-edit:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(212,175,55,0.35);
         }
 
         .prod-btn-del {
@@ -302,93 +276,13 @@ const Products = () => {
           transition: all 0.3s;
         }
 
-        .prod-btn-del:hover {
-          background: #ff4d4f;
-          color: #fff;
-          box-shadow: 0 3px 10px rgba(255,77,79,0.3);
-        }
-
-        /* ═══════════════════════════════════════════
-           RESPONSIVE — Tablet
-        ═══════════════════════════════════════════ */
-        @media (max-width: 1024px) {
-          .prod-page-title { font-size: 2.4rem; }
-          .prod-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 22px; }
-        }
-
-        /* ═══════════════════════════════════════════
-           RESPONSIVE — Mobile
-        ═══════════════════════════════════════════ */
         @media (max-width: 768px) {
-          .prod-container { padding: 40px 18px; }
-          .prod-page-title { font-size: 1.9rem; letter-spacing: 2px; }
-
-          .prod-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 16px;
-          }
-
-          .prod-create-btn { width: 100%; justify-content: center; }
-
-          .prod-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 14px;
-          }
-
+          .prod-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
           .prod-img-wrap { height: 180px; }
-
-          .prod-info { padding: 14px; }
-          .prod-name { font-size: 1rem; }
-          .prod-price { font-size: 1.2rem; }
-          .prod-desc { font-size: 0.75rem; height: 34px; }
-
-          .prod-btn-edit { font-size: 0.7rem; padding: 9px 6px; }
-          .prod-btn-del { width: 40px; height: 40px; }
         }
 
         @media (max-width: 480px) {
-          .prod-container { padding: 30px 14px; }
-          .prod-page-title { font-size: 1.6rem; letter-spacing: 1.5px; }
-
-          .prod-grid {
-            grid-template-columns: 1fr;
-            gap: 18px;
-          }
-
-          /* Horizontal card on small screens */
-          .prod-card {
-            display: grid;
-            grid-template-columns: 140px 1fr;
-          }
-
-          .prod-img-wrap {
-            height: 100%;
-            min-height: 160px;
-          }
-
-          .prod-info { padding: 16px 14px; }
-          .prod-name { font-size: 1.05rem; }
-          .prod-desc { height: 32px; font-size: 0.75rem; }
-          .prod-price { font-size: 1.15rem; }
-          .prod-price-row { margin-bottom: 12px; }
-        }
-
-        @media (max-width: 360px) {
-          .prod-page-title { font-size: 1.4rem; }
-
-          .prod-card { grid-template-columns: 120px 1fr; }
-          .prod-img-wrap { min-height: 140px; }
-
-          .prod-actions { flex-direction: column; gap: 8px; }
-          .prod-btn-del { width: 100%; height: 36px; }
-        }
-
-        /* Touch enhancements */
-        @media (hover: none) and (pointer: coarse) {
-          .prod-btn-edit:active { transform: scale(0.96); }
-          .prod-btn-del:active  { transform: scale(0.94); }
-          .prod-create-btn:active { transform: scale(0.97); }
+          .prod-grid { grid-template-columns: 1fr; }
         }
       `}</style>
 
@@ -396,7 +290,6 @@ const Products = () => {
         <AdminMenu />
 
         <div className="prod-container">
-          {/* Header */}
           <div className="prod-header">
             <div className="prod-header-left">
               <h1 className="prod-page-title">Divine Inventory</h1>
@@ -409,33 +302,36 @@ const Products = () => {
             </Link>
           </div>
 
-          {/* Grid */}
           <div className="prod-grid">
             {products?.map((p) => {
               const stockClass = p.quantity > 5 ? "instock" : p.quantity > 0 ? "low" : "outstock";
+              
+              // ✅ Updated to fetch the first photo (index 0) from the photos array
+              const photoUrl = `${BASE_URL}api/v1/product/product-photo/${p._id}/0`;
+
               return (
                 <div key={p._id} className="prod-card">
-                  {/* Image */}
                   <div className="prod-img-wrap">
                     <img
-                      src={`${BASE_URL}api/v1/product/product-photo/${p._id}`}
+                      src={photoUrl}
                       alt={p.name}
                       className="prod-img"
+                      // Fallback if image fails to load
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "https://via.placeholder.com/300?text=No+Image";
+                      }}
                     />
                     <span className={`prod-stock-badge ${stockClass}`}>
                       {p.quantity > 0 ? `${p.quantity} In Stock` : "Out of Stock"}
                     </span>
                   </div>
 
-                  {/* Info */}
                   <div className="prod-info">
                     <div className="prod-meta">
                       <div className="prod-meta-top">
                         <span className="prod-category">
                           CAT: {p.category?.name || "Uncategorized"}
-                        </span>
-                        <span className="prod-cat-id">
-                          {p.category?.categoryId || "NO-CAT-ID"}
                         </span>
                       </div>
                       <span className="prod-product-id">
@@ -451,7 +347,7 @@ const Products = () => {
 
                     <div className="prod-price-row">
                       <span className="prod-price">₹{p.price?.toLocaleString()}</span>
-                      {p.shipping && <span className="prod-shipping">🚚</span>}
+                      {p.shipping && <span title="Shipping Available">🚚</span>}
                     </div>
 
                     <div className="prod-actions">
