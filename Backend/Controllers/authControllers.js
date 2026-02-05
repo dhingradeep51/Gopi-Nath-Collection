@@ -2,10 +2,8 @@ import UserModel from "../Models/userModel.js";
 import { hashPassword, comparePassword } from "../Helpers/authHelper.js";
 import nodemailer from "nodemailer";
 import JWT from "jsonwebtoken";
+import axios from "axios"; // ✅ Ensure axios is installed: npm install axios
 
-/* =====================================================
-   1. SEND OTP
-===================================================== */
 export const sendOTPController = async (req, res) => {
   try {
     const { email, purpose } = req.body;
@@ -17,45 +15,26 @@ export const sendOTPController = async (req, res) => {
       });
     }
 
-    const transporter = nodemailer.createTransport({
-      host: "smtp-relay.brevo.com",
-      port: 2525,
-      secure: false,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
-
-    await transporter.verify();
-
+    // Generate OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
 
-    // ✅ FIX: Use $setOnInsert for identity fields
+    // ✅ Update User in Database
     await UserModel.findOneAndUpdate(
       { email },
       {
-        $set: {
-          email,
-          otp,
-          otpExpires,
-        },
+        $set: { email, otp, otpExpires },
         $setOnInsert: {
-          // These only save if the user doesn't exist yet
           name: "Pending",
           phone: "0000000000",
-          address: "Pending",
-          city: "Pending",
-          state: "Pending",
-          pincode: "000000",
-          customId: `TEMP-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          address: { fullAddress: "Pending", city: "Pending", state: "Pending", pincode: "000000" },
+          status: "Active",
         },
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, new: true }
     );
 
-    const html = `
+    const htmlContent = `
       <div style="font-family: serif; max-width: 600px; margin: auto; border: 2px solid #D4AF37; padding: 40px; background-color: #2D0A14; color: white; text-align: center;">
         <h1 style="color: #D4AF37;">GOPI NATH COLLECTION</h1>
         <h2 style="color: white;">Verification Code</h2>
@@ -68,19 +47,30 @@ export const sendOTPController = async (req, res) => {
       </div>
     `;
 
-    await transporter.sendMail({
-      from: `"GNC Support" <noreply@gopinathcollection.co.in>`,
-      to: email,
-      subject: "Verification Code - Gopi Nath Collection",
-      html,
-    });
+    // ✅ BREVO API CALL (Replaces Nodemailer)
+    // This uses Port 443 which is never blocked by Render or Mobile Networks
+    await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      {
+        sender: { name: "GNC Support", email: "noreply@gopinathcollection.co.in" },
+        to: [{ email: email }],
+        subject: "Verification Code - Gopi Nath Collection",
+        htmlContent: htmlContent,
+      },
+      {
+        headers: {
+          "api-key": process.env.BREVO_API_KEY, // ✅ Use your Brevo API Key from Dashboard
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
     res.status(200).send({
       success: true,
-      message: "OTP sent successfully",
+      message: "OTP sent successfully via API",
     });
   } catch (error) {
-    console.error("SEND OTP ERROR:", error.message);
+    console.error("SEND OTP ERROR:", error.response?.data || error.message);
     res.status(500).send({
       success: false,
       message: "Failed to send OTP",
