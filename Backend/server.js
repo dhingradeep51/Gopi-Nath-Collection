@@ -50,7 +50,7 @@ io.on("connection", (socket) => {
 
 // --- MIDDLEWARES ---
 app.use(cors({
-  origin: ["https://gopi-nath-collection.onrender.com", "http://localhost:5173", "http://localhost:3000"],
+  origin: ["https://gopinathcollection.co.in", "http://localhost:5173", "http://localhost:3000"],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"],
