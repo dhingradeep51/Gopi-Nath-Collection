@@ -22,10 +22,10 @@ const router = express.Router();
 // --- PRODUCT ROUTES ---
 
 // Create Product
-router.post("/create-product", requireSignIn, isAdmin, formidable({multiples:true}), createProductController);
+router.post("/create-product", requireSignIn, isAdmin, createProductController);
 
 // Update Product
-router.put("/update-product/:pid", requireSignIn, isAdmin, formidable({multiples:true}), updateProductController);
+router.put("/update-product/:pid", requireSignIn, isAdmin, updateProductController);
 
 // Get All Products
 router.get("/get-product", getAllProductsController);
