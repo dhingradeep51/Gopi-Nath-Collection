@@ -37,7 +37,7 @@ router.get("/get-product/:slug", getSingleProductController);
 router.get("/product-photo/:pid", productPhotoController);
 
 // Delete Product
-router.delete("/delete-product/:pid", requireSignIn, isAdmin, deleteProductController);
+router.delete("/delete-product/:pid:index?", requireSignIn, isAdmin, deleteProductController);
 
 // Filter Products
 router.post("/product-filters", productFiltersController);

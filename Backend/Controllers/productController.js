@@ -119,17 +119,19 @@ export const updateProductController = async (req, res) => {
 // This gets a SPECIFIC photo from the array by index
 export const productPhotoController = async (req, res) => {
   try {
-    const { pid, index } = req.params; // Expecting /product-photo/:pid/:index
+    const { pid, index } = req.params;
+    // Find product and only select the photos field
     const product = await ProductModel.findById(pid).select("photos");
 
     const photoIndex = index ? parseInt(index) : 0;
 
-    if (product?.photos && product.photos[photoIndex]) {
+    // Check if the array and the specific photo exists
+    if (product?.photos && product.photos[photoIndex]?.data) {
       res.set("Content-Type", product.photos[photoIndex].contentType);
       return res.status(200).send(product.photos[photoIndex].data);
     }
 
-    res.status(404).send({ success: false, message: "Photo not found" });
+    res.status(404).send({ success: false, message: "Photo not found in database" });
   } catch (error) {
     res.status(500).send({ success: false, error: error.message });
   }
