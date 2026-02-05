@@ -151,10 +151,37 @@ export const deleteProductController = async (req, res) => {
 /* =====================================================
    GET SINGLE PRODUCT
    ===================================================== */
+/* =====================================================
+   GET ALL PRODUCTS
+   ===================================================== */
+export const getAllProductsController = async (req, res) => {
+  try {
+    const products = await ProductModel.find({})
+      .populate("category", "name slug")
+      .select("-photos") // ✅ Changed from '-photo' to '-photos'
+      .sort("-createdAt");
+
+    res.status(200).send({
+      success: true,
+      countTotal: products.length,
+      products,
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Failed to fetch products",
+      error: error.message,
+    });
+  }
+};
+
+/* =====================================================
+   GET SINGLE PRODUCT
+   ===================================================== */
 export const getSingleProductController = async (req, res) => {
   try {
     const product = await ProductModel.findOne({ slug: req.params.slug })
-      .select("-photo")
+      .select("-photos") // ✅ Changed from '-photo' to '-photos'
       .populate("category")
       .populate("reviews.user");
 
@@ -172,30 +199,6 @@ export const getSingleProductController = async (req, res) => {
   } catch (error) {
     res.status(500).send({
       success: false,
-      error: error.message,
-    });
-  }
-};
-
-/* =====================================================
-   GET ALL PRODUCTS
-   ===================================================== */
-export const getAllProductsController = async (req, res) => {
-  try {
-    const products = await ProductModel.find({})
-      .populate("category", "name slug")
-      .select("-photo")
-      .sort("-createdAt");
-
-    res.status(200).send({
-      success: true,
-      countTotal: products.length,
-      products,
-    });
-  } catch (error) {
-    res.status(500).send({
-      success: false,
-      message: "Failed to fetch products",
       error: error.message,
     });
   }
