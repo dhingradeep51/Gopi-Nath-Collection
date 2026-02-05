@@ -4,9 +4,6 @@ import fs from "fs";
 import slugify from "slugify";
 
 
-/* =====================================================
-   CREATE PRODUCT (Updated for Multi-Photo & Specs)
-   ===================================================== */
 export const createProductController = async (req, res) => {
   try {
     const { name, description, price, gstRate, category, quantity, productID, specifications } = req.fields;
@@ -46,7 +43,6 @@ export const createProductController = async (req, res) => {
         if (file.size > 1000000) throw new Error(`${file.name || 'Photo'} is too large (max 1MB)`);
         
         return {
-          // Compatibility for different Formidable versions
           data: fs.readFileSync(file.path || file.filepath),
           contentType: file.type || file.mimetype,
         };
@@ -70,7 +66,7 @@ export const createProductController = async (req, res) => {
    ===================================================== */
 export const updateProductController = async (req, res) => {
   try {
-    const { name, description, price, gstRate, category, quantity, specifications } = req.fields;
+    const { name, description, price, gstRate, category, quantity, specifications, productID } = req.fields;
     const { photos } = req.files;
 
     const product = await ProductModel.findById(req.params.pid);
@@ -81,20 +77,23 @@ export const updateProductController = async (req, res) => {
         try { parsedSpecs = JSON.parse(specifications); } catch (e) {}
     }
 
-    // Update fields
+    // Update standard fields
     product.name = name || product.name;
     product.description = description || product.description;
-    product.price = price || product.price;
+    product.price = price ? parseFloat(price) : product.price;
     product.quantity = quantity || product.quantity;
     product.category = category || product.category;
     product.specifications = parsedSpecs || product.specifications;
+    product.gstRate = gstRate ? parseInt(gstRate, 10) : product.gstRate;
+    product.productID = productID || product.productID;
+    
     if (name) product.slug = slugify(name);
 
-    // ✅ UPDATE PHOTO LOGIC
+    // ✅ ROBUST PHOTO UPDATE LOGIC
     if (photos) {
       const photoArray = Array.isArray(photos) ? photos : [photos];
       
-      // Overwrites existing photos with new set
+      // Map all uploaded photos into the array
       product.photos = photoArray.map((file) => ({
         data: fs.readFileSync(file.path || file.filepath),
         contentType: file.type || file.mimetype,
@@ -108,22 +107,21 @@ export const updateProductController = async (req, res) => {
     res.status(500).send({ success: false, message: "Update failed", error: error.message });
   }
 };
-// This gets a SPECIFIC photo from the array by index
+
+/* =====================================================
+   PHOTO CONTROLLER (Specific Photo by Index)
+   ===================================================== */
 export const productPhotoController = async (req, res) => {
   try {
     const { pid, index } = req.params;
-    // Find product and only select the photos field
     const product = await ProductModel.findById(pid).select("photos");
-
     const photoIndex = index ? parseInt(index) : 0;
 
-    // Check if the array and the specific photo exists
     if (product?.photos && product.photos[photoIndex]?.data) {
       res.set("Content-Type", product.photos[photoIndex].contentType);
       return res.status(200).send(product.photos[photoIndex].data);
     }
-
-    res.status(404).send({ success: false, message: "Photo not found in database" });
+    res.status(404).send({ success: false, message: "Photo not found" });
   } catch (error) {
     res.status(500).send({ success: false, error: error.message });
   }
