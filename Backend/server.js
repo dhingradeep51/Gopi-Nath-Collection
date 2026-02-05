@@ -62,7 +62,10 @@ app.use(
   "/api/v1/payment/phonepe/webhook",
   express.raw({ type: "application/json" })
 );
-
+app.use(formidable({
+  multiples: true, // Allows req.files.photos to be an array
+  maxFileSize: 16 * 1024 * 1024, // Matches MongoDB's 16MB document limit
+}));
 
 // Make 'io' accessible in your routes
 app.set("io", io);
