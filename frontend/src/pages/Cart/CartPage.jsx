@@ -112,7 +112,7 @@ const CartPage = () => {
                   <div key={p._id} className="cart-item">
                     <div className="item-image-wrapper">
                       <img
-                        src={`${BASE_URL}api/v1/product/product-photo/${p._id}`}
+                        src={`${BASE_URL}api/v1/product/product-photo/${p._id}/0`}
                         alt={p.name}
                         className="item-image"
                       />
