@@ -4,7 +4,7 @@ import nodemailer from "nodemailer";
 import JWT from "jsonwebtoken";
 import axios from "axios"; // ✅ Ensure axios is installed: npm install axios
 
-
+//hello
 export const sendOTPController = async (req, res) => {
   try {
     const { email, purpose } = req.body;
