@@ -24,7 +24,16 @@ connectDB();
 
 const app = express();
 const httpServer = createServer(app); // Create HTTP server
-
+app.use(cors({
+  origin: [
+    "https://gopinathcollection.co.in", // ✅ Add your production domain
+    "http://localhost:5173", 
+    "http://localhost:3000"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
 // Initialize Socket.io
 const io = new Server(httpServer, {
   cors: {
