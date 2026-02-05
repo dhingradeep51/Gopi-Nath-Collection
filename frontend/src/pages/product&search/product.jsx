@@ -13,6 +13,9 @@ import {
   TruckOutlined,
   SafetyOutlined,
   SyncOutlined,
+  HeartOutlined,
+  HeartFilled,
+  BellOutlined,
 } from "@ant-design/icons";
 
 const ProductDetails = () => {
@@ -25,6 +28,10 @@ const ProductDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const [mainImageIndex, setMainImageIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isWishlisted, setIsWishlisted] = useState(false);
+  const [notifyStock, setNotifyStock] = useState(false);
+  const [email, setEmail] = useState("");
+  const [showNotifyModal, setShowNotifyModal] = useState(false);
 
   const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -108,6 +115,67 @@ const ProductDetails = () => {
 
   const handleImageError = (e) => {
     e.target.parentElement.style.display = "none";
+  };
+
+  // Wishlist functionality
+  const toggleWishlist = () => {
+    const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]");
+    const existingIndex = wishlist.findIndex((item) => item._id === product._id);
+    
+    if (existingIndex !== -1) {
+      wishlist.splice(existingIndex, 1);
+      setIsWishlisted(false);
+      message.success("Removed from wishlist");
+    } else {
+      wishlist.push(product);
+      setIsWishlisted(true);
+      message.success("Added to wishlist");
+    }
+    
+    localStorage.setItem("wishlist", JSON.stringify(wishlist));
+  };
+
+  // Check if product is in wishlist on load
+  useEffect(() => {
+    if (product._id) {
+      const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]");
+      const isInWishlist = wishlist.some((item) => item._id === product._id);
+      setIsWishlisted(isInWishlist);
+      
+      // Check if user has subscribed for stock notification
+      const notifications = JSON.parse(localStorage.getItem("stockNotifications") || "[]");
+      const hasNotified = notifications.some((item) => item.productId === product._id);
+      setNotifyStock(hasNotified);
+    }
+  }, [product._id]);
+
+  // Notify when back in stock
+  const handleNotifyMe = () => {
+    if (!email || !email.includes("@")) {
+      return message.error("Please enter a valid email address");
+    }
+
+    const notifications = JSON.parse(localStorage.getItem("stockNotifications") || "[]");
+    const alreadySubscribed = notifications.some(
+      (item) => item.productId === product._id && item.email === email
+    );
+
+    if (alreadySubscribed) {
+      return message.info("You're already subscribed to notifications for this product");
+    }
+
+    notifications.push({
+      productId: product._id,
+      productName: product.name,
+      email: email,
+      subscribedAt: new Date().toISOString(),
+    });
+
+    localStorage.setItem("stockNotifications", JSON.stringify(notifications));
+    setNotifyStock(true);
+    setShowNotifyModal(false);
+    setEmail("");
+    message.success("We'll notify you when this product is back in stock!");
   };
 
   // Inline Styles Object
@@ -196,6 +264,27 @@ const ProductDetails = () => {
       letterSpacing: "1.5px",
       zIndex: 10,
       boxShadow: "0 4px 12px rgba(220, 38, 38, 0.4)",
+    },
+    wishlistButton: {
+      position: "absolute",
+      top: "20px",
+      right: "20px",
+      background: "rgba(0, 0, 0, 0.6)",
+      border: "none",
+      borderRadius: "50%",
+      width: "45px",
+      height: "45px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      cursor: "pointer",
+      zIndex: 10,
+      transition: "all 0.3s ease",
+      backdropFilter: "blur(10px)",
+    },
+    wishlistIcon: {
+      fontSize: "20px",
+      color: colors.gold,
     },
     thumbnailGallery: {
       display: "flex",
@@ -373,6 +462,115 @@ const ProductDetails = () => {
     btnDisabled: {
       opacity: 0.5,
       cursor: "not-allowed",
+    },
+    btnNotifyMe: {
+      background: "rgba(212, 175, 55, 0.2)",
+      color: colors.gold,
+      border: `2px solid ${colors.gold}`,
+      padding: "0 40px",
+      fontWeight: 600,
+      cursor: "pointer",
+      flex: isMobile ? "none" : 1,
+      borderRadius: "6px",
+      fontSize: "14px",
+      letterSpacing: "1px",
+      transition: "all 0.3s ease",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "10px",
+      height: "48px",
+      width: isMobile ? "100%" : "auto",
+    },
+    notifyModal: {
+      position: "fixed",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: "rgba(0, 0, 0, 0.8)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 1000,
+      padding: "20px",
+    },
+    notifyModalContent: {
+      background: colors.darkBg,
+      border: `2px solid ${colors.gold}`,
+      borderRadius: "12px",
+      padding: isMobile ? "25px" : "35px",
+      maxWidth: "500px",
+      width: "100%",
+      position: "relative",
+    },
+    notifyModalTitle: {
+      color: colors.gold,
+      fontSize: isMobile ? "20px" : "24px",
+      marginBottom: "10px",
+      fontWeight: 600,
+    },
+    notifyModalText: {
+      color: "rgba(255, 255, 255, 0.8)",
+      fontSize: "14px",
+      marginBottom: "25px",
+      lineHeight: 1.6,
+    },
+    notifyInput: {
+      width: "100%",
+      padding: "12px 15px",
+      background: "rgba(255, 255, 255, 0.05)",
+      border: `1px solid ${colors.goldBorder}`,
+      borderRadius: "6px",
+      color: "white",
+      fontSize: "14px",
+      marginBottom: "20px",
+      outline: "none",
+      transition: "all 0.3s ease",
+    },
+    notifyButtonGroup: {
+      display: "flex",
+      gap: "10px",
+      flexDirection: isMobile ? "column" : "row",
+    },
+    notifySubmitBtn: {
+      background: colors.gold,
+      color: colors.burgundy,
+      border: "none",
+      padding: "12px 30px",
+      borderRadius: "6px",
+      fontWeight: 700,
+      cursor: "pointer",
+      fontSize: "14px",
+      flex: 1,
+      transition: "all 0.3s ease",
+    },
+    notifyCancelBtn: {
+      background: "transparent",
+      color: colors.gold,
+      border: `1px solid ${colors.gold}`,
+      padding: "12px 30px",
+      borderRadius: "6px",
+      fontWeight: 600,
+      cursor: "pointer",
+      fontSize: "14px",
+      flex: 1,
+      transition: "all 0.3s ease",
+    },
+    outOfStockInfo: {
+      background: "rgba(220, 38, 38, 0.1)",
+      border: "1px solid rgba(220, 38, 38, 0.3)",
+      borderRadius: "8px",
+      padding: "15px",
+      marginBottom: "20px",
+      display: "flex",
+      alignItems: "center",
+      gap: "12px",
+    },
+    outOfStockText: {
+      color: "#ef4444",
+      fontSize: "14px",
+      fontWeight: 500,
     },
     trustBadges: {
       display: "grid",
@@ -556,6 +754,28 @@ const ProductDetails = () => {
                 {product?.quantity < 1 && (
                   <div style={styles.outOfStockBadge}>OUT OF STOCK</div>
                 )}
+                
+                {/* Wishlist Button */}
+                <button
+                  onClick={toggleWishlist}
+                  style={styles.wishlistButton}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = "scale(1.1)";
+                    e.currentTarget.style.background = "rgba(212, 175, 55, 0.2)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = "scale(1)";
+                    e.currentTarget.style.background = "rgba(0, 0, 0, 0.6)";
+                  }}
+                  aria-label="Add to wishlist"
+                >
+                  {isWishlisted ? (
+                    <HeartFilled style={styles.wishlistIcon} />
+                  ) : (
+                    <HeartOutlined style={styles.wishlistIcon} />
+                  )}
+                </button>
+                
                 <img
                   src={`${BASE_URL}api/v1/product/product-photo/${product?._id}/${mainImageIndex}`}
                   alt={product?.name}
@@ -661,69 +881,90 @@ const ProductDetails = () => {
 
               <p style={styles.shortDescription}>{product?.shortDescription}</p>
 
+              {/* Out of Stock Alert */}
+              {product?.quantity < 1 && (
+                <div style={styles.outOfStockInfo}>
+                  <CloseCircleOutlined style={{ fontSize: "24px", color: "#ef4444" }} />
+                  <div>
+                    <div style={styles.outOfStockText}>Currently Out of Stock</div>
+                    <div style={{ fontSize: "12px", color: "rgba(255, 255, 255, 0.5)", marginTop: "4px" }}>
+                      {notifyStock ? "✓ You'll be notified when available" : "Get notified when back in stock"}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Action Buttons */}
               <div style={styles.quantityActionRow}>
-                {product?.quantity > 0 && (
-                  <div style={styles.qtyBox}>
+                {product?.quantity > 0 ? (
+                  <>
+                    <div style={styles.qtyBox}>
+                      <button
+                        style={styles.qtyBtn}
+                        onClick={() => handleQuantityChange("decrease")}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = colors.gold;
+                          e.target.style.color = colors.burgundy;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = "none";
+                          e.target.style.color = colors.gold;
+                        }}
+                        aria-label="Decrease quantity"
+                      >
+                        -
+                      </button>
+                      <span style={styles.qtyValue}>{quantity}</span>
+                      <button
+                        style={styles.qtyBtn}
+                        onClick={() => handleQuantityChange("increase")}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = colors.gold;
+                          e.target.style.color = colors.burgundy;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = "none";
+                          e.target.style.color = colors.gold;
+                        }}
+                        aria-label="Increase quantity"
+                      >
+                        +
+                      </button>
+                    </div>
                     <button
-                      style={styles.qtyBtn}
-                      onClick={() => handleQuantityChange("decrease")}
+                      onClick={handleAddToCart}
+                      style={styles.btnAddCart}
                       onMouseEnter={(e) => {
-                        e.target.style.background = colors.gold;
-                        e.target.style.color = colors.burgundy;
+                        e.target.style.background = "#e8c547";
+                        e.target.style.transform = "translateY(-2px)";
+                        e.target.style.boxShadow = "0 6px 20px rgba(212, 175, 55, 0.4)";
                       }}
                       onMouseLeave={(e) => {
-                        e.target.style.background = "none";
-                        e.target.style.color = colors.gold;
-                      }}
-                      aria-label="Decrease quantity"
-                    >
-                      -
-                    </button>
-                    <span style={styles.qtyValue}>{quantity}</span>
-                    <button
-                      style={styles.qtyBtn}
-                      onClick={() => handleQuantityChange("increase")}
-                      onMouseEnter={(e) => {
                         e.target.style.background = colors.gold;
-                        e.target.style.color = colors.burgundy;
+                        e.target.style.transform = "translateY(0)";
+                        e.target.style.boxShadow = "0 4px 15px rgba(212, 175, 55, 0.3)";
                       }}
-                      onMouseLeave={(e) => {
-                        e.target.style.background = "none";
-                        e.target.style.color = colors.gold;
-                      }}
-                      aria-label="Increase quantity"
                     >
-                      +
+                      <ShoppingOutlined /> ADD TO COLLECTION
                     </button>
-                  </div>
-                )}
-                <button
-                  onClick={handleAddToCart}
-                  disabled={product?.quantity < 1}
-                  style={{
-                    ...styles.btnAddCart,
-                    ...(product?.quantity < 1 ? styles.btnDisabled : {}),
-                  }}
-                  onMouseEnter={(e) => {
-                    if (product?.quantity >= 1) {
-                      e.target.style.background = "#e8c547";
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setShowNotifyModal(true)}
+                    style={styles.btnNotifyMe}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = "rgba(212, 175, 55, 0.3)";
                       e.target.style.transform = "translateY(-2px)";
-                      e.target.style.boxShadow =
-                        "0 6px 20px rgba(212, 175, 55, 0.4)";
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (product?.quantity >= 1) {
-                      e.target.style.background = colors.gold;
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = "rgba(212, 175, 55, 0.2)";
                       e.target.style.transform = "translateY(0)";
-                      e.target.style.boxShadow =
-                        "0 4px 15px rgba(212, 175, 55, 0.3)";
-                    }
-                  }}
-                >
-                  <ShoppingOutlined /> ADD TO COLLECTION
-                </button>
+                    }}
+                  >
+                    <BellOutlined /> {notifyStock ? "NOTIFICATION ACTIVE" : "NOTIFY ME WHEN AVAILABLE"}
+                  </button>
+                )}
+
               </div>
 
               <div style={styles.trustBadges}>
@@ -912,6 +1153,67 @@ const ProductDetails = () => {
             </div>
           </div>
         </div>
+
+        {/* Stock Notification Modal */}
+        {showNotifyModal && (
+          <div 
+            style={styles.notifyModal}
+            onClick={() => setShowNotifyModal(false)}
+          >
+            <div 
+              style={styles.notifyModalContent}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 style={styles.notifyModalTitle}>Get Notified</h3>
+              <p style={styles.notifyModalText}>
+                Enter your email address and we'll notify you when <strong>{product?.name}</strong> is back in stock.
+              </p>
+              <input
+                type="email"
+                placeholder="Enter your email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={styles.notifyInput}
+                onFocus={(e) => {
+                  e.target.style.borderColor = colors.gold;
+                  e.target.style.background = "rgba(255, 255, 255, 0.08)";
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = colors.goldBorder;
+                  e.target.style.background = "rgba(255, 255, 255, 0.05)";
+                }}
+              />
+              <div style={styles.notifyButtonGroup}>
+                <button
+                  onClick={handleNotifyMe}
+                  style={styles.notifySubmitBtn}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = "#e8c547";
+                    e.target.style.transform = "translateY(-2px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = colors.gold;
+                    e.target.style.transform = "translateY(0)";
+                  }}
+                >
+                  Notify Me
+                </button>
+                <button
+                  onClick={() => setShowNotifyModal(false)}
+                  style={styles.notifyCancelBtn}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = "rgba(212, 175, 55, 0.1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = "transparent";
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

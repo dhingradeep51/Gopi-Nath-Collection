@@ -103,14 +103,28 @@ const HomePage = () => {
   const handleAddToCart = (e, product) => {
     e.stopPropagation();
 
+    // Check if out of stock
+    if (product.quantity <= 0) {
+      message.error('This item is currently out of stock', 2);
+      return;
+    }
+
     const existingProductIndex = cart.findIndex((item) => item._id === product._id);
     let updatedCart;
 
     if (existingProductIndex !== -1) {
+      const currentCartQty = cart[existingProductIndex].cartQuantity || 1;
+      
+      // Check if adding more would exceed available stock
+      if (currentCartQty >= product.quantity) {
+        message.warning(`Only ${product.quantity} available in stock`, 2);
+        return;
+      }
+      
       updatedCart = [...cart];
       updatedCart[existingProductIndex] = {
         ...updatedCart[existingProductIndex],
-        cartQuantity: (updatedCart[existingProductIndex].cartQuantity || 1) + 1,
+        cartQuantity: currentCartQty + 1,
       };
       message.success(
         `Quantity increased to ${updatedCart[existingProductIndex].cartQuantity}`,
@@ -156,22 +170,34 @@ const HomePage = () => {
                       <div
                         key={p._id}
                         onClick={() => navigate(`/product/${p.slug}`)}
-                        className="product-card"
+                        className={`product-card ${p.quantity <= 0 ? 'out-of-stock' : ''}`}
                       >
                         <div className="product-image-wrapper">
                           <img
-                            src={`${BASE_URL}api/v1/product/product-photo/${p._id}`}
+                            src={`${BASE_URL}api/v1/product/product-photo/${p._id}/0`}
                             alt={p.name}
                             className="product-image"
                           />
-                          <div className="image-overlay">
-                            <span className="quick-view">VIEW DETAILS</span>
-                          </div>
+                          {p.quantity <= 0 && (
+                            <div className="out-of-stock-overlay">
+                              <span className="out-of-stock-badge">OUT OF STOCK</span>
+                            </div>
+                          )}
+                          {p.quantity > 0 && (
+                            <div className="image-overlay">
+                              <span className="quick-view">VIEW DETAILS</span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="product-info">
                           <h3 className="product-name">{p.name}</h3>
                           <p className="product-price">₹{p.price?.toLocaleString()}</p>
+                          
+                          {/* Stock indicator */}
+                          {p.quantity > 0 && p.quantity <= 5 && (
+                            <p className="low-stock-warning">Only {p.quantity} left!</p>
+                          )}
 
                           <div className="action-buttons">
                             <button
@@ -186,8 +212,9 @@ const HomePage = () => {
                             <button
                               onClick={(e) => handleAddToCart(e, p)}
                               className="btn-add-to-cart"
+                              disabled={p.quantity <= 0}
                             >
-                              <ShoppingOutlined /> ADD
+                              <ShoppingOutlined /> {p.quantity <= 0 ? 'UNAVAILABLE' : 'ADD'}
                             </button>
                           </div>
                         </div>
@@ -407,6 +434,56 @@ const HomePage = () => {
           box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
         }
 
+        /* Out of Stock Styles */
+        .product-card.out-of-stock {
+          opacity: 0.7;
+        }
+
+        .product-card.out-of-stock .product-image {
+          filter: grayscale(60%);
+        }
+
+        .product-card.out-of-stock:hover {
+          transform: translateY(-2px);
+        }
+
+        .out-of-stock-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.75);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 2;
+        }
+
+        .out-of-stock-badge {
+          background: ${burgundy};
+          color: ${gold};
+          padding: 10px 20px;
+          border: 2px solid ${gold};
+          font-size: ${isMobile ? "12px" : "14px"};
+          font-weight: bold;
+          letter-spacing: 2px;
+          transform: rotate(-15deg);
+        }
+
+        .low-stock-warning {
+          color: #ff6b6b;
+          font-size: ${isMobile ? "11px" : "12px"};
+          margin: 8px 0;
+          font-weight: 600;
+          animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.6; }
+        }
+
         .product-image-wrapper {
           background: #fff;
           height: ${isMobile ? "180px" : "280px"};
@@ -518,6 +595,18 @@ const HomePage = () => {
         .btn-add-to-cart:active,
         .btn-details:active {
           transform: scale(0.98);
+        }
+
+        .btn-add-to-cart:disabled {
+          background: #666 !important;
+          color: #999 !important;
+          cursor: not-allowed !important;
+          opacity: 0.5;
+        }
+
+        .btn-add-to-cart:disabled:hover {
+          transform: none !important;
+          background: #666 !important;
         }
 
         /* View All Section */

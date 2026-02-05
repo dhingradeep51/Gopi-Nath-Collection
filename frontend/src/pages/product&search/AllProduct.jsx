@@ -31,7 +31,6 @@ const AllProducts = () => {
 
   const BASE_URL = import.meta.env.VITE_API_URL;
 
-
   // Get all categories
   const getAllCategory = async () => {
     try {
@@ -97,9 +96,14 @@ const AllProducts = () => {
     }
   };
 
-  // Enhanced Add to Cart
+  // Enhanced Add to Cart with stock check
   const handleAddToCart = (e, product) => {
     e.stopPropagation();
+
+    // Check if product is in stock
+    if (product.quantity < 1) {
+      return message.warning("This product is currently out of stock");
+    }
 
     const existingProductIndex = cart.findIndex((item) => item._id === product._id);
     let updatedCart;
@@ -242,16 +246,23 @@ const AllProducts = () => {
                 {products.length > 0 ? (
                   <div className="products-grid">
                     {products.map((p) => (
-                      <div key={p._id} className="product-card">
+                      <div key={p._id} className={`product-card ${p.quantity < 1 ? 'out-of-stock-card' : ''}`}>
                         {/* Product Image */}
                         <div
                           className="product-image-wrapper"
                           onClick={() => navigate(`/product/${p.slug}`)}
                         >
+                          {/* Out of Stock Badge */}
+                          {p.quantity < 1 && (
+                            <div className="out-of-stock-badge">
+                              OUT OF STOCK
+                            </div>
+                          )}
+                          
                           <img
-                            src={`${BASE_URL}api/v1/product/product-photo/${p._id}`}
+                            src={`${BASE_URL}api/v1/product/product-photo/${p._id}/0`}
                             alt={p.name}
-                            className="product-image"
+                            className={`product-image ${p.quantity < 1 ? 'out-of-stock-image' : ''}`}
                           />
                           <div className="image-overlay">
                             <span className="quick-view">VIEW DETAILS</span>
@@ -273,6 +284,14 @@ const AllProducts = () => {
                               </span>
                             </div>
 
+                            {/* Stock Status Alert */}
+                            {p.quantity < 1 && (
+                              <div className="stock-alert">
+                                <span className="stock-icon">⚠️</span>
+                                <span className="stock-text">Currently Unavailable</span>
+                              </div>
+                            )}
+
                             <div className="action-buttons">
                               <button
                                 className="btn-details"
@@ -281,10 +300,11 @@ const AllProducts = () => {
                                 <FaInfoCircle /> DETAILS
                               </button>
                               <button
-                                className="btn-add-to-cart"
+                                className={`btn-add-to-cart ${p.quantity < 1 ? 'btn-disabled' : ''}`}
                                 onClick={(e) => handleAddToCart(e, p)}
+                                disabled={p.quantity < 1}
                               >
-                                <FaCartPlus /> ADD
+                                <FaCartPlus /> {p.quantity < 1 ? 'OUT OF STOCK' : 'ADD'}
                               </button>
                             </div>
                           </div>
@@ -665,12 +685,38 @@ const AllProducts = () => {
           box-shadow: 0 10px 30px rgba(212, 175, 55, 0.2);
         }
 
+        /* Out of Stock Card State */
+        .out-of-stock-card {
+          opacity: 0.85;
+        }
+
+        .out-of-stock-card:hover {
+          transform: translateY(-3px);
+          opacity: 1;
+        }
+
         .product-image-wrapper {
           position: relative;
           background: white;
           height: ${isMobile ? "180px" : "280px"};
           overflow: hidden;
           cursor: pointer;
+        }
+
+        /* Out of Stock Badge */
+        .out-of-stock-badge {
+          position: absolute;
+          top: 15px;
+          left: 15px;
+          background: rgba(220, 38, 38, 0.95);
+          color: white;
+          padding: 6px 14px;
+          border-radius: 4px;
+          font-size: ${isMobile ? "9px" : "10px"};
+          font-weight: bold;
+          letter-spacing: 1.5px;
+          z-index: 10;
+          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.5);
         }
 
         .product-image {
@@ -680,8 +726,17 @@ const AllProducts = () => {
           transition: transform 0.4s ease;
         }
 
+        /* Dimmed out of stock image */
+        .out-of-stock-image {
+          filter: grayscale(50%) opacity(0.7);
+        }
+
         .product-card:hover .product-image {
           transform: scale(1.05);
+        }
+
+        .product-card:hover .out-of-stock-image {
+          filter: grayscale(30%) opacity(0.85);
         }
 
         .image-overlay {
@@ -756,6 +811,29 @@ const AllProducts = () => {
           font-weight: bold;
         }
 
+        /* Stock Alert */
+        .stock-alert {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          background: rgba(220, 38, 38, 0.1);
+          border: 1px solid rgba(220, 38, 38, 0.3);
+          border-radius: 4px;
+          margin-bottom: 12px;
+        }
+
+        .stock-icon {
+          font-size: 14px;
+        }
+
+        .stock-text {
+          font-size: ${isMobile ? "10px" : "11px"};
+          color: #ef4444;
+          font-weight: 600;
+          letter-spacing: 0.5px;
+        }
+
         .action-buttons {
           display: flex;
           gap: 10px;
@@ -795,6 +873,20 @@ const AllProducts = () => {
         .btn-add-to-cart:hover {
           background-color: #E5C158;
           transform: scale(1.02);
+        }
+
+        /* Disabled Button State */
+        .btn-disabled {
+          background-color: transparent !important;
+          border: 1px solid rgba(220, 38, 38, 0.5) !important;
+          color: #ef4444 !important;
+          cursor: not-allowed !important;
+          opacity: 0.7;
+        }
+
+        .btn-disabled:hover {
+          transform: none !important;
+          background-color: rgba(220, 38, 38, 0.1) !important;
         }
 
         /* Loading State */
@@ -900,6 +992,13 @@ const AllProducts = () => {
             height: 160px;
           }
 
+          .out-of-stock-badge {
+            top: 10px;
+            left: 10px;
+            padding: 5px 10px;
+            font-size: 8px;
+          }
+
           .product-info {
             padding: 12px;
           }
@@ -916,6 +1015,19 @@ const AllProducts = () => {
 
           .product-price {
             font-size: 16px;
+          }
+
+          .stock-alert {
+            padding: 6px 10px;
+            margin-bottom: 10px;
+          }
+
+          .stock-icon {
+            font-size: 12px;
+          }
+
+          .stock-text {
+            font-size: 9px;
           }
 
           .action-buttons {
