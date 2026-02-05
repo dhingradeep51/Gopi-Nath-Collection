@@ -10,29 +10,28 @@ import slugify from "slugify";
 /* =====================================================
    CREATE PRODUCT (Updated for Multi-Photo & Specs)
    ===================================================== */
+/* =====================================================
+   CREATE PRODUCT
+   ===================================================== */
 export const createProductController = async (req, res) => {
   try {
     const { name, description, price, gstRate, category, quantity, productID, specifications } = req.fields;
-    const { photos } = req.files; // Note: 'photos' should be the key in your frontend form-data
+    const { photos } = req.files;
 
-    // 1. Validation
     if (!name || !description || !price || !category || !quantity || !productID) {
       return res.status(400).send({ success: false, message: "All required fields must be filled" });
     }
 
-    // 2. Parse Specifications
-    // Frontend should send specifications as a JSON string
     let parsedSpecs = {};
     if (specifications) {
       try {
-        parsedSpecs = JSON.parse(specifications);
+        parsedSpecs = typeof specifications === 'string' ? JSON.parse(specifications) : specifications;
       } catch (err) {
         return res.status(400).send({ success: false, message: "Invalid specifications format" });
       }
     }
 
     const uniqueSlug = slugify(`${name}-${productID}`);
-
     const product = new ProductModel({
       ...req.fields,
       specifications: parsedSpecs,
@@ -41,33 +40,32 @@ export const createProductController = async (req, res) => {
       slug: uniqueSlug,
     });
 
-    // 3. Multi-Photo Handling
+    // ✅ FIXED MULTI-PHOTO HANDLING
     if (photos) {
-      // If only one photo is uploaded, formidable might not wrap it in an array
+      // Force photos into an array to ensure map() works for 1 or more files
       const photoArray = Array.isArray(photos) ? photos : [photos];
 
-      const processedPhotos = photoArray.map((file) => {
-        if (file.size > 1000000) throw new Error(`${file.name} is too large (max 1MB)`);
+      product.photos = photoArray.map((file) => {
+        // Validation: 1MB limit per photo
+        if (file.size > 1000000) throw new Error(`${file.name || 'Photo'} is too large (max 1MB)`);
+        
         return {
-          data: fs.readFileSync(file.path),
-          contentType: file.type,
+          // Check for both 'path' and 'filepath' for compatibility
+          data: fs.readFileSync(file.path || file.filepath),
+          contentType: file.type || file.mimetype,
         };
       });
-      product.photos = processedPhotos;
     }
 
     await product.save();
     res.status(201).send({
       success: true,
       message: "Product Created Successfully",
-      product: { ...product._doc, photos: undefined }, // Don't send buffer back in response
+      product: { ...product._doc, photos: undefined }, 
     });
   } catch (error) {
     console.error(error);
-    res.status(500).send({
-      success: false,
-      message: error.message || "Error in creating product",
-    });
+    res.status(500).send({ success: false, message: error.message || "Error in creating product" });
   }
 };
 
@@ -79,40 +77,43 @@ export const updateProductController = async (req, res) => {
     const { name, description, price, gstRate, category, quantity, specifications } = req.fields;
     const { photos } = req.files;
 
-    let parsedSpecs = {};
-    if (specifications) {
-      parsedSpecs = JSON.parse(specifications);
+    // 1. First, find the product to ensure it exists
+    const product = await ProductModel.findById(req.params.pid);
+    if (!product) return res.status(404).send({ success: false, message: "Product not found" });
+
+    // 2. Update Standard Fields
+    let parsedSpecs = specifications;
+    if (typeof specifications === 'string') {
+        try { parsedSpecs = JSON.parse(specifications); } catch (e) {}
     }
 
-    const product = await ProductModel.findByIdAndUpdate(
-      req.params.pid,
-      {
-        ...req.fields,
-        specifications: parsedSpecs,
-        slug: slugify(name),
-      },
-      { new: true }
-    );
+    // Update product properties
+    product.name = name || product.name;
+    product.description = description || product.description;
+    product.price = price || product.price;
+    product.quantity = quantity || product.quantity;
+    product.category = category || product.category;
+    product.specifications = parsedSpecs || product.specifications;
+    if (name) product.slug = slugify(name);
 
-    // Update Photos only if new ones are uploaded
+    // 3. ✅ FIXED PHOTO UPDATE LOGIC
     if (photos) {
       const photoArray = Array.isArray(photos) ? photos : [photos];
+      
+      // Map all uploaded photos
       product.photos = photoArray.map((file) => ({
-        data: fs.readFileSync(file.path),
-        contentType: file.type,
+        data: fs.readFileSync(file.path || file.filepath),
+        contentType: file.type || file.mimetype,
       }));
     }
 
     await product.save();
-    res.status(200).send({
-      success: true,
-      message: "Product Updated Successfully",
-    });
+    res.status(200).send({ success: true, message: "Product Updated Successfully" });
   } catch (error) {
+    console.error(error);
     res.status(500).send({ success: false, message: "Update failed", error: error.message });
   }
 };
-
 /* =====================================================
    UPDATED PHOTO CONTROLLER (Handles Multiple)
    ===================================================== */
