@@ -19,14 +19,14 @@ const UpdateProduct = () => {
   const [description, setDescription] = useState("");
   const [shortDescription, setShortDescription] = useState("");
   const [price, setPrice] = useState("");
-  const [gstRate, setGstRate] = useState("18"); // ✅ GST Rate as percentage
+  const [gstRate, setGstRate] = useState("18");
   const [category, setCategory] = useState("");
   const [quantity, setQuantity] = useState("");
   const [shipping, setShipping] = useState("");
   const [productID, setProductID] = useState("");
 
   // ✅ NEW STATES FOR MULTIPLE PHOTOS & SPECS
-  const [photos, setPhotos] = useState([]); // Array for new files
+  const [photos, setPhotos] = useState([]); // Array for new files selected
   const [colors, setColors] = useState(""); // Input as comma separated string
   const [sizes, setSizes] = useState("");   // Input as comma separated string
   const [material, setMaterial] = useState("");
@@ -137,7 +137,7 @@ const UpdateProduct = () => {
       productData.append("gstRate", gstRate);
       productData.append("quantity", quantity);
       productData.append("category", category);
-      productData.append("shipping", shipping);
+      productData.append("shipping", shipping === "1" ? true : false);
       productData.append("productID", productID);
 
       // ✅ Append Multiple Photos
@@ -206,7 +206,12 @@ const UpdateProduct = () => {
               {photos.length > 0 ? (
                 photos.map((p, index) => <img key={index} src={URL.createObjectURL(p)} style={{ width: "80px", height: "80px", objectFit: "cover", border: `1px solid ${gold}22` }} />)
               ) : (
-                <img src={`${BASE_URL}api/v1/product/product-photo/${id}/0`} style={{ width: "100%", height: "200px", objectFit: "contain" }} alt="current" />
+                <img 
+                  src={`${BASE_URL}api/v1/product/product-photo/${id}/0`} 
+                  style={{ width: "100%", height: "200px", objectFit: "contain" }} 
+                  alt="current" 
+                  onError={(e) => { e.target.src = "https://placehold.co/300?text=No+Image"; }}
+                />
               )}
             </div>
             <label style={{ display: "block", textAlign: "center", border: `1px solid ${gold}`, color: gold, padding: "12px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>
@@ -229,17 +234,17 @@ const UpdateProduct = () => {
             
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "15px" }}>
               <div>
-                <span style={labelStyle}>Colors</span>
-                <input type="text" value={colors} placeholder="Red, Gold..." style={inputStyle} onChange={(e) => setColors(e.target.value)} />
+                <span style={labelStyle}>Colors (Comma Separated)</span>
+                <input type="text" value={colors} placeholder="Red, Gold, Blue" style={inputStyle} onChange={(e) => setColors(e.target.value)} />
               </div>
               <div>
-                <span style={labelStyle}>Sizes</span>
-                <input type="text" value={sizes} placeholder="S, M, L..." style={inputStyle} onChange={(e) => setSizes(e.target.value)} />
+                <span style={labelStyle}>Sizes (Comma Separated)</span>
+                <input type="text" value={sizes} placeholder="S, M, L, XL" style={inputStyle} onChange={(e) => setSizes(e.target.value)} />
               </div>
             </div>
 
             <span style={labelStyle}>Material / Fabric</span>
-            <input type="text" value={material} style={inputStyle} onChange={(e) => setMaterial(e.target.value)} />
+            <input type="text" value={material} placeholder="Pure Cotton, Silk, Brass" style={inputStyle} onChange={(e) => setMaterial(e.target.value)} />
             
             <span style={labelStyle}>Short Description</span>
             <textarea rows="2" value={shortDescription} style={{ ...inputStyle, resize: "none" }} onChange={(e) => setShortDescription(e.target.value)} />

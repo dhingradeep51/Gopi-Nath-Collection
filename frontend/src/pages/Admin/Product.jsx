@@ -3,7 +3,7 @@ import AdminMenu from "../../components/Menus/AdminMenu";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
-import { FaTrash, FaEdit, FaPlus, FaImage } from "react-icons/fa";
+import { FaTrash, FaEdit, FaPlus } from "react-icons/fa";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
@@ -28,7 +28,7 @@ const Products = () => {
 
   const handleDelete = async (pid) => {
     try {
-      const confirm = window.confirm("Are you sure you want to remove this item from the collection?");
+      const confirm = window.confirm("Are you sure you want to remove this item?");
       if (!confirm) return;
       const { data } = await axios.delete(`${BASE_URL}api/v1/product/delete-product/${pid}`);
       if (data.success) {
@@ -75,8 +75,6 @@ const Products = () => {
           border-bottom: 1px solid rgba(212,175,55,0.2);
           flex-wrap: wrap;
         }
-
-        .prod-header-left { display: flex; flex-direction: column; gap: 6px; }
 
         .prod-page-title {
           font-family: 'Playfair Display', serif;
@@ -137,11 +135,6 @@ const Products = () => {
           transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
 
-        .prod-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 8px 30px rgba(212,175,55,0.15);
-        }
-
         .prod-img-wrap {
           height: 240px;
           background: #fff;
@@ -169,7 +162,6 @@ const Products = () => {
           font-size: 0.68rem;
           font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
           color: #fff;
           backdrop-filter: blur(6px);
         }
@@ -186,26 +178,18 @@ const Products = () => {
           border-bottom: 1px solid rgba(212,175,55,0.12);
         }
 
-        .prod-meta-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 6px;
-        }
-
         .prod-category {
           font-size: 0.7rem;
           color: ${gold};
           font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
         }
 
         .prod-product-id {
           font-size: 0.68rem;
           color: ${gold};
           opacity: 0.5;
-          letter-spacing: 0.5px;
+          display: block;
         }
 
         .prod-name {
@@ -259,7 +243,6 @@ const Products = () => {
           align-items: center;
           justify-content: center;
           gap: 7px;
-          text-transform: uppercase;
           transition: all 0.3s;
         }
 
@@ -279,10 +262,6 @@ const Products = () => {
         @media (max-width: 768px) {
           .prod-grid { grid-template-columns: repeat(2, 1fr); gap: 14px; }
           .prod-img-wrap { height: 180px; }
-        }
-
-        @media (max-width: 480px) {
-          .prod-grid { grid-template-columns: 1fr; }
         }
       `}</style>
 
@@ -316,10 +295,10 @@ const Products = () => {
                       src={photoUrl}
                       alt={p.name}
                       className="prod-img"
-                      // Fallback if image fails to load
+                      // ✅ FIXED: Using placehold.co (more stable) or a local path
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = "https://via.placeholder.com/300?text=No+Image";
+                        e.target.src = "https://placehold.co/300?text=No+Image";
                       }}
                     />
                     <span className={`prod-stock-badge ${stockClass}`}>
@@ -329,11 +308,9 @@ const Products = () => {
 
                   <div className="prod-info">
                     <div className="prod-meta">
-                      <div className="prod-meta-top">
-                        <span className="prod-category">
-                          CAT: {p.category?.name || "Uncategorized"}
-                        </span>
-                      </div>
+                      <span className="prod-category">
+                        CAT: {p.category?.name || "Uncategorized"}
+                      </span>
                       <span className="prod-product-id">
                         PRODUCT ID: {p.productID || "N/A"}
                       </span>
