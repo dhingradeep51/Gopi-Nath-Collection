@@ -3,25 +3,21 @@ import categoryModel from "../Models/categoryModel.js";
 import fs from "fs";
 import slugify from "slugify";
 
-/* =====================================================
-   CREATE PRODUCTa
-   ===================================================== */
 
 /* =====================================================
    CREATE PRODUCT (Updated for Multi-Photo & Specs)
-   ===================================================== */
-/* =====================================================
-   CREATE PRODUCT
    ===================================================== */
 export const createProductController = async (req, res) => {
   try {
     const { name, description, price, gstRate, category, quantity, productID, specifications } = req.fields;
     const { photos } = req.files;
 
+    // 1. Validation
     if (!name || !description || !price || !category || !quantity || !productID) {
       return res.status(400).send({ success: false, message: "All required fields must be filled" });
     }
 
+    // 2. Parse Specifications
     let parsedSpecs = {};
     if (specifications) {
       try {
@@ -40,17 +36,17 @@ export const createProductController = async (req, res) => {
       slug: uniqueSlug,
     });
 
-    // ✅ FIXED MULTI-PHOTO HANDLING
+    // 3. ✅ ROBUST MULTI-PHOTO HANDLING
     if (photos) {
-      // Force photos into an array to ensure map() works for 1 or more files
+      // Force photos into an array to handle 1 or more files consistently
       const photoArray = Array.isArray(photos) ? photos : [photos];
 
       product.photos = photoArray.map((file) => {
-        // Validation: 1MB limit per photo
+        // Validation: 1MB limit per photo to stay within 16MB BSON limit
         if (file.size > 1000000) throw new Error(`${file.name || 'Photo'} is too large (max 1MB)`);
         
         return {
-          // Check for both 'path' and 'filepath' for compatibility
+          // Compatibility for different Formidable versions
           data: fs.readFileSync(file.path || file.filepath),
           contentType: file.type || file.mimetype,
         };
@@ -77,17 +73,15 @@ export const updateProductController = async (req, res) => {
     const { name, description, price, gstRate, category, quantity, specifications } = req.fields;
     const { photos } = req.files;
 
-    // 1. First, find the product to ensure it exists
     const product = await ProductModel.findById(req.params.pid);
     if (!product) return res.status(404).send({ success: false, message: "Product not found" });
 
-    // 2. Update Standard Fields
     let parsedSpecs = specifications;
     if (typeof specifications === 'string') {
         try { parsedSpecs = JSON.parse(specifications); } catch (e) {}
     }
 
-    // Update product properties
+    // Update fields
     product.name = name || product.name;
     product.description = description || product.description;
     product.price = price || product.price;
@@ -96,11 +90,11 @@ export const updateProductController = async (req, res) => {
     product.specifications = parsedSpecs || product.specifications;
     if (name) product.slug = slugify(name);
 
-    // 3. ✅ FIXED PHOTO UPDATE LOGIC
+    // ✅ UPDATE PHOTO LOGIC
     if (photos) {
       const photoArray = Array.isArray(photos) ? photos : [photos];
       
-      // Map all uploaded photos
+      // Overwrites existing photos with new set
       product.photos = photoArray.map((file) => ({
         data: fs.readFileSync(file.path || file.filepath),
         contentType: file.type || file.mimetype,
@@ -114,9 +108,6 @@ export const updateProductController = async (req, res) => {
     res.status(500).send({ success: false, message: "Update failed", error: error.message });
   }
 };
-/* =====================================================
-   UPDATED PHOTO CONTROLLER (Handles Multiple)
-   ===================================================== */
 // This gets a SPECIFIC photo from the array by index
 export const productPhotoController = async (req, res) => {
   try {
