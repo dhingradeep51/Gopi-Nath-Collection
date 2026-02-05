@@ -58,12 +58,6 @@ io.on("connection", (socket) => {
 });
 
 // --- MIDDLEWARES ---
-app.use(cors({
-  origin: ["https://gopinathcollection.co.in", "http://localhost:5173", "http://localhost:3000"],
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true,
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
 
 app.use(express.json());
 app.use(morgan('dev'));
