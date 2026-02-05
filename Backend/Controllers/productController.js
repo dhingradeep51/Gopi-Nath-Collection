@@ -6,10 +6,6 @@ import slugify from "slugify";
 /* =====================================================
    CREATE PRODUCTa
    ===================================================== */
-import ProductModel from "../Models/productModel.js";
-import categoryModel from "../Models/categoryModel.js";
-import fs from "fs";
-import slugify from "slugify";
 
 /* =====================================================
    CREATE PRODUCT (Updated for Multi-Photo & Specs)
