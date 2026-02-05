@@ -25,8 +25,13 @@ const UpdateProduct = () => {
   const [shipping, setShipping] = useState("");
   const [productID, setProductID] = useState("");
 
-  // ✅ NEW STATES FOR MULTIPLE PHOTOS & SPECS
+  // ✅ STATES FOR MULTIPLE PHOTOS & SPECS
   const [photos, setPhotos] = useState([]); // Array for new files selected
+  // ✅ ADDED INDIVIDUAL SLOTS FOR THE UI
+  const [photoSlot1, setPhotoSlot1] = useState(null);
+  const [photoSlot2, setPhotoSlot2] = useState(null);
+  const [photoSlot3, setPhotoSlot3] = useState(null);
+
   const [colors, setColors] = useState(""); // Input as comma separated string
   const [sizes, setSizes] = useState("");   // Input as comma separated string
   const [material, setMaterial] = useState("");
@@ -57,6 +62,22 @@ const UpdateProduct = () => {
     color: "#333",
     borderRadius: "2px",
     outline: "none"
+  };
+
+  // ✅ Added specific style for individual containers
+  const containerStyle = {
+    background: "white",
+    width: "100%",
+    height: "140px",
+    border: `1px solid ${gold}44`,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: "15px",
+    borderRadius: "2px",
+    overflow: "hidden",
+    cursor: "pointer"
   };
 
   // ✅ Calculate GST breakdown for preview
@@ -120,7 +141,7 @@ const UpdateProduct = () => {
     getSingleProduct();
   }, []);
 
-  // ✅ Handle update
+  // ✅ Updated logic to combine slots into the photos array before sending
   const handleUpdate = async (e) => {
     e.preventDefault();
     if (!name || !description || !price || !category || !quantity) {
@@ -140,8 +161,13 @@ const UpdateProduct = () => {
       productData.append("shipping", shipping === "1"); // Convert back to boolean
       productData.append("productID", productID);
 
-      // ✅ Append Multiple Photos
-      if (photos.length > 0) {
+      // ✅ Combine the Slot States into the FormData
+      if (photoSlot1) productData.append("photos", photoSlot1);
+      if (photoSlot2) productData.append("photos", photoSlot2);
+      if (photoSlot3) productData.append("photos", photoSlot3);
+
+      // Support for the original array state if slots aren't used
+      if (photos.length > 0 && !photoSlot1 && !photoSlot2 && !photoSlot3) {
         photos.forEach((file) => {
           productData.append("photos", file);
         });
@@ -199,24 +225,53 @@ const UpdateProduct = () => {
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1.5fr 1fr", gap: "60px", opacity: loading ? 0.5 : 1, pointerEvents: loading ? "none" : "auto" }}>
           
-          {/* Column 1: Image Preview & Category */}
+          {/* Column 1: Multiple Image Containers */}
           <div>
-            <span style={labelStyle}>Product Images (Multiple)</span>
-            <div style={{ background: "white", width: "100%", minHeight: "250px", border: `1px solid ${gold}44`, display: "flex", flexWrap: "wrap", gap: "10px", padding: "10px", alignItems: "center", justifyContent: "center", marginBottom: "15px", borderRadius: "2px" }}>
-              {photos.length > 0 ? (
-                photos.map((p, index) => <img key={index} src={URL.createObjectURL(p)} style={{ width: "80px", height: "80px", objectFit: "cover", border: `1px solid ${gold}22` }} alt="preview" />)
+            <span style={labelStyle}>Product Images (Individual Slots)</span>
+            
+            {/* Slot 1 */}
+            <label style={containerStyle}>
+              {photoSlot1 ? (
+                <img src={URL.createObjectURL(photoSlot1)} style={{ width: "100%", height: "100%", objectFit: "contain" }} alt="preview1" />
               ) : (
                 <img 
-                    src={`${BASE_URL}api/v1/product/product-photo/${id}/0`} 
-                    style={{ width: "100%", height: "200px", objectFit: "contain" }} 
-                    alt="current" 
-                    onError={(e) => { e.target.src = "https://placehold.co/300?text=No+Image+Available"; }}
+                  src={`${BASE_URL}api/v1/product/product-photo/${id}/0`} 
+                  style={{ width: "100%", height: "100%", objectFit: "contain" }} 
+                  alt="Current Slot 1" 
+                  onError={(e) => { e.target.src = "https://placehold.co/300?text=Slot+1+Empty"; }}
                 />
               )}
-            </div>
-            <label style={{ display: "block", textAlign: "center", border: `1px solid ${gold}`, color: gold, padding: "12px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>
-              {photos.length > 0 ? "CHANGE SELECTED IMAGES" : "UPLOAD NEW IMAGES"}
-              <input type="file" accept="image/*" multiple onChange={(e) => setPhotos([...e.target.files])} hidden />
+              <input type="file" accept="image/*" onChange={(e) => setPhotoSlot1(e.target.files[0])} hidden />
+            </label>
+
+            {/* Slot 2 */}
+            <label style={containerStyle}>
+              {photoSlot2 ? (
+                <img src={URL.createObjectURL(photoSlot2)} style={{ width: "100%", height: "100%", objectFit: "contain" }} alt="preview2" />
+              ) : (
+                <img 
+                  src={`${BASE_URL}api/v1/product/product-photo/${id}/1`} 
+                  style={{ width: "100%", height: "100%", objectFit: "contain" }} 
+                  alt="Current Slot 2" 
+                  onError={(e) => { e.target.src = "https://placehold.co/300?text=Slot+2+Empty"; }}
+                />
+              )}
+              <input type="file" accept="image/*" onChange={(e) => setPhotoSlot2(e.target.files[0])} hidden />
+            </label>
+
+            {/* Slot 3 */}
+            <label style={containerStyle}>
+              {photoSlot3 ? (
+                <img src={URL.createObjectURL(photoSlot3)} style={{ width: "100%", height: "100%", objectFit: "contain" }} alt="preview3" />
+              ) : (
+                <img 
+                  src={`${BASE_URL}api/v1/product/product-photo/${id}/2`} 
+                  style={{ width: "100%", height: "100%", objectFit: "contain" }} 
+                  alt="Current Slot 3" 
+                  onError={(e) => { e.target.src = "https://placehold.co/300?text=Slot+3+Empty"; }}
+                />
+              )}
+              <input type="file" accept="image/*" onChange={(e) => setPhotoSlot3(e.target.files[0])} hidden />
             </label>
 
             <div style={{ marginTop: "35px" }}>

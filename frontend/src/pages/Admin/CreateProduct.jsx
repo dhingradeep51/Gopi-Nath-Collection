@@ -23,15 +23,19 @@ const CreateProduct = () => {
   const [shipping, setShipping] = useState("");
   const [productID, setProductID] = useState("");
 
-  // ✅ MULTIPLE PHOTOS & SPECIFICATIONS STATES
-  const [photos, setPhotos] = useState([]); // Array for multiple files
-  const [colors, setColors] = useState(""); // Input as comma separated string
-  const [sizes, setSizes] = useState("");   // Input as comma separated string
+  // ✅ STATES FOR MULTIPLE PHOTOS & SPECS
+  const [photos, setPhotos] = useState([]); 
+  // ✅ INDIVIDUAL SLOTS FOR THE UI CONTAINERS
+  const [photoSlot1, setPhotoSlot1] = useState(null);
+  const [photoSlot2, setPhotoSlot2] = useState(null);
+  const [photoSlot3, setPhotoSlot3] = useState(null);
+
+  const [colors, setColors] = useState(""); 
+  const [sizes, setSizes] = useState("");   
   const [material, setMaterial] = useState("");
 
   const BASE_URL = import.meta.env.VITE_API_URL;
 
-  // Theme Styles
   const gold = "#D4AF37";
   const softCream = "#FDF5E6"; 
   const primary = "#0f0c29";
@@ -56,6 +60,22 @@ const CreateProduct = () => {
     color: "#333", 
     borderRadius: "2px", 
     outline: "none" 
+  };
+
+  // ✅ Added specific style for individual containers
+  const containerStyle = {
+    background: "white",
+    width: "100%",
+    height: "140px",
+    border: `1px solid ${gold}44`,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: "15px",
+    borderRadius: "2px",
+    overflow: "hidden",
+    cursor: "pointer"
   };
 
   const calculateGSTBreakdown = () => {
@@ -107,12 +127,11 @@ const CreateProduct = () => {
       productData.append("shipping", shipping);
       productData.append("productID", productID);
 
-      // ✅ APPEND EACH PHOTO INDIVIDUALLY TO THE SAME KEY "photos"
-      photos.forEach((file) => {
-        productData.append("photos", file);
-      });
+      // ✅ APPEND EACH PHOTO FROM SLOTS INDIVIDUALLY
+      if (photoSlot1) productData.append("photos", photoSlot1);
+      if (photoSlot2) productData.append("photos", photoSlot2);
+      if (photoSlot3) productData.append("photos", photoSlot3);
 
-      // ✅ CONSTRUCT SPECIFICATIONS (Stringified JSON)
       const specs = {
         colors: colors.split(",").map(c => c.trim()).filter(c => c !== ""),
         sizes: sizes.split(",").map(s => s.trim()).filter(s => s !== ""),
@@ -157,55 +176,38 @@ const CreateProduct = () => {
           pointerEvents: loading ? "none" : "auto" 
         }}>
           
-          {/* Column 1: Multi-Image Preview */}
+          {/* Column 1: Individual Image Containers */}
           <div>
-            <span style={labelStyle}>Product Images (Multiple)</span>
-            <div style={{ 
-              background: "white", 
-              width: "100%", 
-              minHeight: "250px", 
-              border: `1px solid ${gold}44`, 
-              display: "flex", 
-              flexWrap: "wrap",
-              gap: "10px",
-              padding: "10px",
-              alignItems: "center", 
-              justifyContent: "center", 
-              marginBottom: "15px", 
-              borderRadius: "2px", 
-              overflowY: "auto" 
-            }}>
-              {photos.length > 0 ? (
-                photos.map((p, index) => (
-                  <img 
-                    key={index}
-                    src={URL.createObjectURL(p)} 
-                    alt="preview" 
-                    style={{ width: "80px", height: "80px", objectFit: "cover", border: `1px solid ${gold}22` }} 
-                  />
-                ))
+            <span style={labelStyle}>Product Images (Individual Containers)</span>
+            
+            {/* Slot 1 */}
+            <label style={containerStyle}>
+              {photoSlot1 ? (
+                <img src={URL.createObjectURL(photoSlot1)} style={{ width: "100%", height: "100%", objectFit: "contain" }} alt="preview1" />
               ) : (
-                <span style={{ color: "#999", fontSize: "12px" }}>No Images Uploaded</span>
+                <span style={{ color: "#999", fontSize: "12px" }}>Upload Main Image (Slot 1)</span>
               )}
-            </div>
-            <label style={{ 
-              display: "block", 
-              textAlign: "center", 
-              border: `1px solid ${gold}`, 
-              color: gold, 
-              padding: "12px", 
-              cursor: "pointer", 
-              fontSize: "12px", 
-              fontWeight: "bold" 
-            }}>
-              CHOOSE FILES
-              <input 
-                type="file" 
-                accept="image/*" 
-                multiple // ✅ Allows multiple selection
-                onChange={(e) => setPhotos([...e.target.files])} 
-                hidden 
-              />
+              <input type="file" accept="image/*" onChange={(e) => setPhotoSlot1(e.target.files[0])} hidden />
+            </label>
+
+            {/* Slot 2 */}
+            <label style={containerStyle}>
+              {photoSlot2 ? (
+                <img src={URL.createObjectURL(photoSlot2)} style={{ width: "100%", height: "100%", objectFit: "contain" }} alt="preview2" />
+              ) : (
+                <span style={{ color: "#999", fontSize: "12px" }}>Upload Side Image (Slot 2)</span>
+              )}
+              <input type="file" accept="image/*" onChange={(e) => setPhotoSlot2(e.target.files[0])} hidden />
+            </label>
+
+            {/* Slot 3 */}
+            <label style={containerStyle}>
+              {photoSlot3 ? (
+                <img src={URL.createObjectURL(photoSlot3)} style={{ width: "100%", height: "100%", objectFit: "contain" }} alt="preview3" />
+              ) : (
+                <span style={{ color: "#999", fontSize: "12px" }}>Upload Detail Image (Slot 3)</span>
+              )}
+              <input type="file" accept="image/*" onChange={(e) => setPhotoSlot3(e.target.files[0])} hidden />
             </label>
 
             <div style={{ marginTop: "35px" }}>
