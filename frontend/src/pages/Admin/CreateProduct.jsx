@@ -202,7 +202,7 @@ const CreateProduct = () => {
               <input 
                 type="file" 
                 accept="image/*" 
-                multiple // ✅ CRITICAL: Allows multiple selection
+                multiple // ✅ Allows multiple selection
                 onChange={(e) => setPhotos([...e.target.files])} 
                 hidden 
               />
