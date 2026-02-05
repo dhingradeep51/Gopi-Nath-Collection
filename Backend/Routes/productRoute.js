@@ -34,10 +34,10 @@ router.get("/get-product", getAllProductsController);
 router.get("/get-product/:slug", getSingleProductController);
 
 // Get Photo
-router.get("/product-photo/:pid", productPhotoController);
+router.get("/product-photo/:pid/:index?", productPhotoController);
 
 // Delete Product
-router.delete("/delete-product/:pid:index?", requireSignIn, isAdmin, deleteProductController);
+router.delete("/delete-product/:pid", requireSignIn, isAdmin, deleteProductController);
 
 // Filter Products
 router.post("/product-filters", productFiltersController);
