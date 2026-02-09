@@ -38,67 +38,76 @@ const RegisterPage = () => {
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const handleSendOtp = async () => {
-    if (!formData.email) return toast.error("Please enter your email");
-    try {
-      setLoading(true);
-      const { data } = await axios.post(`${BASE_URL}api/v1/auth/send-otp`, { 
-        email: formData.email, 
-        purpose: "register" 
-      });
-      if (data.success) {
-        setOtpSent(true);
-        setTimer(60);
-        toast.success("OTP Sent to your email!");
-      }
-    } catch (error) {
-      // ✅ Handling Too Many Requests (429 Error)
-      if (error.response?.status === 429) {
-        toast.error("Too many requests. Please try again in a few minutes.");
-      } else {
-        toast.error(error.response?.data?.message || "Error sending OTP");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  // 1. Send OTP (Updated with 30s Timeout)
+const handleSendOtp = async () => {
+  if (!formData.email) return toast.error("Please enter your email");
+  
+  setLoading(true);
+  try {
+    const { data } = await axios.post(
+      `${BASE_URL}api/v1/auth/send-otp`,
+      { email: formData.email, purpose: "register" },
+      { timeout: 30000 } // 30 seconds wait time
+    );
 
-  const handleVerifyOtp = async () => {
-    try {
-      setLoading(true);
-      const { data } = await axios.post(`${BASE_URL}api/v1/auth/verify-otp`, { 
-        email: formData.email, 
-        otp: formData.otp 
-      });
-      if (data.success) {
-        setIsVerified(true);
-        setTimer(0);
-        toast.success("Identity Verified!");
-      }
-    } catch (error) {
-      toast.error("Invalid or Expired OTP");
-    } finally {
-      setLoading(false);
+    if (data.success) {
+      setOtpSent(true);
+      setTimer(60);
+      toast.success("OTP Sent to your email!");
     }
-  };
+  } catch (error) {
+    if (error.code === 'ECONNABORTED') {
+      toast.error("Server is waking up, please try again in a moment.");
+    } else if (error.response?.status === 429) {
+      toast.error("Too many requests. Please try again later.");
+    } else {
+      toast.error(error.response?.data?.message || "Error sending OTP");
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const handleSubmit = async (e) => {
+// 2. Verify OTP (Updated with 30s Timeout)
+const handleVerifyOtp = async () => {
+  if (!formData.otp) return toast.error("Please enter the verification code");
+
+  setLoading(true);
+  try {
+    const { data } = await axios.post(
+      `${BASE_URL}api/v1/auth/verify-otp`,
+      { email: formData.email, otp: formData.otp },
+      { timeout: 30000 }
+    );
+
+    if (data.success) {
+      setIsVerified(true);
+      setTimer(0);
+      toast.success("Identity Verified!");
+    }
+  } catch (error) {
+    toast.error(error.response?.data?.message || "Invalid or Expired OTP");
+  } finally {
+    setLoading(false);
+  }
+};
+
+// 3. Final Registration (Updated with 30s Timeout)
+const handleSubmit = async (e) => {
   e.preventDefault();
 
   if (formData.password !== formData.confirmPassword) {
     return toast.error("Passwords do not match");
   }
 
+  setLoading(true);
   try {
-    setLoading(true);
-
     const payload = {
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
       password: formData.password,
       otp: formData.otp,
-
       address: {
         fullAddress: formData.address,
         city: formData.city,
@@ -107,12 +116,15 @@ const RegisterPage = () => {
       }
     };
 
-    const { data } = await axios.post(`${BASE_URL}api/v1/auth/register`, payload);
+    const { data } = await axios.post(
+      `${BASE_URL}api/v1/auth/register`, 
+      payload,
+      { timeout: 30000 }
+    );
 
     if (data.success) {
       setAuth({ ...auth, user: data.user, token: data.token });
       localStorage.setItem("auth", JSON.stringify(data));
-
       toast.success("Registration Successful!");
       navigate("/");
     }
