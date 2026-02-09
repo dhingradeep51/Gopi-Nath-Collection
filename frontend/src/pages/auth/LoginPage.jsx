@@ -79,70 +79,81 @@ const LoginPage = () => {
   };
 
   // 1. Send OTP
-  const handleSendOtp = async () => {
-    if (!formData.email.trim()) {
-      return toast.error("Please enter your registered email");
-    }
+  // 1. Send OTP (Updated with Timeout)
+const handleSendOtp = async () => {
+  if (!formData.email.trim()) {
+    return toast.error("Please enter your registered email");
+  }
 
-    setErrorMsg("");
-    setLoading(true);
+  setErrorMsg("");
+  setLoading(true);
 
-    try {
-      const { data } = await axios.post(`${BASE_URL}api/v1/auth/send-otp`, {
+  try {
+    // Added 30 second timeout to wait for Render cold starts
+    const { data } = await axios.post(
+      `${BASE_URL}api/v1/auth/send-otp`,
+      {
         email: formData.email,
         purpose: "login",
-      });
+      },
+      { timeout: 30000 } 
+    );
 
-      if (data.success) {
-        setOtpSent(true);
-        setTimer(OTP_TIMER_DURATION);
-        toast.success("Login OTP sent to your email!");
-      } else {
-        setErrorMsg(data.message || "Failed to send OTP");
-      }
-    } catch (error) {
-      const message = error.response?.data?.message || "Error sending OTP. Please try again.";
-      setErrorMsg(message);
-      toast.error(message);
-    } finally {
-      setLoading(false);
+    if (data.success) {
+      setOtpSent(true);
+      setTimer(OTP_TIMER_DURATION);
+      toast.success("Login OTP sent to your email!");
+    } else {
+      setErrorMsg(data.message || "Failed to send OTP");
     }
-  };
+  } catch (error) {
+    console.error("OTP Error:", error);
+    const message = 
+      error.code === 'ECONNABORTED' 
+        ? "Server is taking too long to respond. Please try again." 
+        : error.response?.data?.message || "Error sending OTP.";
+    
+    setErrorMsg(message);
+    toast.error(message);
+  } finally {
+    setLoading(false);
+  }
+};
 
-  // 2. Verify OTP
-  const handleVerifyOtp = async () => {
-    if (!formData.otp.trim()) {
-      return toast.error("Please enter the 6-digit code");
-    }
+// 2. Verify OTP (Updated with Timeout)
+const handleVerifyOtp = async () => {
+  if (!formData.otp.trim()) {
+    return toast.error("Please enter the 6-digit code");
+  }
 
-    if (formData.otp.length !== 6) {
-      return toast.error("OTP must be 6 digits");
-    }
+  setErrorMsg("");
+  setLoading(true);
 
-    setErrorMsg("");
-    setLoading(true);
-
-    try {
-      const { data } = await axios.post(`${BASE_URL}api/v1/auth/verify-otp`, {
+  try {
+    const { data } = await axios.post(
+      `${BASE_URL}api/v1/auth/verify-otp`, 
+      {
         email: formData.email,
         otp: formData.otp,
-      });
+      },
+      { timeout: 20000 }
+    );
 
-      if (data.success) {
-        setIsVerified(true);
-        setTimer(0);
-        toast.success("OTP Verified! Enter password to continue.");
-      } else {
-        setErrorMsg(data.message || "Invalid OTP");
-      }
-    } catch (error) {
-      const message = error.response?.data?.message || "Invalid OTP. Please try again.";
-      setErrorMsg(message);
-      toast.error(message);
-    } finally {
-      setLoading(false);
+    if (data.success) {
+      setIsVerified(true);
+      setTimer(0);
+      toast.success("OTP Verified! Enter password to continue.");
+    } else {
+      setErrorMsg(data.message || "Invalid OTP");
     }
-  };
+  } catch (error) {
+    const message = error.response?.data?.message || "Invalid OTP. Please try again.";
+    setErrorMsg(message);
+    toast.error(message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // 3. Final Login
   const handleSubmit = async (e) => {

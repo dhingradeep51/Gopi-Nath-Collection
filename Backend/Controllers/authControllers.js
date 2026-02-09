@@ -4,12 +4,13 @@ import nodemailer from "nodemailer";
 import JWT from "jsonwebtoken";
 import axios from "axios"; // ✅ Ensure axios is installed: npm install axios
 
-//hello
+// Ensure path is correct
+
 export const sendOTPController = async (req, res) => {
   try {
     const { email, purpose } = req.body;
 
-    // 1. Better Input Validation
+    // 1. Validation
     if (!email || !purpose) {
       return res.status(400).send({
         success: false,
@@ -17,27 +18,39 @@ export const sendOTPController = async (req, res) => {
       });
     }
 
-    // Convert email to lowercase to prevent duplicate records
     const normalizedEmail = email.toLowerCase().trim();
-
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const otpExpires = new Date(Date.now() + 5 * 60 * 1000);
+    const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 Minutes
 
-    // 2. Database Operation
-    await UserModel.findOneAndUpdate(
-      { email: normalizedEmail },
-      {
-        $set: { email: normalizedEmail, otp, otpExpires },
-        $setOnInsert: {
-          name: "Pending",
-          phone: "0000000000",
-          address: { fullAddress: "Pending", city: "Pending", state: "Pending", pincode: "000000" },
-          status: "Active",
+    // 2. Database Operation with Timeout/Error Handling
+    try {
+      await UserModel.findOneAndUpdate(
+        { email: normalizedEmail },
+        {
+          $set: { email: normalizedEmail, otp, otpExpires },
+          $setOnInsert: {
+            name: "Pending",
+            phone: "0000000000",
+            address: { 
+              fullAddress: "Pending", 
+              city: "Pending", 
+              state: "Pending", 
+              pincode: "000000" 
+            },
+            status: "Active",
+          },
         },
-      },
-      { upsert: true, new: true }
-    );
+        { upsert: true, new: true, maxTimeMS: 5000 } // Fail if DB takes > 5s
+      );
+    } catch (dbError) {
+      console.error("Database Error:", dbError.message);
+      return res.status(500).send({
+        success: false,
+        message: "Database connection busy. Please try again.",
+      });
+    }
 
+    // 3. Email Template
     const htmlContent = `
       <div style="font-family: serif; max-width: 600px; margin: auto; border: 2px solid #D4AF37; padding: 40px; background-color: #2D0A14; color: white; text-align: center;">
         <h1 style="color: #D4AF37;">GOPI NATH COLLECTION</h1>
@@ -51,7 +64,9 @@ export const sendOTPController = async (req, res) => {
       </div>
     `;
 
-    // 3. Robust Brevo API Call
+    // 4. Brevo API Call with targeted error handling
+    console.log(`Sending OTP to Brevo for: ${normalizedEmail}`);
+    
     await axios.post(
       "https://api.brevo.com/v3/smtp/email",
       {
@@ -65,40 +80,39 @@ export const sendOTPController = async (req, res) => {
           "api-key": process.env.BREVO_API_KEY,
           "Content-Type": "application/json",
         },
-        timeout: 8000, // 👈 Stop the "Pending" state if API doesn't respond in 8s
+        timeout: 15000, // Increased to 15s to prevent Render disconnects
       }
     );
 
-    res.status(200).send({
+    return res.status(200).send({
       success: true,
-      message: "OTP sent successfully via API",
+      message: "OTP sent successfully",
     });
 
   } catch (error) {
-    // 4. Detailed Error Handling
     console.error("--- SEND OTP ERROR ---");
     
-    // Check if it's a Brevo error (e.g., wrong API key or unverified sender)
+    // Handle Brevo specific response errors
     if (error.response) {
-      console.error("Brevo Response:", error.response.data);
+      console.error("Brevo Error Data:", error.response.data);
       return res.status(error.response.status).send({
         success: false,
-        message: "Email service rejected the request",
-        error: error.response.data.message || "Brevo configuration error",
+        message: "Email service error",
+        error: error.response.data.message || "Configuration error",
       });
     }
 
-    // Check for timeouts
+    // Handle Timeouts
     if (error.code === 'ECONNABORTED') {
       return res.status(504).send({
         success: false,
-        message: "Email service timed out. Please try again.",
+        message: "Request took too long. Please try again.",
       });
     }
 
-    res.status(500).send({
+    return res.status(500).send({
       success: false,
-      message: "An internal server error occurred",
+      message: "Internal server error",
       error: error.message,
     });
   }
