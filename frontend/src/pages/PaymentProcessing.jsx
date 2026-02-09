@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useAuth } from "../../context/auth"; // Ensure path is correct
+import { useAuth } from "../context/auth"; // Ensure path is correct
 
 const BASE_URL = import.meta.env.VITE_API_URL || "/";
 
