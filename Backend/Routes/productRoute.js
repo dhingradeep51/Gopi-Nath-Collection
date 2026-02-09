@@ -21,11 +21,23 @@ const router = express.Router();
 
 // --- PRODUCT ROUTES ---
 
-// Create Product
-router.post("/create-product", requireSignIn, isAdmin, createProductController);
+// Create Product - Added formidable locally
+router.post(
+  "/create-product", 
+  requireSignIn, 
+  isAdmin, 
+  formidable({ multiples: true, maxFileSize: 20 * 1024 * 1024 }), 
+  createProductController
+);
 
-// Update Product
-router.put("/update-product/:pid", requireSignIn, isAdmin, updateProductController);
+// Update Product - Added formidable locally
+router.put(
+  "/update-product/:pid", 
+  requireSignIn, 
+  isAdmin, 
+  formidable({ multiples: true, maxFileSize: 20 * 1024 * 1024 }), 
+  updateProductController
+);
 
 // Get All Products
 router.get("/get-product", getAllProductsController);
@@ -48,13 +60,15 @@ router.get("/product-count", productCountController);
 // Category Wise Product
 router.get("/product-category/:slug", productCategoryController);
 
-// Reviews (Linked to Product ID)
+/**
+ * Note: Your Review route uses 'upload.single' (Multer). 
+ * Do NOT use formidable and Multer on the same route as they will conflict.
+ */
 router.post("/add-review/:pid", requireSignIn, upload.single("attachment"), addReviewController);
 
 router.get("/search-suggest/:keyword", getSearchSuggestionsController);
 
 // Search product route
 router.get("/search/:keyword", searchProductController);
-
 
 export default router;
