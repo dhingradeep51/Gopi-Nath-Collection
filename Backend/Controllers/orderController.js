@@ -390,7 +390,7 @@ export const getOrderByIdController = async (req, res) => {
       .populate("buyer", "name phone email address city state pincode")
       .populate({
         path: "paymentDetails",
-        select: "status method transactionId amount"
+        select: "status method transactionId merchantTransactionId amount"
       });
 
     if (!order) {

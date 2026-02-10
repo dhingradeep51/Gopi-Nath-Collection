@@ -817,7 +817,7 @@ const OrderDetails = () => {
             <div className="info-row">
               <FaCreditCard color={colors.gold} style={{ flexShrink: 0, marginTop: '2px' }} />
               <span className="info-label">Payment:</span>
-              <span className="info-val" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="info-val" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 {order?.paymentDetails?.status === 'PAID' ? (
                   <>
                     <FaCheckCircle color={colors.success} size={16} />
@@ -829,11 +829,36 @@ const OrderDetails = () => {
                     <span>{order?.paymentDetails?.status || "PENDING"}</span>
                   </>
                 )}
-                <span style={{ opacity: 0.7, fontSize: '0.9rem' }}>
-                  ({order?.paymentDetails?.method === 'cod' ? 'Cash on Delivery' : 'PhonePe'})
-                </span>
               </span>
             </div>
+
+            <div className="info-row">
+              <span style={{ color: colors.gold }}>💳</span>
+              <span className="info-label">Method:</span>
+              <span className="info-val" style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>
+                {order?.paymentDetails?.method === 'cod' ? 'Cash on Delivery' : 'PhonePe'}
+              </span>
+            </div>
+
+            {order?.paymentDetails?.method === 'phonepe' && order?.paymentDetails?.merchantTransactionId && (
+              <div className="info-row">
+                <span style={{ color: colors.gold }}>📱</span>
+                <span className="info-label">Merchant ID:</span>
+                <span className="info-val" style={{ fontSize: '0.9rem', fontFamily: 'monospace', opacity: 0.8 }}>
+                  {order.paymentDetails.merchantTransactionId}
+                </span>
+              </div>
+            )}
+
+            {order?.paymentDetails?.transactionId && (
+              <div className="info-row">
+                <span style={{ color: colors.gold }}>🔗</span>
+                <span className="info-label">Transaction ID:</span>
+                <span className="info-val" style={{ fontSize: '0.9rem', fontFamily: 'monospace', opacity: 0.8 }}>
+                  {order.paymentDetails.transactionId}
+                </span>
+              </div>
+            )}
 
             <div className="action-buttons">
               {showInvoice && (

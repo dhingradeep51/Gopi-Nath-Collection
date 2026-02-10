@@ -868,6 +868,12 @@ const AdminOrderDetails = () => {
                       {order?.paymentDetails?.method === 'cod' ? 'Cash on Delivery' : 'PhonePe'}
                     </span>
                   </div>
+                  {order?.paymentDetails?.method === 'phonepe' && order?.paymentDetails?.merchantTransactionId && (
+                    <div className="financial-row" style={{ fontSize: '0.85rem', marginBottom: '8px' }}>
+                      <span>Merchant ID:</span>
+                      <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', opacity: 0.8 }}>{order.paymentDetails.merchantTransactionId}</span>
+                    </div>
+                  )}
                   {order?.paymentDetails?.transactionId && (
                     <div className="financial-row" style={{ fontSize: '0.85rem', marginBottom: '8px' }}>
                       <span>Transaction ID:</span>
