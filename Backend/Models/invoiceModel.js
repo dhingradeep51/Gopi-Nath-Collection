@@ -35,28 +35,31 @@ const invoiceSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      sparse:true,
+      sparse: true,
     },
     invoiceDate: {
       type: Date,
       default: Date.now
     },
 
-    // ✅ NEW SELLER FIELDS
+    // ✅ SELLER FIELDS
     sellerName: { type: String, default: "Gopi Nath Collection" },
     sellerGstin: { type: String }, 
     sellerAddress: { type: String },
     sellerState: { type: String, default: "Haryana" },
 
-    // ✅ NEW BUYER FIELDS (Populated from User Address Object)
+    // ✅ BUYER FIELDS
     buyerName: { type: String },
-    buyerAddress: { type: String }, // Formatted string from nested user address
+    buyerAddress: { type: String }, 
     buyerState: { type: String },
     placeOfSupply: { type: String },
 
     paymentMethod: {
       type: String,
-      enum: ["PREPAID", "COD"]
+      required: true,
+      // ✅ FIX: Added "PAID" to match your controller logic
+      enum: ["PAID", "COD"], 
+      uppercase: true
     },
 
     // Financials
