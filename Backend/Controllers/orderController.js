@@ -184,53 +184,31 @@ export const getOrderByOrderNumberController = async (req, res) => {
 
 
 export const getAllOrdersController = async (req, res) => {
-
   try {
-
-    const orders = await OrderModel
-
-      .find({})
-
+    const orders = await OrderModel.find({})
       .populate({
-
         path: "products.product",
-
         select: "name slug photo",
-
       })
-
       .populate("buyer", "name phone email state address")
-
-      // ✅ ADDED: cancelReason and returnReason to the selection
-
-      // Add these to your select() call in the controller
-
-      .select("orderNumber products buyer status payment isInvoiced invoiceNo createdAt cancelReason returnReason isApprovedByAdmin")
-
+      // ✅ POPULATE PAYMENT STATUS
+      .populate({
+        path: "paymentDetails",
+        select: "status method merchantTransactionId" 
+      })
+      .select("orderNumber products buyer status paymentDetails isInvoiced invoiceNo createdAt cancelReason returnReason isApprovedByAdmin")
       .sort({ createdAt: -1 });
 
-
-
     res.status(200).json(orders);
-
   } catch (error) {
-
     console.error("Get all orders error:", error);
-
     res.status(500).json({
-
       success: false,
-
       message: "Error fetching all orders",
-
       error: error.message,
-
     });
-
   }
-
 };
-
 
 
 // --- UPDATE ORDER STATUS (ADMIN ONLY) ---
@@ -335,11 +313,15 @@ export const userOrderStatusController = async (req, res) => {
 };
 export const getOrdersController = async (req, res) => {
   try {
-    const orders = await OrderModel
-      .find({ buyer: req.user._id })
+    const orders = await OrderModel.find({ buyer: req.user._id })
       .populate({
         path: "products.product",
         select: "name photo"
+      })
+      // ✅ POPULATE PAYMENT STATUS
+      .populate({
+        path: "paymentDetails",
+        select: "status method"
       })
       .sort({ createdAt: -1 });
 
