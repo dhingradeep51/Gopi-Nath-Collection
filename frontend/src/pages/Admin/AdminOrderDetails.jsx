@@ -1,18 +1,15 @@
-// AdminOrderDetails.jsx - Mobile Optimized Version with Loading State
-// Key fixes: Button sizes, loading state, input heights, touch targets
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Layout from "../../components/Layout";
 import axios from "axios";
 import moment from "moment";
-import { Input, Button, Dropdown, Tag, Divider } from "antd";
+import { Input, Button, Dropdown, Tag, Divider, Spin } from "antd";
 import { 
   FaChevronDown, FaArrowLeft, FaTruck, FaEdit, FaUser, 
-  FaMapMarkerAlt, FaCopy, FaFileInvoice, FaShoppingBag, 
-  FaReceipt, FaExclamationTriangle, FaCheckCircle
+  FaMapMarkerAlt, FaCopy, FaReceipt, FaShoppingBag, 
+  FaExclamationTriangle, FaCheckCircle, FaCreditCard
 } from "react-icons/fa";
 import toast from "react-hot-toast";
+import AdminMenu from "../../components/Menus/AdminMenu";
 
 const AdminOrderDetails = () => {
   const params = useParams();
@@ -26,12 +23,12 @@ const AdminOrderDetails = () => {
   const statusList = ["Not Processed", "Processing", "Shipped", "Delivered", "Cancel", "Return"];
   
   const colors = {
-    primary: "#0f0c29",
-    secondary: "#24243e",
-    gold: "#D4AF37",
-    goldLight: "#FFD700",
+    deepBurgundy: "#2D0A14", 
+    richBurgundy: "#3D0E1C", 
+    gold: "#D4AF37",         
+    white: "#FFFFFF",
     success: "#4BB543",
-    danger: "#ff4d4f",
+    error: "#ff4d4f",
     warning: "#faad14"
   };
 
@@ -102,88 +99,9 @@ const AdminOrderDetails = () => {
 
   if (loading) {
     return (
-      <>
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@300;400;700&display=swap');
-
-          * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-          }
-
-          .orders-page {
-            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
-            min-height: 100vh;
-            color: #fff;
-            font-family: 'Lato', sans-serif;
-          }
-
-          .orders-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 60px 30px;
-            padding-left: max(30px, env(safe-area-inset-left));
-            padding-right: max(30px, env(safe-area-inset-right));
-            padding-bottom: max(60px, env(safe-area-inset-bottom));
-          }
-
-          .loading-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 60vh;
-            gap: 20px;
-          }
-
-          .spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid rgba(212, 175, 55, 0.2);
-            border-top-color: #D4AF37;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-          }
-
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-
-          .loading-text {
-            color: #D4AF37;
-            font-size: 1.1rem;
-            font-weight: 300;
-            letter-spacing: 2px;
-          }
-
-          @media (max-width: 480px) {
-            .loading-state {
-              min-height: 50vh;
-              gap: 15px;
-            }
-
-            .spinner {
-              width: 50px;
-              height: 50px;
-              border-width: 3px;
-            }
-
-            .loading-text {
-              font-size: 1rem;
-              letter-spacing: 1px;
-            }
-          }
-        `}</style>
-        <div className="orders-page">
-          <div className="orders-container">
-            <div className="loading-state">
-              <div className="spinner" />
-              <p className="loading-text">Loading order details...</p>
-            </div>
-          </div>
-        </div>
-      </>
+      <div style={{ background: colors.deepBurgundy, minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
+        <Spin size="large" />
+      </div>
     );
   }
 
@@ -191,752 +109,258 @@ const AdminOrderDetails = () => {
   const hasReason = order?.cancelReason || order?.returnReason;
 
   return (
-    <div title={`Order ${order?.orderNumber} - Admin`}>
+    <div className="admin-details-wrapper">
+      <AdminMenu />
       <style>{`
-        .order-details-wrapper {
-          background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%);
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=Lato:wght@300;400;700&display=swap');
+
+        .admin-details-wrapper {
+          background-color: ${colors.deepBurgundy};
           min-height: 100vh;
+          font-family: 'Lato', sans-serif;
           color: #fff;
-          padding: 40px 20px;
-          padding-left: max(20px, env(safe-area-inset-left));
-          padding-right: max(20px, env(safe-area-inset-right));
-          padding-bottom: max(60px, env(safe-area-inset-bottom));
+          padding-bottom: 80px;
         }
 
-        .order-details-container {
-          max-width: 1200px;
+        .details-container {
+          max-width: 1100px;
           margin: 0 auto;
+          padding: 20px;
         }
 
-        .back-link {
+        .back-btn {
+          background: transparent;
+          border: 1px solid ${colors.gold}66;
           color: ${colors.gold};
-          cursor: pointer;
-          margin-bottom: 25px;
+          padding: 8px 16px;
+          border-radius: 6px;
           display: flex;
           align-items: center;
           gap: 8px;
-          font-weight: bold;
-          transition: all 0.3s;
-          padding: 8px;
-          border-radius: 8px;
-          width: fit-content;
-          min-height: 44px;
-          touch-action: manipulation;
+          cursor: pointer;
+          margin-bottom: 25px;
+          font-weight: 600;
+          transition: 0.3s;
         }
 
-        .back-link:hover {
-          transform: translateX(-5px);
-          background: rgba(212, 175, 55, 0.1);
+        .back-btn:hover { background: ${colors.gold}22; }
+
+        .detail-card {
+          background: ${colors.richBurgundy};
+          border: 1px solid ${colors.gold}33;
+          border-radius: 15px;
+          padding: 25px;
+          margin-bottom: 25px;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.4);
         }
 
-        .main-card {
-          border: 1px solid ${colors.gold}44;
-          border-radius: 12px;
-          background: rgba(255,255,255,0.03);
-          padding: 30px;
-        }
-
-        .order-header {
+        .section-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 30px;
-          flex-wrap: wrap;
-          gap: 20px;
-        }
-
-        .order-title {
-          color: ${colors.gold};
-          font-family: serif;
-          margin: 0;
-          font-size: 1.8rem;
-        }
-
-        .order-subtitle {
-          opacity: 0.6;
-          margin-top: 5px;
-          font-size: 0.9rem;
-        }
-
-        .reason-alert {
-          background: rgba(250, 173, 20, 0.1);
-          border: 1px solid #faad1444;
-          padding: 20px;
-          border-radius: 10px;
-          margin-bottom: 30px;
-          display: flex;
-          align-items: center;
-          gap: 20px;
-          flex-wrap: wrap;
-        }
-
-        .reason-alert.history {
-          background: rgba(255, 77, 79, 0.05);
-          border-color: ${colors.gold}44;
-        }
-
-        .reason-content {
-          flex: 1;
-          min-width: 200px;
-        }
-
-        .reason-title {
-          color: ${colors.warning};
-          margin: 0;
-          font-weight: bold;
-          text-transform: uppercase;
-          font-size: 0.95rem;
-        }
-
-        .reason-alert.history .reason-title {
-          color: ${colors.gold};
-        }
-
-        .reason-text {
-          color: #fff;
-          margin: 8px 0 0 0;
-          font-size: 0.95rem;
-        }
-
-        .content-grid {
-          display: grid;
-          grid-template-columns: 1fr 380px;
-          gap: 30px;
-        }
-
-        .products-section {
-          background: rgba(255,255,255,0.02);
-          padding: 25px;
-          border-radius: 10px;
-          border: 1px solid ${colors.gold}22;
-        }
-
-        .section-title {
-          color: ${colors.gold};
           margin-bottom: 25px;
-          border-bottom: 1px solid ${colors.gold}22;
-          padding-bottom: 10px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          font-size: 1rem;
+          flex-wrap: wrap;
+          gap: 15px;
         }
 
-        .product-item {
+        .order-id-text { font-family: 'Cinzel', serif; color: ${colors.gold}; font-size: 1.5rem; margin: 0; }
+        
+        .alert-box {
+          background: rgba(250, 173, 20, 0.1);
+          border-left: 4px solid ${colors.warning};
+          padding: 20px;
+          border-radius: 8px;
+          margin-bottom: 25px;
           display: flex;
-          gap: 20px;
+          gap: 15px;
+          align-items: center;
+        }
+
+        .product-row {
+          display: flex;
+          gap: 15px;
           padding: 15px 0;
           border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
-        .product-item:last-child {
-          border-bottom: none;
+        .prod-img { width: 70px; height: 70px; object-fit: cover; border-radius: 8px; border: 1px solid ${colors.gold}22; }
+
+        .info-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 20px;
         }
 
-        .product-item.gift {
-          background: rgba(212, 175, 55, 0.03);
-          padding: 15px;
-          border-radius: 8px;
-          margin-bottom: 10px;
+        .data-label { color: rgba(255,255,255,0.5); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 4px; }
+        .data-value { font-weight: 600; font-size: 1rem; color: #fff; }
+
+        .btn-action {
+          width: 100%;
+          height: 50px !important;
+          border-radius: 8px !important;
+          font-weight: 700 !important;
+          margin-top: 10px;
         }
 
-        .product-image {
-          width: 80px;
-          height: 80px;
-          object-fit: cover;
-          border-radius: 8px;
-          border: 1px solid ${colors.gold}33;
-          flex-shrink: 0;
-        }
-
-        .product-info {
-          flex: 1;
-        }
-
-        .product-header {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 10px;
-        }
-
-        .product-name {
-          font-weight: bold;
-          font-size: 1rem;
-        }
-
-        .product-price {
-          color: ${colors.gold};
-          font-weight: bold;
-        }
-
-        .product-details {
-          font-size: 0.8rem;
-          display: flex;
-          gap: 15px;
-          opacity: 0.7;
-        }
-
-        .sidebar {
-          display: flex;
-          flex-direction: column;
-          gap: 25px;
-        }
-
-        .sidebar-card {
-          background: rgba(255,255,255,0.02);
-          padding: 25px;
-          border-radius: 10px;
-          border: 1px solid ${colors.gold}22;
-        }
-
-        .sidebar-card.highlight {
-          background: rgba(212, 175, 55, 0.05);
-          border-color: ${colors.gold}33;
-        }
-
-        .financial-row {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 10px;
-          font-size: 0.9rem;
-        }
-
-        .financial-total {
-          display: flex;
-          justify-content: space-between;
-          color: ${colors.gold};
-          font-weight: bold;
-          font-size: 1.4rem;
-          padding-top: 15px;
-          margin-top: 15px;
-          border-top: 2px solid ${colors.gold}44;
-        }
-
-        .customer-name {
-          margin: 0 0 5px 0;
-          font-size: 1.1rem;
-          font-weight: bold;
-        }
-
-        .customer-phone {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 15px;
-          align-items: center;
-        }
-
-        .copy-icon {
-          cursor: pointer;
-          color: ${colors.gold};
-          transition: all 0.3s;
-          padding: 8px;
-          border-radius: 8px;
-          min-width: 40px;
-          min-height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          touch-action: manipulation;
-        }
-
-        .copy-icon:hover {
-          transform: scale(1.2);
-          background: rgba(212, 175, 55, 0.1);
-        }
-
-        .address-text {
-          font-size: 0.9rem;
-          line-height: 1.6;
-          color: #ccc;
-        }
-
-        .logistics-input {
-          margin-bottom: 10px;
+        .status-dropdown {
+          width: 100%;
+          height: 50px;
           background: rgba(255,255,255,0.05);
-          color: #fff;
-          border-color: ${colors.gold}44;
-          height: 50px;
-          font-size: 16px;
-        }
-
-        .logistics-input input {
-          background: transparent !important;
-          color: #fff !important;
-          font-size: 16px !important;
-        }
-
-        .logistics-input input::placeholder {
-          color: rgba(255, 255, 255, 0.3);
-        }
-
-        .btn-status {
-          width: 100%;
-          background: transparent;
+          border: 1px solid ${colors.gold}44;
           color: ${colors.gold};
-          border-color: ${colors.gold};
-          margin-bottom: 20px;
-          height: 50px;
-          font-weight: 600;
-          font-size: 0.9rem;
-          touch-action: manipulation;
+          border-radius: 8px;
+          margin-bottom: 15px;
           display: flex;
           align-items: center;
-          justify-content: center;
-          gap: 8px;
+          justify-content: space-between;
+          padding: 0 15px;
+          cursor: pointer;
         }
 
-        .btn-status:hover {
-          background: ${colors.gold};
-          color: ${colors.primary};
-        }
-
-        .btn-update {
-          width: 100%;
-          background: ${colors.gold};
-          color: ${colors.primary};
-          font-weight: bold;
-          height: 50px;
-          border: none;
-          font-size: 0.95rem;
-          touch-action: manipulation;
-        }
-
-        .btn-update:hover {
-          background: ${colors.gold}dd;
-        }
-
-        .btn-approve {
-          height: 50px;
-          background: ${colors.warning};
-          border-color: ${colors.warning};
-          font-weight: bold;
-          padding: 0 25px;
-          font-size: 0.95rem;
-          min-width: 180px;
-          touch-action: manipulation;
-        }
-
-        .btn-approve:hover {
-          background: ${colors.warning}dd;
-        }
-
-        /* ══════════════════════════════════════════════
-           MOBILE OPTIMIZATIONS
-        ══════════════════════════════════════════════ */
-
-        @media (max-width: 1024px) {
-          .content-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .sidebar {
-            order: -1;
-          }
+        .log-input .ant-input {
+          background: rgba(0,0,0,0.2) !important;
+          border-color: ${colors.gold}33 !important;
+          color: white !important;
+          height: 48px;
+          margin-bottom: 12px;
         }
 
         @media (max-width: 768px) {
-          .order-details-wrapper {
-            padding: 20px 16px;
-          }
-
-          .main-card {
-            padding: 20px;
-          }
-
-          .order-header {
-            flex-direction: column;
-          }
-
-          .order-title {
-            font-size: 1.4rem;
-          }
-
-          .reason-alert {
-            flex-direction: column;
-            align-items: flex-start;
-            padding: 18px 16px;
-          }
-
-          /* CRITICAL: Full width approve button on mobile */
-          .btn-approve {
-            width: 100%;
-            min-width: unset;
-            height: 52px;
-          }
-
-          .products-section,
-          .sidebar-card {
-            padding: 20px 18px;
-          }
-
-          /* CRITICAL: Better product layout */
-          .product-item {
-            flex-direction: column;
-            gap: 15px;
-          }
-
-          .product-image {
-            width: 100%;
-            height: 200px;
-          }
-
-          .product-header {
-            flex-direction: column;
-            gap: 10px;
-          }
-
-          .financial-total {
-            font-size: 1.2rem;
-          }
-
-          /* CRITICAL: Ensure consistent input heights */
-          .logistics-input {
-            height: 52px;
-          }
-
-          .logistics-input input {
-            font-size: 16px !important;
-          }
-
-          .btn-status,
-          .btn-update {
-            height: 52px;
-            font-size: 1rem;
-          }
+          .detail-card { padding: 18px; }
+          .order-id-text { font-size: 1.2rem; }
         }
-
-        @media (max-width: 480px) {
-          .order-details-wrapper {
-            padding: 16px 12px;
-            padding-bottom: max(60px, env(safe-area-inset-bottom));
-          }
-
-          .order-title {
-            font-size: 1.2rem;
-          }
-
-          .main-card {
-            padding: 16px;
-          }
-
-          .products-section,
-          .sidebar-card {
-            padding: 16px;
-          }
-
-          .financial-total {
-            font-size: 1.1rem;
-          }
-
-          /* CRITICAL: Maximum comfort on small screens */
-          .back-link {
-            padding: 10px;
-            min-height: 46px;
-          }
-
-          .copy-icon {
-            min-width: 44px;
-            min-height: 44px;
-            padding: 10px;
-          }
-
-          .btn-approve {
-            height: 54px;
-            font-size: 1rem;
-          }
-
-          .btn-status,
-          .btn-update {
-            height: 54px;
-            font-size: 1rem;
-          }
-
-          .logistics-input {
-            height: 54px;
-          }
-        }
-
-        @media (max-width: 360px) {
-          .order-title {
-            font-size: 1.1rem;
-          }
-
-          .btn-approve,
-          .btn-status,
-          .btn-update {
-            height: 56px;
-          }
-
-          .logistics-input {
-            height: 56px;
-          }
-        }
-
-        /* ══════════════════════════════════════════════
-           TOUCH ENHANCEMENTS
-        ══════════════════════════════════════════════ */
-
-        @media (hover: none) and (pointer: coarse) {
-          .back-link,
-          .copy-icon,
-          .btn-status,
-          .btn-update,
-          .btn-approve {
-            -webkit-tap-highlight-color: rgba(212, 175, 55, 0.15);
-          }
-
-          .back-link:active {
-            transform: translateX(-3px) scale(0.98);
-          }
-
-          .copy-icon:active {
-            transform: scale(0.92);
-          }
-
-          .btn-status:active,
-          .btn-update:active,
-          .btn-approve:active {
-            transform: scale(0.97);
-          }
-        }
-
-        /* Focus indicators */
-        .back-link:focus-visible,
-        .copy-icon:focus-visible,
-        .btn-status:focus-visible,
-        .btn-update:focus-visible,
-        .btn-approve:focus-visible {
-          outline: 3px solid ${colors.gold};
-          outline-offset: 2px;
-        }
-
-        /* Prevent iOS zoom */
-        @media (max-width: 768px) {
-          input,
-          select,
-          textarea {
-            font-size: 16px !important;
-          }
-        }
-
       `}</style>
 
-      <div className="order-details-wrapper">
-        <div className="order-details-container">
-          
-          <div 
-            className="back-link" 
-            onClick={() => navigate("/dashboard/admin/orders")}
-            role="button"
-            tabIndex={0}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                navigate("/dashboard/admin/orders");
-              }
-            }}
-          >
-            <FaArrowLeft /> BACK TO REGISTRY
+      <div className="details-container">
+        <button className="back-btn" onClick={() => navigate("/dashboard/admin/orders")}>
+          <FaArrowLeft /> REGISTRY
+        </button>
+
+        {/* 1. STATUS ALERT */}
+        {(isRequest || hasReason) && (
+          <div className="alert-box">
+            <FaExclamationTriangle color={colors.warning} size={24} />
+            <div style={{ flex: 1 }}>
+              <strong style={{ color: colors.warning }}>{order?.status} REASON:</strong>
+              <p style={{ margin: "5px 0 0", fontSize: "0.9rem" }}>{order.cancelReason || order.returnReason || "No reason provided"}</p>
+            </div>
+            {isRequest && !order.isApprovedByAdmin && (
+              <Button type="primary" danger onClick={() => handleStatusChange(order.status.replace(" Request", ""))} loading={actionLoading}>
+                APPROVE
+              </Button>
+            )}
+          </div>
+        )}
+
+        <div className="detail-card">
+          <div className="section-header">
+            <div>
+              <h2 className="order-id-text">#{order?.orderNumber}</h2>
+              <span className="data-label">{moment(order?.createdAt).format("LLLL")}</span>
+            </div>
+            <Tag color="gold" style={{ padding: "5px 15px", borderRadius: "20px", fontWeight: "700" }}>
+              {order?.status?.toUpperCase()}
+            </Tag>
           </div>
 
-          <div className="main-card">
-            
-            {/* Order Header */}
-            <div className="order-header">
-              <div>
-                <h2 className="order-title">ORDER {order?.orderNumber}</h2>
-                <p className="order-subtitle">
-                  Placed on {moment(order?.createdAt).format("LLLL")}
-                </p>
+          <div className="info-grid">
+            {/* Customer Info */}
+            <div className="sidebar-section">
+              <span className="data-label"><FaUser /> Customer Details</span>
+              <div className="data-value">{order?.buyer?.name}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "5px" }}>
+                <span className="data-value" style={{ opacity: 0.8 }}>{order?.buyer?.phone}</span>
+                <FaCopy color={colors.gold} onClick={() => copyToClipboard(order?.buyer?.phone)} style={{ cursor: "pointer" }} />
               </div>
-              <Tag 
-                color={
-                  order?.status?.includes("Cancel") ? "red" : 
-                  order?.status?.includes("Return") ? "orange" : 
-                  "gold"
-                } 
-                style={{ padding: '8px 16px', fontSize: '14px', height: 'fit-content' }}
-              >
-                {order?.status?.toUpperCase()}
-              </Tag>
+              <Divider style={{ borderColor: "rgba(212,175,55,0.1)", margin: "15px 0" }} />
+              <span className="data-label"><FaMapMarkerAlt /> Shipping Address</span>
+              <p style={{ fontSize: "0.9rem", color: "rgba(255,255,255,0.7)", lineHeight: "1.5" }}>{order?.address}</p>
             </div>
 
-            {/* Reason Alert Box */}
-            {(isRequest || hasReason) && (
-              <div className={`reason-alert ${!isRequest ? 'history' : ''}`}>
-                <FaExclamationTriangle 
-                  color={isRequest ? colors.warning : colors.gold} 
-                  size={30} 
-                />
-                <div className="reason-content">
-                  <h5 className="reason-title">
-                    {isRequest ? `Action Required: ${order?.status}` : "Order History Reason"}
-                  </h5>
-                  <p className="reason-text">
-                    <strong>Reason:</strong> {order.cancelReason || order.returnReason || "N/A"}
-                  </p>
-                </div>
-                {isRequest && !order.isApprovedByAdmin && (
-                  <Button 
-                    type="primary" 
-                    loading={actionLoading}
-                    onClick={() => handleStatusChange(order.status.replace(" Request", ""))}
-                    className="btn-approve"
-                  >
-                    APPROVE REQUEST
-                  </Button>
-                )}
+            {/* Financial Summary */}
+            <div className="sidebar-section">
+              <span className="data-label"><FaReceipt /> Payment Summary</span>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                <span>Subtotal</span>
+                <span>₹{order?.subtotal?.toLocaleString()}</span>
               </div>
-            )}
-
-            {/* Main Content Grid */}
-            <div className="content-grid">
-              
-              {/* Products Section */}
-              <div className="products-section">
-                <h6 className="section-title">
-                  <FaShoppingBag /> ORDERED ITEMS
-                </h6>
-                {order?.products?.map((p) => (
-                  <div 
-                    key={p._id} 
-                    className={`product-item ${p.price === 0 ? 'gift' : ''}`}
-                  >
-                    <img 
-                      src={`${BASE_URL}api/v1/product/product-photo/${p.product?._id || p.product}`} 
-                      alt={p.name}
-                      className="product-image"
-                      onError={(e) => { e.target.src = "/logo192.png"; }}
-                    />
-
-                    <div className="product-info">
-                      <div className="product-header">
-                        <span className="product-name">
-                          {p.name}
-                          {p.price === 0 && (
-                            <Tag color="gold" style={{ marginLeft: '10px', fontSize: '10px' }}>
-                              GIFT
-                            </Tag>
-                          )}
-                        </span>
-                        <span className="product-price">
-                          {p.price === 0 ? "FREE" : `₹${(p.price * p.qty).toLocaleString()}`}
-                        </span>
-                      </div>
-                      
-                      <div className="product-details">
-                        <span><strong>Base:</strong> ₹{p.basePrice || "N/A"}</span>
-                        <span><strong>GST:</strong> {p.gstRate || 0}%</span>
-                        <span><strong>Qty:</strong> {p.qty}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                <span>Shipping</span>
+                <span style={{ color: colors.success }}>{order?.shippingFee > 0 ? `₹${order.shippingFee}` : "FREE"}</span>
               </div>
-
-              {/* Sidebar */}
-              <div className="sidebar">
-                
-                {/* Financial Summary */}
-                <div className="sidebar-card highlight">
-                  <h6 className="section-title">
-                    <FaReceipt /> FINANCIALS
-                  </h6>
-                  <div className="financial-row">
-                    <span>Subtotal:</span>
-                    <span>₹{order?.subtotal?.toLocaleString()}</span>
-                  </div>
-                  <div className="financial-row">
-                    <span>Shipping:</span>
-                    <span>{order?.shippingFee > 0 ? `₹${order.shippingFee}` : "FREE"}</span>
-                  </div>
-                  {order?.discount > 0 && (
-                    <div className="financial-row" style={{ color: colors.success }}>
-                      <span>Discount:</span>
-                      <span>-₹{order.discount?.toLocaleString()}</span>
-                    </div>
-                  )}
-                  <div className="financial-total">
-                    <span>Total:</span>
-                    <span>₹{order?.totalPaid?.toLocaleString()}</span>
-                  </div>
-                </div>
-
-                {/* Customer Details */}
-                <div className="sidebar-card">
-                  <h6 className="section-title">
-                    <FaUser /> CUSTOMER
-                  </h6>
-                  <p className="customer-name">{order?.buyer?.name}</p>
-                  <div className="customer-phone">
-                    <span style={{ opacity: 0.7 }}>{order?.buyer?.phone}</span>
-                    <div
-                      className="copy-icon"
-                      onClick={() => copyToClipboard(order?.buyer?.phone)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          copyToClipboard(order?.buyer?.phone);
-                        }
-                      }}
-                      aria-label="Copy phone number"
-                    >
-                      <FaCopy />
-                    </div>
-                  </div>
-                  <Divider style={{ background: `${colors.gold}22`, margin: '15px 0' }} />
-                  <h6 className="section-title" style={{ fontSize: '0.85rem', marginBottom: '10px' }}>
-                    <FaMapMarkerAlt /> DELIVERY ADDRESS
-                  </h6>
-                  <p className="address-text">{order?.address}</p>
-                </div>
-
-                {/* Management Controls */}
-                <div className="sidebar-card">
-                  <h6 className="section-title">
-                    <FaEdit /> MANAGEMENT
-                  </h6>
-                  <Dropdown 
-                    disabled={actionLoading} 
-                    menu={{ 
-                      items: statusList.map(s => ({ 
-                        key: s, 
-                        label: s.toUpperCase(), 
-                        disabled: order?.status === s 
-                      })), 
-                      onClick: ({ key }) => handleStatusChange(key) 
-                    }}
-                  >
-                    <Button className="btn-status">
-                      STATUS: {order?.status?.toUpperCase()} <FaChevronDown size={12} />
-                    </Button>
-                  </Dropdown>
-
-                  <h6 className="section-title" style={{ fontSize: '0.85rem', marginTop: '20px', marginBottom: '15px' }}>
-                    <FaTruck /> LOGISTICS
-                  </h6>
-                  <Input 
-                    className="logistics-input"
-                    placeholder="AWB Number" 
-                    value={logisticData.awb} 
-                    onChange={(e) => setLogisticData({...logisticData, awb: e.target.value})}
-                  />
-                  <Input 
-                    className="logistics-input"
-                    placeholder="Tracking Link" 
-                    value={logisticData.link} 
-                    onChange={(e) => setLogisticData({...logisticData, link: e.target.value})}
-                  />
-                  <Button 
-                    loading={actionLoading} 
-                    onClick={handleLogisticsUpdate}
-                    className="btn-update"
-                  >
-                    UPDATE TRACKING
-                  </Button>
-                </div>
-
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "1.2rem", fontWeight: "700", color: colors.gold, marginTop: "15px", borderTop: "1px solid rgba(212,175,55,0.2)", paddingTop: "10px" }}>
+                <span>Total Paid</span>
+                <span>₹{order?.totalPaid?.toLocaleString()}</span>
               </div>
+              <div style={{ marginTop: "10px", textAlign: "right" }}>
+                <Tag color="blue"><FaCreditCard /> {order?.paymentDetails?.method?.toUpperCase() || "COD"}</Tag>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. PRODUCTS SECTION */}
+        <div className="detail-card">
+          <h4 className="order-id-text" style={{ fontSize: "1.1rem", marginBottom: "20px" }}><FaShoppingBag /> Ordered Items</h4>
+          {order?.products?.map((p) => (
+            <div key={p._id} className="product-row">
+              <img 
+                src={`${BASE_URL}api/v1/product/product-photo/${p.product?._id || p.product}`} 
+                className="prod-img" 
+                alt={p.name}
+                onError={(e) => { e.target.src = "/logo192.png"; }}
+              />
+              <div style={{ flex: 1 }}>
+                <div className="data-value">{p.name} {p.price === 0 && <Tag color="gold" style={{fontSize: '9px'}}>GIFT</Tag>}</div>
+                <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>Qty: {p.qty} | Rate: {p.gstRate}%</div>
+                <div style={{ color: colors.gold, fontWeight: "700", marginTop: "4px" }}>₹{(p.price * p.qty).toLocaleString()}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* 3. MANAGEMENT SECTION */}
+        <div className="detail-card">
+          <h4 className="order-id-text" style={{ fontSize: "1.1rem", marginBottom: "20px" }}><FaEdit /> Management</h4>
+          <div className="info-grid">
+            <div>
+              <span className="data-label">Update Delivery Status</span>
+              <Dropdown 
+                disabled={actionLoading} 
+                menu={{ 
+                  items: statusList.map(s => ({ key: s, label: s.toUpperCase(), disabled: order?.status === s })), 
+                  onClick: ({ key }) => handleStatusChange(key) 
+                }}
+              >
+                <div className="status-dropdown">
+                  <span>{order?.status?.toUpperCase()}</span>
+                  <FaChevronDown size={12} />
+                </div>
+              </Dropdown>
+            </div>
+
+            <div className="log-input">
+              <span className="data-label"><FaTruck /> Logistics Information</span>
+              <Input 
+                placeholder="AWB Number" 
+                value={logisticData.awb} 
+                onChange={(e) => setLogisticData({...logisticData, awb: e.target.value})}
+              />
+              <Input 
+                placeholder="Tracking Link" 
+                value={logisticData.link} 
+                onChange={(e) => setLogisticData({...logisticData, link: e.target.value})}
+              />
+              <Button 
+                type="primary" 
+                block 
+                className="btn-action" 
+                style={{ background: colors.gold, borderColor: colors.gold, color: colors.deepBurgundy }}
+                onClick={handleLogisticsUpdate}
+                loading={actionLoading}
+              >
+                UPDATE TRACKING
+              </Button>
             </div>
           </div>
         </div>
