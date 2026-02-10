@@ -69,7 +69,7 @@ app.use(morgan('dev'));
 // Special handler for PhonePe Webhook (Must stay before express.json if using raw body)
 app.use(
   "/api/v1/payment/phonepe/webhook",
-  express.raw({ type: "application/json" })
+  express.text({ type: "application/json" })
 );
 
 app.use(express.json());
