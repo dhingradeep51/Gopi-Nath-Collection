@@ -27,26 +27,18 @@ export const phonePeWebhookController = async (req, res) => {
       return res.status(401).send("Verification Failed");
     }
 
-    // 🛡️ FIX: Try both possible ID fields from the SDK payload
     const payload = callbackResponse.payload;
     const orderId = payload.merchantOrderId || payload.originalMerchantOrderId;
     const state = payload.state;
 
-    console.log(`Webhook received for ${orderId}: ${state}`.cyan);
-
-    if (!orderId) {
-      console.error("Critical Error: Order ID is missing from PhonePe payload".red);
-      return res.sendStatus(200); 
-    }
-
-    // 1. Find the order using the corrected ID
+    // 1. Find the order
     const order = await OrderModel.findOne({ merchantOrderId: orderId });
     if (!order) {
       console.error(`Order not found in DB for ID: ${orderId}`.red);
       return res.sendStatus(200); 
     }
 
-    // 2. Find and update Payment record
+    // 2. Update status safely
     const payment = await PaymentModel.findById(order.paymentDetails);
     if (payment) {
       const isSuccess = state === "COMPLETED";
@@ -55,9 +47,16 @@ export const phonePeWebhookController = async (req, res) => {
       order.status = isSuccess ? "Processing" : "Not Processed";
       
       await payment.save();
-      await order.save();
+      const updatedOrder = await order.save();
 
-      console.log(`Order ${orderId} successfully updated to ${payment.status}`.green);
+      // LOG FOR VERIFICATION
+      console.log(`✅ DB CONFIRMED: ${updatedOrder.merchantOrderId} is now ${updatedOrder.status}`.green);
+
+      // 🚀 SOCKET TRIGGER: Instantly tell the frontend to redirect
+      const io = req.app.get("io");
+      io.to(order.orderNumber).emit("payment_update", { 
+        paymentStatus: payment.status 
+      });
     }
 
     return res.sendStatus(200); 
