@@ -14,18 +14,21 @@ import {
 
 const router = express.Router();
 
+// ✅ IMPORTANT: Specific routes MUST come before generic routes to avoid parameter conflicts
 // Public/User Routes
 router.post("/place-order", requireSignIn, placeOrderController);
 router.get("/orders", requireSignIn, getUserOrdersController);
-router.put("/user-order-status/:orderId", requireSignIn, userOrderStatusController);
 
-// ✅ ADD THIS ROUTE: This fixes the 404 error on the Order Details page
-router.get("/:orderId", requireSignIn, getOrderByIdController);
-
-// Admin Routes
+// Admin Routes (specific admin routes before generic :orderId route)
 router.get("/all-orders", requireSignIn, isAdmin, getAllOrdersController);
+router.get("/admin-stats", requireSignIn, isAdmin, getAdminStatsController);
+
+// Status update routes (more specific than generic :orderId GET)
 router.put("/order-status/:orderId", requireSignIn, isAdmin, orderStatusController);
 router.put("/order-logistic-update/:orderId", requireSignIn, isAdmin, updateOrderLogisticsController);
 router.put("/order-invoice-status/:orderId", requireSignIn, isAdmin, orderInvoiceStatusController);
-router.get("/admin-stats", requireSignIn, isAdmin, getAdminStatsController);
+router.put("/user-order-status/:orderId", requireSignIn, userOrderStatusController);
+
+// Generic route - MUST be last
+router.get("/:orderId", requireSignIn, getOrderByIdController);
 export default router;
