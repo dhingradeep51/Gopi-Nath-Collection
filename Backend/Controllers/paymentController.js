@@ -27,20 +27,28 @@ export const phonePeWebhookController = async (req, res) => {
       return res.status(401).send("Verification Failed");
     }
 
-    const { originalMerchantOrderId, state } = callbackResponse.payload;
-    console.log(`Webhook received for ${originalMerchantOrderId}: ${state}`.cyan);
+    // 🛡️ FIX: Try both possible ID fields from the SDK payload
+    const payload = callbackResponse.payload;
+    const orderId = payload.merchantOrderId || payload.originalMerchantOrderId;
+    const state = payload.state;
 
-    // 1. Find the order
-    const order = await OrderModel.findOne({ merchantOrderId: originalMerchantOrderId });
+    console.log(`Webhook received for ${orderId}: ${state}`.cyan);
+
+    if (!orderId) {
+      console.error("Critical Error: Order ID is missing from PhonePe payload".red);
+      return res.sendStatus(200); 
+    }
+
+    // 1. Find the order using the corrected ID
+    const order = await OrderModel.findOne({ merchantOrderId: orderId });
     if (!order) {
-      console.error(`Order not found: ${originalMerchantOrderId}`.red);
+      console.error(`Order not found in DB for ID: ${orderId}`.red);
       return res.sendStatus(200); 
     }
 
     // 2. Find and update Payment record
     const payment = await PaymentModel.findById(order.paymentDetails);
     if (payment) {
-      // Ensure 'state' matches PhonePe's 'COMPLETED' status
       const isSuccess = state === "COMPLETED";
       
       payment.status = isSuccess ? "PAID" : "FAILED";
@@ -49,15 +57,7 @@ export const phonePeWebhookController = async (req, res) => {
       await payment.save();
       await order.save();
 
-      // 3. 🚀 TRIGGER SOCKET.IO (Optional but Recommended)
-      // This tells the frontend "Hey, status changed!" immediately
-      const io = req.app.get("io");
-      io.to(order.orderNumber).emit("payment_update", { 
-        status: payment.status, 
-        orderStatus: order.status 
-      });
-
-      console.log(`Order ${originalMerchantOrderId} updated to ${payment.status}`.green);
+      console.log(`Order ${orderId} successfully updated to ${payment.status}`.green);
     }
 
     return res.sendStatus(200); 
