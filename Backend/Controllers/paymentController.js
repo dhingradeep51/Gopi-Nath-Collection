@@ -8,13 +8,15 @@ import { StandardCheckoutClient, Env } from "pg-sdk-node";
 import { phonePeClient } from "../Utils/phonepeClient.js";
 
 /**
- * 🔐 PHONEPE WEBHOOK WITH CALLBACK VERIFICATION (V2)
+ * 🔐 PHONEPE WEBHOOK CONTROLLER (V2)
+ * Corrected to match database field: merchantTransactionId
  */
 export const phonePeWebhookController = async (req, res) => {
   try {
-    const rawBody = req.body; 
+    const rawBody = req.body; // Captured as string/text via middleware
     const authHeader = req.headers["authorization"] || req.headers["Authorization"];
 
+    // 1. SDK V2 Verification
     const callbackResponse = phonePeClient.validateCallback(
       process.env.PHONEPE_CALLBACK_USERNAME,
       process.env.PHONEPE_CALLBACK_PASSWORD,
@@ -22,46 +24,61 @@ export const phonePeWebhookController = async (req, res) => {
       rawBody
     );
 
+    // 2. Check if verification was successful
     if (!callbackResponse || !callbackResponse.payload) {
-      console.error("Webhook Verification Failed: Invalid payload".red);
+      console.error("❌ Webhook Verification Failed: Invalid payload".red);
       return res.status(401).send("Verification Failed");
     }
 
-    const payload = callbackResponse.payload;
-    const orderId = payload.merchantOrderId || payload.originalMerchantOrderId;
-    const state = payload.state;
+    const { merchantOrderId, originalMerchantOrderId, state } = callbackResponse.payload;
+    
+    // Use whichever ID field PhonePe populated
+    const transactionIdFromPhonePe = merchantOrderId || originalMerchantOrderId;
 
-    // 1. Find the order
-    const order = await OrderModel.findOne({ merchantOrderId: orderId });
-    if (!order) {
-      console.error(`Order not found in DB for ID: ${orderId}`.red);
-      return res.sendStatus(200); 
+    console.log(`Checking Webhook for ID: ${transactionIdFromPhonePe}, State: ${state}`.cyan);
+
+    // 3. Find Payment record using the CORRECT field name from your DB
+    const payment = await PaymentModel.findOne({ 
+      merchantTransactionId: transactionIdFromPhonePe 
+    });
+
+    if (!payment) {
+      console.error(`❌ Payment record NOT found for: ${transactionIdFromPhonePe}`.red);
+      return res.sendStatus(200); // 200 stops PhonePe retries
     }
 
-    // 2. Update status safely
-    const payment = await PaymentModel.findById(order.paymentDetails);
-    if (payment) {
-      const isSuccess = state === "COMPLETED";
-      
-      payment.status = isSuccess ? "PAID" : "FAILED";
+    // 4. Determine Success
+    const isSuccess = state === "COMPLETED";
+
+    // 5. Update Payment Status in DB
+    payment.status = isSuccess ? "PAID" : "FAILED";
+    await payment.save();
+
+    // 6. Find and Update the Linked Order
+    const order = await OrderModel.findOne({ paymentDetails: payment._id });
+    
+    if (order) {
       order.status = isSuccess ? "Processing" : "Not Processed";
-      
-      await payment.save();
-      const updatedOrder = await order.save();
+      await order.save();
 
-      // LOG FOR VERIFICATION
-      console.log(`✅ DB CONFIRMED: ${updatedOrder.merchantOrderId} is now ${updatedOrder.status}`.green);
-
-      // 🚀 SOCKET TRIGGER: Instantly tell the frontend to redirect
+      // 🚀 SOCKET TRIGGER: Instantly update frontend
       const io = req.app.get("io");
-      io.to(order.orderNumber).emit("payment_update", { 
-        paymentStatus: payment.status 
-      });
+      if (io) {
+        io.to(order.orderNumber).emit("payment_update", { 
+          paymentStatus: payment.status,
+          orderStatus: order.status 
+        });
+      }
+
+      console.log(`✅ DB SUCCESSFULLY UPDATED: ${transactionIdFromPhonePe} is now ${payment.status}`.green);
+    } else {
+      console.warn(`⚠️ Payment found but no linked Order for: ${transactionIdFromPhonePe}`.yellow);
     }
 
     return res.sendStatus(200); 
+
   } catch (err) {
-    console.error("Webhook Internal Error:".red, err.message);
+    console.error("❌ Webhook Internal Error:".red, err.message);
     return res.status(500).send("Error processing webhook");
   }
 };
