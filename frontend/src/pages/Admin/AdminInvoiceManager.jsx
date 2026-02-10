@@ -132,6 +132,24 @@ const handleGenerateInvoice = async (order) => {
       ),
     },
     {
+      title: "PAYMENT STATUS",
+      key: "paymentStatus",
+      render: (o) => (
+        <Tag color={o.paymentDetails?.status === "PAID" ? "#2e7d32" : "#faad14"}>
+          {o.paymentDetails?.status === "PAID" ? "PAID" : o.paymentDetails?.status || "PENDING"}
+        </Tag>
+      ),
+    },
+    {
+      title: "ORDER STATUS",
+      key: "orderStatus",
+      render: (o) => (
+        <Tag color={o.status === "Delivered" ? "#1890ff" : "#D4AF37"}>
+          {o.status}
+        </Tag>
+      ),
+    },
+    {
       title: "MANAGEMENT",
       key: "action",
       align: "center",
@@ -144,7 +162,7 @@ const handleGenerateInvoice = async (order) => {
           );
         }
 
-        const canGenerate = o.payment?.method === "online" || o.status === "Delivered";
+        const canGenerate = (o.paymentDetails?.status === "PAID" || o.status === "Delivered") && !o.isInvoiced;
         return canGenerate ? (
           <Button icon={<FaPlus />} size="small" style={{ background: gold, color: primary, border: 'none' }} onClick={() => handleGenerateInvoice(o)}>
             GENERATE
