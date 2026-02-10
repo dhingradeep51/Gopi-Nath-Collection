@@ -13,57 +13,42 @@ export const generateInvoice = async (req, res) => {
   try {
     const { orderId } = req.body;
 
-    // 1️⃣ Fetch order with paymentDetails populated
     const order = await Order.findById(orderId)
       .populate("buyer")
       .populate("products.product")
-      .populate("paymentDetails"); 
+      .populate("paymentDetails");
 
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    // 🔒 2️⃣ Prevent Duplicate Invoices
-    const existingInvoice = await Invoice.findOne({ orderId: order._id });
-    if (existingInvoice) {
-      return res.status(201).json({ success: true, message: "Invoice exists", invoice: existingInvoice });
-    }
-
-    // 🚦 3️⃣ Map Payment Method to Enum
+    // Existing mapping logic for PAID vs COD
     const rawMethod = order.paymentDetails?.method?.toLowerCase() || "cod";
     const paymentStatus = order.paymentDetails?.status || "PENDING";
-    
-    let finalPaymentMethod = "COD";
-    // If it's a digital method OR the status is already marked as PAID
-    if (rawMethod === "phonepe" || rawMethod === "online" || paymentStatus === "PAID") {
-      finalPaymentMethod = "PAID";
-    }
+    let finalPaymentMethod = (rawMethod === "phonepe" || rawMethod === "online" || paymentStatus === "PAID") ? "PAID" : "COD";
 
-    // Guard: Block COD invoices if not delivered
-    if (finalPaymentMethod === "COD" && order.status !== "Delivered") {
-      return res.status(403).json({
-        success: false,
-        message: "COD orders must be marked 'Delivered' before invoicing.",
-      });
-    }
+    // ✅ NEW: Initialize top-level totals to prevent 'undefined' errors
+    let totalTaxableValue = 0;
+    let totalCGST = 0;
+    let totalSGST = 0;
+    let totalIGST = 0;
+    let totalGSTAmount = 0;
 
-    // 4️⃣ Financial Setup
-    const sellerDetails = {
-      name: "Gopi Nath Collection",
-      gstin: "GST-PENDING",
-      address: "56 Krishna Nagar New Model Town, Panipat, Haryana - 132103",
-      state: "Haryana",
-    };
-
-    // 5️⃣ Item & GST Mapping
     const items = order.products.map((item) => {
       const lineTotal = item.price * (item.qty || 1);
       const itemGST = calculateGST({
         totalPaid: lineTotal,
-        sellerState: sellerDetails.state,
+        sellerState: "Haryana",
         buyerState: order.buyer?.state || "Haryana",
         gstRate: item.gstRate || 0,
       });
+
+      // ✅ NEW: Accumulate totals for the entire invoice
+      totalTaxableValue += itemGST.taxableValue;
+      totalCGST += itemGST.cgst;
+      totalSGST += itemGST.sgst;
+      totalIGST += itemGST.igst;
+      totalGSTAmount += itemGST.totalGST;
 
       return {
         productId: item.product?._id,
@@ -80,44 +65,46 @@ export const generateInvoice = async (req, res) => {
 
     const invNo = await generateInvoiceNumber();
 
-    // 7️⃣ Create Invoice with VALID enum value
+    // 7️⃣ Create Invoice with aggregated numeric values
     const invoice = await Invoice.create({
       orderId: order._id,
       orderNumber: order.orderNumber,
       invoiceNumber: invNo,
-      sellerName: sellerDetails.name,
-      sellerGstin: sellerDetails.gstin,
-      sellerAddress: sellerDetails.address,
-      sellerState: sellerDetails.state,
+      sellerName: "Gopi Nath Collection",
+      sellerAddress: "56 Krishna Nagar New Model Town, Panipat, Haryana - 132103",
+      sellerState: "Haryana",
       buyerName: order.buyer?.name || "Guest",
       buyerAddress: order.address,
       buyerState: order.buyer?.state || "Haryana",
-      paymentMethod: finalPaymentMethod, // Successfully sends "PAID" or "COD"
+      paymentMethod: finalPaymentMethod,
       subtotal: order.subtotal,
       discount: order.discount || 0,
       shippingCharges: order.shippingFee || 0,
       totalPaid: order.totalPaid,
+      // ✅ CRITICAL: Assign the aggregated totals so toFixed() has a value to read
+      taxableValue: +totalTaxableValue.toFixed(2),
+      cgst: +totalCGST.toFixed(2),
+      sgst: +totalSGST.toFixed(2),
+      igst: +totalIGST.toFixed(2),
+      totalGST: +totalGSTAmount.toFixed(2),
+      gstType: totalIGST > 0 ? "IGST" : "CGST_SGST",
       items,
       pdfPath: `/uploads/invoices/${invNo.replace(/\//g, "-")}.pdf`,
     });
 
-    // ✅ 🔟 Update Order status
+    // Update order status
     order.isInvoiced = true;
     order.invoiceNo = invoice.invoiceNumber;
     order.invoiceDate = invoice.createdAt;
     await order.save(); 
 
-    // 📄 11️⃣ Generate Physical PDF
+    // Generate PDF now that database values are present and defined
     await generateInvoicePDF(invoice);
 
-    return res.status(200).json({
-      success: true,
-      message: "Invoice generated successfully",
-      invoice,
-    });
+    return res.status(200).json({ success: true, message: "Invoice generated", invoice });
 
   } catch (error) {
-    console.error("Invoice Error:", error);
+    console.error("Invoice Controller Error:", error);
     return res.status(500).json({ success: false, message: error.message });
   }
 };
