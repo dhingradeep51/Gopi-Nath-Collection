@@ -49,8 +49,8 @@ const AdminOrders = () => {
     const matchesStatus = statusFilter === "all" || o.status === statusFilter;
     const matchesPayment =
       paymentFilter === "all" ||
-      (paymentFilter === "cod" && (o.payment?.method || "cod").toLowerCase() === "cod") ||
-      (paymentFilter === "online" && (o.payment?.method || "cod").toLowerCase() === "online");
+      (paymentFilter === "cod" && (o.paymentDetails?.method || "cod").toLowerCase() === "cod") ||
+      (paymentFilter === "online" && (o.paymentDetails?.method || "cod").toLowerCase() !== "cod");
 
     return matchesSearch && matchesStatus && matchesPayment;
   });
@@ -1006,7 +1006,11 @@ const AdminOrders = () => {
           ) : (
             <div className="orders-list">
               {filteredOrders.map((order) => {
-                const payMethod = order.payment?.method?.toUpperCase() || "COD";
+                const getPaymentMethodDisplay = () => {
+                  const method = order.paymentDetails?.method || "cod";
+                  return method.toLowerCase() === "cod" ? "COD" : "PhonePe";
+                };
+                const payMethod = getPaymentMethodDisplay();
                 const statusColor = getStatusColor(order.status);
 
                 return (
@@ -1025,7 +1029,7 @@ const AdminOrders = () => {
 
                     <div className="order-info">
                       <div className="customer-name">{order.buyer?.name}</div>
-                      <span className={`payment-badge payment-${payMethod.toLowerCase()}`}>{payMethod}</span>
+                      <span className={`payment-badge payment-${payMethod === "COD" ? "cod" : "online"}`}>{payMethod}</span>
                     </div>
 
                     <div className="order-summary">

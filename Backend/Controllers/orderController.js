@@ -196,7 +196,7 @@ export const getAllOrdersController = async (req, res) => {
         path: "paymentDetails",
         select: "status method merchantTransactionId" 
       })
-      .select("orderNumber products buyer status paymentDetails isInvoiced invoiceNo createdAt cancelReason returnReason isApprovedByAdmin")
+      .select("orderNumber products buyer status paymentDetails isInvoiced invoiceNo createdAt cancelReason returnReason isApprovedByAdmin totalPaid")
       .sort({ createdAt: -1 });
 
     res.status(200).json(orders);
