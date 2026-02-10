@@ -12,10 +12,11 @@ import { phonePeClient } from "../Utils/phonepeClient.js";
  */
 export const phonePeWebhookController = async (req, res) => {
   try {
-    const rawBody = req.body; // Captured as string by express.text()
+    // 1. Ensure rawBody is a string (use express.text() middleware for this route)
+    const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body); 
     const authHeader = req.headers["authorization"];
 
-    // SDK V2 Verification
+    // 2. Validate using SDK
     const callbackResponse = phonePeClient.validateCallback(
       process.env.PHONEPE_CALLBACK_USERNAME,
       process.env.PHONEPE_CALLBACK_PASSWORD,
@@ -25,24 +26,38 @@ export const phonePeWebhookController = async (req, res) => {
 
     const { originalMerchantOrderId, state } = callbackResponse.payload;
 
-    // Update DB
+    // 3. Find Order with Safety Check (prevents "setting status of null")
     const order = await OrderModel.findOne({ merchantOrderId: originalMerchantOrderId });
-    if (order) {
-      const payment = await PaymentModel.findById(order.paymentDetails);
-      payment.status = state === "COMPLETED" ? "PAID" : "FAILED";
-      order.status = state === "COMPLETED" ? "Processing" : "Not Processed";
-      
-      await payment.save();
-      await order.save();
+    
+    if (!order) {
+      console.error(`Order NOT found for ID: ${originalMerchantOrderId}`.red);
+      return res.status(200).send("Order not found, but acknowledged"); // 200 stops retries
     }
 
-    return res.sendStatus(200); // Tell PhonePe we received it
+    // 4. Find Payment with Safety Check
+    const payment = await PaymentModel.findById(order.paymentDetails);
+    
+    if (!payment) {
+      console.error(`Payment record missing for Order: ${order.orderNumber}`.red);
+      return res.status(200).send("Payment record missing");
+    }
+
+    // 5. Safe Update
+    payment.status = state === "COMPLETED" ? "PAID" : "FAILED";
+    order.status = state === "COMPLETED" ? "Processing" : "Not Processed";
+    
+    await payment.save();
+    await order.save();
+
+    console.log(`Order ${originalMerchantOrderId} updated to ${state}`.green);
+    return res.sendStatus(200); 
+
   } catch (err) {
-    console.error("Webhook Verification Failed:", err.message);
-    return res.sendStatus(401);
+    console.error("Webhook Verification Failed:".red, err.message);
+    // Returning 401 tells PhonePe to retry the callback later
+    return res.status(401).send("Verification Failed");
   }
 };
-
 /* =====================================================
    🧭 PHONEPE REDIRECT HANDLER (UI ONLY)
    ===================================================== */
