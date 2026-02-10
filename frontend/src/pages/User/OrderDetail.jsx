@@ -6,7 +6,7 @@ import moment from "moment";
 import {
   FaArrowLeft, FaTruck, FaBoxOpen,
   FaInfoCircle, FaMapMarkerAlt, FaReceipt,
-  FaDownload, FaTimes, FaUndo
+  FaDownload, FaTimes, FaUndo, FaCreditCard, FaCheckCircle, FaExclamationTriangle
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { Modal, Radio, Button } from "antd";
@@ -815,11 +815,23 @@ const OrderDetails = () => {
               <span className="info-val">{order?.orderNumber}</span>
             </div>
             <div className="info-row">
-              <FaReceipt color={colors.gold} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <FaCreditCard color={colors.gold} style={{ flexShrink: 0, marginTop: '2px' }} />
               <span className="info-label">Payment:</span>
-              <span className="info-val">
-                {order?.payment?.method?.toUpperCase() || "COD"}
-                ({order?.payment?.success ? "Success" : "Pending"})
+              <span className="info-val" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {order?.paymentDetails?.status === 'PAID' ? (
+                  <>
+                    <FaCheckCircle color={colors.success} size={16} />
+                    <span style={{ color: colors.success, fontWeight: 'bold' }}>PAID</span>
+                  </>
+                ) : (
+                  <>
+                    <FaExclamationTriangle color={colors.gold} size={16} />
+                    <span>{order?.paymentDetails?.status || "PENDING"}</span>
+                  </>
+                )}
+                <span style={{ opacity: 0.7, fontSize: '0.9rem' }}>
+                  ({order?.paymentDetails?.method === 'cod' ? 'Cash on Delivery' : 'PhonePe'})
+                </span>
               </span>
             </div>
 

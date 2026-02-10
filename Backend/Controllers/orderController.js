@@ -387,7 +387,11 @@ export const getOrderByIdController = async (req, res) => {
         path: "products.product",
         select: "name slug photo"
       })
-      .populate("buyer", "name phone email address city state pincode");
+      .populate("buyer", "name phone email address city state pincode")
+      .populate({
+        path: "paymentDetails",
+        select: "status method transactionId amount"
+      });
 
     if (!order) {
       return res.status(404).send({ success: false, message: "Order not found" });

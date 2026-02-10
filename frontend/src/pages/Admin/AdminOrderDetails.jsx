@@ -10,7 +10,7 @@ import { Input, Button, Dropdown, Tag, Divider } from "antd";
 import { 
   FaChevronDown, FaArrowLeft, FaTruck, FaEdit, FaUser, 
   FaMapMarkerAlt, FaCopy, FaFileInvoice, FaShoppingBag, 
-  FaReceipt, FaExclamationTriangle, FaCheckCircle
+  FaReceipt, FaExclamationTriangle, FaCheckCircle, FaCreditCard
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 
@@ -802,7 +802,7 @@ const AdminOrderDetails = () => {
                     className={`product-item ${p.price === 0 ? 'gift' : ''}`}
                   >
                     <img 
-                      src={`${BASE_URL}api/v1/product/product-photo/${p.product?._id || p.product}`} 
+                      src={`${BASE_URL}api/v1/product/product-photo/${p.product?._id || p.product}/0`} 
                       alt={p.name}
                       className="product-image"
                       onError={(e) => { e.target.src = "/logo192.png"; }}
@@ -836,6 +836,50 @@ const AdminOrderDetails = () => {
               {/* Sidebar */}
               <div className="sidebar">
                 
+                {/* Payment Status */}
+                <div className="sidebar-card">
+                  <h6 className="section-title">
+                    <FaCreditCard /> PAYMENT STATUS
+                  </h6>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '15px' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: order?.paymentDetails?.status === 'PAID' ? `${colors.success}20` : `${colors.warning}20`,
+                      color: order?.paymentDetails?.status === 'PAID' ? colors.success : colors.warning
+                    }}>
+                      {order?.paymentDetails?.status === 'PAID' ? <FaCheckCircle size={20} /> : <FaExclamationTriangle size={20} />}
+                    </div>
+                    <div>
+                      <span style={{ opacity: 0.7, fontSize: '0.85rem', display: 'block' }}>Payment Status</span>
+                      <span style={{ fontWeight: 'bold', fontSize: '1.1rem', color: order?.paymentDetails?.status === 'PAID' ? colors.success : colors.warning }}>
+                        {order?.paymentDetails?.status === 'PAID' ? 'PAID' : order?.paymentDetails?.status || 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                  <Divider style={{ background: `${colors.gold}22`, margin: '15px 0' }} />
+                  <div className="financial-row" style={{ fontSize: '0.9rem', marginBottom: '8px' }}>
+                    <span>Method:</span>
+                    <span style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>
+                      {order?.paymentDetails?.method === 'cod' ? 'Cash on Delivery' : 'PhonePe'}
+                    </span>
+                  </div>
+                  {order?.paymentDetails?.transactionId && (
+                    <div className="financial-row" style={{ fontSize: '0.85rem', marginBottom: '8px' }}>
+                      <span>Transaction ID:</span>
+                      <span style={{ fontSize: '0.75rem', fontFamily: 'monospace', opacity: 0.8 }}>{order.paymentDetails.transactionId}</span>
+                    </div>
+                  )}
+                  <div className="financial-row" style={{ fontSize: '0.9rem' }}>
+                    <span>Amount:</span>
+                    <span style={{ color: colors.gold, fontWeight: 'bold' }}>₹{order?.paymentDetails?.amount?.toLocaleString()}</span>
+                  </div>
+                </div>
+
                 {/* Financial Summary */}
                 <div className="sidebar-card highlight">
                   <h6 className="section-title">
