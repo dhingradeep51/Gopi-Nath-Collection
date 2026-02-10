@@ -14,9 +14,11 @@ export const generateInvoice = async (req, res) => {
     const { orderId } = req.body;
 
     /* 1️⃣ Fetch order with deep population */
+    // ✅ FIX: Must populate paymentDetails to access the payment method
     const order = await Order.findById(orderId)
       .populate("buyer")
-      .populate("products.product");
+      .populate("products.product")
+      .populate("paymentDetails"); 
 
     if (!order) {
       return res.status(404).json({ success: false, message: "Order not found" });
@@ -33,9 +35,12 @@ export const generateInvoice = async (req, res) => {
     }
 
     /* 🚦 3️⃣ Logic: COD vs Prepaid Permissions */
-    const isPrepaid = order.payment?.method === "online";
+    // ✅ FIX: Use order.paymentDetails.method instead of order.payment.method
+    const method = order.paymentDetails?.method || "cod";
+    const isPrepaid = method === "phonepe" || method === "online";
     const isDelivered = order.status === "Delivered";
 
+    // COD orders are blocked until Delivered, but Prepaid can be invoiced immediately
     if (!isPrepaid && !isDelivered) {
       return res.status(403).json({
         success: false,
@@ -52,7 +57,7 @@ export const generateInvoice = async (req, res) => {
     };
 
     const buyerState = order.buyer?.state || "Haryana";
-    const finalAmount = order.subtotal - (order.discount || 0) + (order.shippingFee || 0);
+    const finalAmount = order.totalPaid; // Using the totalPaid from OrderModel
 
     /* 5️⃣ Item & GST Mapping */
     const items = order.products.map((item) => {
@@ -92,7 +97,7 @@ export const generateInvoice = async (req, res) => {
       buyerName: order.buyer?.name || "Guest",
       buyerAddress: order.address,
       buyerState,
-      paymentMethod: order.payment?.method?.toUpperCase() || "COD",
+      paymentMethod: method.toUpperCase(), // Using the corrected method
       subtotal: order.subtotal,
       discount: order.discount || 0,
       shippingCharges: order.shippingFee || 0,
@@ -101,34 +106,29 @@ export const generateInvoice = async (req, res) => {
       pdfPath: `/uploads/invoices/${invNo.replace(/\//g, "-")}.pdf`,
     });
 
-    /* ✅ 🔟 DATABASE PERSISTENCE (THE FIX) */
-    // We update the Order flags IMMEDIATELY. If PDF generation crashes, 
-    // the status is already 'true' in MongoDB.
+    /* ✅ 🔟 DATABASE PERSISTENCE */
     try {
       order.isInvoiced = true;
       order.invoiceNo = invoice.invoiceNumber;
       order.invoiceDate = invoice.createdAt;
       
-      // Use await to ensure the save completes
       await order.save(); 
-      console.log("DB Update Success: Order marked as Invoiced");
+      console.log("✅ DB Update Success: Order marked as Invoiced");
     } catch (dbError) {
-      console.error("Database Save Error:", dbError.message);
-      // If save fails here, usually due to duplicate key index issues
+      console.error("❌ Database Save Error:", dbError.message);
       return res.status(500).json({
         success: false,
-        message: "Failed to update Order status. Ensure sparse: true is in model.",
+        message: "Failed to update Order status.",
         error: dbError.message,
       });
     }
 
     /* 📄 11️⃣ Physical PDF Generation */
-    // Even if this has a formatting error, the database is now safe.
     await generateInvoicePDF(invoice);
 
     return res.status(200).json({
       success: true,
-      message: "Invoice generated and Order status updated successfully",
+      message: "Invoice generated successfully",
       invoice,
     });
 
