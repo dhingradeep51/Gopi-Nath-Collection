@@ -12,10 +12,9 @@ import { phonePeClient } from "../Utils/phonepeClient.js";
  */
 export const phonePeWebhookController = async (req, res) => {
   try {
-    const rawBody = req.body; // Now a raw string
+    const rawBody = req.body; 
     const authHeader = req.headers["authorization"] || req.headers["Authorization"];
 
-    // SDK V2 Verification
     const callbackResponse = phonePeClient.validateCallback(
       process.env.PHONEPE_CALLBACK_USERNAME,
       process.env.PHONEPE_CALLBACK_PASSWORD,
@@ -23,28 +22,42 @@ export const phonePeWebhookController = async (req, res) => {
       rawBody
     );
 
-    // FIX: Check if payload is undefined before destructuring
     if (!callbackResponse || !callbackResponse.payload) {
-      console.error("Webhook Verification Failed: Invalid payload or signature".red);
+      console.error("Webhook Verification Failed: Invalid payload".red);
       return res.status(401).send("Verification Failed");
     }
 
     const { originalMerchantOrderId, state } = callbackResponse.payload;
+    console.log(`Webhook received for ${originalMerchantOrderId}: ${state}`.cyan);
 
-    // Safety check for Order find
+    // 1. Find the order
     const order = await OrderModel.findOne({ merchantOrderId: originalMerchantOrderId });
     if (!order) {
       console.error(`Order not found: ${originalMerchantOrderId}`.red);
-      return res.sendStatus(200); // 200 stops PhonePe from retrying
+      return res.sendStatus(200); 
     }
 
+    // 2. Find and update Payment record
     const payment = await PaymentModel.findById(order.paymentDetails);
     if (payment) {
-      payment.status = state === "COMPLETED" ? "PAID" : "FAILED";
-      order.status = state === "COMPLETED" ? "Processing" : "Not Processed";
+      // Ensure 'state' matches PhonePe's 'COMPLETED' status
+      const isSuccess = state === "COMPLETED";
+      
+      payment.status = isSuccess ? "PAID" : "FAILED";
+      order.status = isSuccess ? "Processing" : "Not Processed";
       
       await payment.save();
       await order.save();
+
+      // 3. 🚀 TRIGGER SOCKET.IO (Optional but Recommended)
+      // This tells the frontend "Hey, status changed!" immediately
+      const io = req.app.get("io");
+      io.to(order.orderNumber).emit("payment_update", { 
+        status: payment.status, 
+        orderStatus: order.status 
+      });
+
+      console.log(`Order ${originalMerchantOrderId} updated to ${payment.status}`.green);
     }
 
     return res.sendStatus(200); 
