@@ -13,8 +13,7 @@ export const generateInvoice = async (req, res) => {
   try {
     const { orderId } = req.body;
 
-    /* 1️⃣ Fetch order with deep population */
-    // ✅ FIX: Must populate paymentDetails to access the payment method
+    // 1️⃣ Fetch order with paymentDetails populated
     const order = await Order.findById(orderId)
       .populate("buyer")
       .populate("products.product")
@@ -24,31 +23,31 @@ export const generateInvoice = async (req, res) => {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    /* 🔒 2️⃣ Hard Guard: Prevent Duplicate Invoices */
+    // 🔒 2️⃣ Prevent Duplicate Invoices
     const existingInvoice = await Invoice.findOne({ orderId: order._id });
     if (existingInvoice) {
-      return res.status(201).json({
-        success: true,
-        message: "Invoice already exists",
-        invoice: existingInvoice,
-      });
+      return res.status(201).json({ success: true, message: "Invoice exists", invoice: existingInvoice });
     }
 
-    /* 🚦 3️⃣ Logic: COD vs Prepaid Permissions */
-    // ✅ FIX: Use order.paymentDetails.method instead of order.payment.method
-    const method = order.paymentDetails?.method || "cod";
-    const isPrepaid = method === "phonepe" || method === "online";
-    const isDelivered = order.status === "Delivered";
+    // 🚦 3️⃣ Map Payment Method to Enum
+    const rawMethod = order.paymentDetails?.method?.toLowerCase() || "cod";
+    const paymentStatus = order.paymentDetails?.status || "PENDING";
+    
+    let finalPaymentMethod = "COD";
+    // If it's a digital method OR the status is already marked as PAID
+    if (rawMethod === "phonepe" || rawMethod === "online" || paymentStatus === "PAID") {
+      finalPaymentMethod = "PAID";
+    }
 
-    // COD orders are blocked until Delivered, but Prepaid can be invoiced immediately
-    if (!isPrepaid && !isDelivered) {
+    // Guard: Block COD invoices if not delivered
+    if (finalPaymentMethod === "COD" && order.status !== "Delivered") {
       return res.status(403).json({
         success: false,
         message: "COD orders must be marked 'Delivered' before invoicing.",
       });
     }
 
-    /* 4️⃣ Financial Setup */
+    // 4️⃣ Financial Setup
     const sellerDetails = {
       name: "Gopi Nath Collection",
       gstin: "GST-PENDING",
@@ -56,16 +55,13 @@ export const generateInvoice = async (req, res) => {
       state: "Haryana",
     };
 
-    const buyerState = order.buyer?.state || "Haryana";
-    const finalAmount = order.totalPaid; // Using the totalPaid from OrderModel
-
-    /* 5️⃣ Item & GST Mapping */
+    // 5️⃣ Item & GST Mapping
     const items = order.products.map((item) => {
       const lineTotal = item.price * (item.qty || 1);
       const itemGST = calculateGST({
         totalPaid: lineTotal,
         sellerState: sellerDetails.state,
-        buyerState,
+        buyerState: order.buyer?.state || "Haryana",
         gstRate: item.gstRate || 0,
       });
 
@@ -82,10 +78,9 @@ export const generateInvoice = async (req, res) => {
       };
     });
 
-    /* 6️⃣ Create Unique Identity */
     const invNo = await generateInvoiceNumber();
 
-    /* 7️⃣ Create Invoice Document in Database */
+    // 7️⃣ Create Invoice with VALID enum value
     const invoice = await Invoice.create({
       orderId: order._id,
       orderNumber: order.orderNumber,
@@ -96,34 +91,23 @@ export const generateInvoice = async (req, res) => {
       sellerState: sellerDetails.state,
       buyerName: order.buyer?.name || "Guest",
       buyerAddress: order.address,
-      buyerState,
-      paymentMethod: method.toUpperCase(), // Using the corrected method
+      buyerState: order.buyer?.state || "Haryana",
+      paymentMethod: finalPaymentMethod, // Successfully sends "PAID" or "COD"
       subtotal: order.subtotal,
       discount: order.discount || 0,
       shippingCharges: order.shippingFee || 0,
-      totalPaid: finalAmount,
+      totalPaid: order.totalPaid,
       items,
       pdfPath: `/uploads/invoices/${invNo.replace(/\//g, "-")}.pdf`,
     });
 
-    /* ✅ 🔟 DATABASE PERSISTENCE */
-    try {
-      order.isInvoiced = true;
-      order.invoiceNo = invoice.invoiceNumber;
-      order.invoiceDate = invoice.createdAt;
-      
-      await order.save(); 
-      console.log("✅ DB Update Success: Order marked as Invoiced");
-    } catch (dbError) {
-      console.error("❌ Database Save Error:", dbError.message);
-      return res.status(500).json({
-        success: false,
-        message: "Failed to update Order status.",
-        error: dbError.message,
-      });
-    }
+    // ✅ 🔟 Update Order status
+    order.isInvoiced = true;
+    order.invoiceNo = invoice.invoiceNumber;
+    order.invoiceDate = invoice.createdAt;
+    await order.save(); 
 
-    /* 📄 11️⃣ Physical PDF Generation */
+    // 📄 11️⃣ Generate Physical PDF
     await generateInvoicePDF(invoice);
 
     return res.status(200).json({
@@ -133,15 +117,10 @@ export const generateInvoice = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Generate Invoice Controller Error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal Server Error during generation",
-      error: error.message,
-    });
+    console.error("Invoice Error:", error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
-
 // Get invoice by orderId
 export const getInvoiceByOrderId = async (req, res) => {
   try {
