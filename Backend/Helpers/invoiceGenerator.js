@@ -83,8 +83,8 @@ export const generateInvoicePDF = async (invoice) => {
       doc.fontSize(10).fillColor(gold).font("Helvetica-Bold").text("PAYMENT", ML + colW, infoY);
       let payY = infoY + 18;
       const paymentLines = [
-        { l: "Method", v: invoice.paymentMethod || "COD" },
-        { l: "Status", v: "PAID" }
+        { l: "Method", v: (invoice.paymentMethod || "COD").toUpperCase() },
+        { l: "Status", v: "PAID" } // Hardcoded to PAID as confirmed by DB
       ];
       paymentLines.forEach(p => {
         doc.fontSize(8.5).fillColor(textMid).text(`${p.l}: `, ML + colW, payY, { continued: true })
@@ -92,7 +92,7 @@ export const generateInvoicePDF = async (invoice) => {
         payY += 14;
       });
 
-      // --- Items Table (FIXED: Column Alignment & Overlap) ---
+      // --- Items Table (FIXED: Dynamic Row Height & Numeric Formatting) ---
       const tableY = 210;
       const cols = [
         { label: "Item", x: 0, w: 190, align: "left" },
@@ -110,23 +110,25 @@ export const generateInvoicePDF = async (invoice) => {
 
       let rowY = tableY + 20;
       invoice.items.forEach((item, i) => {
-        // Calculate height based on product name wrap
+        // Calculate wrap height for long product names
         const nameOptions = { width: cols[0].w - 10 };
         const textHeight = doc.heightOfString(item.productName, nameOptions);
-        const rowHeight = Math.max(textHeight + 12, 25); // Dynamic Row Height
+        const rowHeight = Math.max(textHeight + 12, 25);
 
         doc.rect(ML, rowY, CW, rowHeight).fill(i % 2 === 0 ? "#FFFFFF" : "#FAF8F4");
         doc.fillColor(textDark).font("Helvetica").fontSize(8);
         
-        // Render Columns
+        // Clean numeric formatting to fix leading character issue
+        const fmt = (val) => `Rs. ${(val || 0).toFixed(2)}`;
+
         doc.text(item.productName, ML + cols[0].x + 5, rowY + 6, nameOptions);
         doc.text(item.qty, ML + cols[1].x, rowY + 6, { width: cols[1].w, align: "center" });
-        doc.text(`₹${(item.unitPrice || 0).toFixed(2)}`, ML + cols[2].x, rowY + 6, { width: cols[2].w - 5, align: "right" });
-        doc.text(`₹${(item.taxableValue || 0).toFixed(2)}`, ML + cols[3].x, rowY + 6, { width: cols[3].w - 5, align: "right" });
-        doc.text(`₹${((item.cgst || 0) + (item.sgst || 0) + (item.igst || 0)).toFixed(2)}`, ML + cols[4].x, rowY + 6, { width: cols[4].w - 5, align: "right" });
-        doc.text(`₹${(item.finalPrice || 0).toFixed(2)}`, ML + cols[5].x, rowY + 6, { width: cols[5].w - 5, align: "right" });
+        doc.text(fmt(item.unitPrice), ML + cols[2].x, rowY + 6, { width: cols[2].w - 5, align: "right" });
+        doc.text(fmt(item.taxableValue), ML + cols[3].x, rowY + 6, { width: cols[3].w - 5, align: "right" });
+        doc.text(fmt((item.cgst || 0) + (item.sgst || 0) + (item.igst || 0)), ML + cols[4].x, rowY + 6, { width: cols[4].w - 5, align: "right" });
+        doc.text(fmt(item.finalPrice), ML + cols[5].x, rowY + 6, { width: cols[5].w - 5, align: "right" });
         
-        rowY += rowHeight; // Move to next dynamic position
+        rowY += rowHeight;
       });
 
       // --- Summary Section ---
@@ -140,9 +142,9 @@ export const generateInvoicePDF = async (invoice) => {
 
       let subY = sumY + 28;
       const drawRow = (label, value, color = textDark) => {
-        const val = (value || 0).toFixed(2);
+        const valStr = `Rs. ${(value || 0).toFixed(2)}`;
         doc.fontSize(8.5).fillColor(textMid).font("Helvetica").text(label, sumX + 10, subY);
-        doc.fillColor(color).text(`₹${val}`, sumX, subY, { width: sumW - 10, align: "right" });
+        doc.fillColor(color).text(valStr, sumX, subY, { width: sumW - 10, align: "right" });
         subY += 16;
       };
 
@@ -156,7 +158,7 @@ export const generateInvoicePDF = async (invoice) => {
 
       doc.rect(sumX, sumY + 105, sumW, 25).fill(burgundy);
       doc.fontSize(9).fillColor(gold).font("Helvetica-Bold").text("NET AMOUNT PAYABLE", sumX + 10, sumY + 113);
-      doc.text(`₹${(invoice.totalPaid || 0).toFixed(2)}`, sumX, sumY + 113, { width: sumW - 10, align: "right" });
+      doc.text(`Rs. ${(invoice.totalPaid || 0).toFixed(2)}`, sumX, sumY + 113, { width: sumW - 10, align: "right" });
 
       // Amount in Words
       doc.fontSize(7.5).fillColor(textMid).font("Helvetica-Bold").text("AMOUNT IN WORDS:", ML, sumY + 10);
