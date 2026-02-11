@@ -18,8 +18,6 @@ import {
   FaShieldAlt,
   FaTrash,
   FaTimes,
-  FaChevronDown,
-  FaChevronUp,
   FaCopy,
   FaCheck,
 } from "react-icons/fa";
@@ -243,8 +241,6 @@ const CheckOutPage = () => {
   // UI States
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [showCouponsModal, setShowCouponsModal] = useState(false);
-  const [showOrderSummary, setShowOrderSummary] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
   // Loading & Success States
   const [loading, setLoading] = useState(false);
@@ -267,16 +263,6 @@ const CheckOutPage = () => {
   });
 
   // ==================== EFFECTS ====================
-  
-  // Check if mobile device
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   // Redirect if cart is empty
   useEffect(() => {
@@ -544,23 +530,6 @@ const CheckOutPage = () => {
           
           {/* ==================== MAIN CONTENT ==================== */}
           <div className="checkout-main">
-            
-            {/* Mobile Sticky Summary Toggle */}
-            {isMobile && (
-              <div 
-                className="mobile-summary-toggle" 
-                onClick={() => setShowOrderSummary(!showOrderSummary)}
-              >
-                <div className="summary-toggle-left">
-                  <FaRupeeSign />
-                  <span>Total: ₹{totals.total.toLocaleString()}</span>
-                </div>
-                <div className="summary-toggle-right">
-                  <span>{showOrderSummary ? 'Hide' : 'View'} Details</span>
-                  {showOrderSummary ? <FaChevronUp /> : <FaChevronDown />}
-                </div>
-              </div>
-            )}
 
             {/* Address Section */}
             <div className="checkout-card">
@@ -753,12 +722,8 @@ const CheckOutPage = () => {
           </div>
 
           {/* ==================== SIDEBAR / ORDER SUMMARY ==================== */}
-          <div 
-            className={`checkout-sidebar ${
-              isMobile && showOrderSummary ? 'mobile-expanded' : ''
-            } ${isMobile && !showOrderSummary ? 'mobile-collapsed' : ''}`}
-          >
-            <div className="checkout-card">
+          <div className="checkout-sidebar">
+            <div className="checkout-card sticky-summary">
               <div className="card-header">Order Summary</div>
               <div className="card-content">
                 
@@ -927,58 +892,23 @@ const CheckOutPage = () => {
         .checkout-page {
           min-height: 100vh;
           background: linear-gradient(135deg, ${COLORS.darkBg} 0%, ${COLORS.burgundy} 100%);
-          padding: 20px 10px;
+          padding: 15px 10px;
         }
 
         .checkout-container {
           max-width: 1400px;
           margin: 0 auto;
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 20px;
-        }
-
-        /* MOBILE STICKY SUMMARY */
-        .mobile-summary-toggle {
-          position: sticky;
-          top: 0;
-          z-index: 100;
-          background: linear-gradient(135deg, ${COLORS.burgundy} 0%, ${COLORS.darkBg} 100%);
-          padding: 15px 20px;
-          border-radius: 12px;
-          margin-bottom: 20px;
           display: flex;
-          justify-content: space-between;
-          align-items: center;
-          cursor: pointer;
-          border: 2px solid ${COLORS.gold};
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+          flex-direction: column;
+          gap: 15px;
         }
 
-        .summary-toggle-left {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: ${COLORS.gold};
-          font-weight: 700;
-          font-size: 1.2rem;
+        .checkout-main {
+          width: 100%;
         }
 
-        .summary-toggle-right {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: #fff;
-          font-size: 0.9rem;
-        }
-
-        .checkout-sidebar.mobile-collapsed {
-          display: none;
-        }
-
-        .checkout-sidebar.mobile-expanded {
-          display: block;
-          animation: slideDown 0.3s ease;
+        .checkout-sidebar {
+          width: 100%;
         }
 
         /* CARD STYLES */
@@ -988,7 +918,7 @@ const CheckOutPage = () => {
           border: 1px solid ${COLORS.gold}33;
           border-radius: 12px;
           overflow: hidden;
-          margin-bottom: 20px;
+          margin-bottom: 15px;
           transition: all 0.3s ease;
         }
 
@@ -1000,9 +930,9 @@ const CheckOutPage = () => {
         .card-header {
           background: linear-gradient(135deg, ${COLORS.burgundy} 0%, ${COLORS.darkBg} 100%);
           color: ${COLORS.gold};
-          padding: 16px 20px;
+          padding: 14px 16px;
           font-weight: 600;
-          font-size: 1rem;
+          font-size: 0.95rem;
           display: flex;
           align-items: center;
           gap: 10px;
@@ -1010,7 +940,7 @@ const CheckOutPage = () => {
         }
 
         .card-content {
-          padding: 20px;
+          padding: 16px;
           color: #fff;
         }
 
@@ -1020,37 +950,38 @@ const CheckOutPage = () => {
         }
 
         .user-name {
-          font-size: 1.2rem;
+          font-size: 1.1rem;
           font-weight: 600;
           color: ${COLORS.gold};
           margin-bottom: 8px;
         }
 
         .user-phone {
-          font-size: 1rem;
+          font-size: 0.95rem;
           color: #ddd;
-          margin-bottom: 12px;
+          margin-bottom: 10px;
         }
 
         .user-address {
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           color: #bbb;
           line-height: 1.6;
-          margin-bottom: 20px;
+          margin-bottom: 16px;
         }
 
         .change-address-btn {
           background: transparent;
           border: 2px solid ${COLORS.gold};
           color: ${COLORS.gold};
-          padding: 12px 24px;
+          padding: 12px 20px;
           border-radius: 6px;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.3s ease;
           text-transform: uppercase;
-          letter-spacing: 1px;
+          letter-spacing: 0.5px;
           width: 100%;
+          font-size: 0.85rem;
         }
 
         .change-address-btn:hover {
@@ -1064,7 +995,7 @@ const CheckOutPage = () => {
         .address-form {
           display: flex;
           flex-direction: column;
-          gap: 15px;
+          gap: 14px;
           animation: fadeIn 0.3s ease;
         }
 
@@ -1076,7 +1007,7 @@ const CheckOutPage = () => {
 
         .form-label {
           color: ${COLORS.gold};
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.5px;
@@ -1087,9 +1018,9 @@ const CheckOutPage = () => {
           background: rgba(255, 255, 255, 0.08);
           border: 1px solid ${COLORS.gold}44;
           color: #fff;
-          padding: 12px 16px;
+          padding: 11px 14px;
           border-radius: 6px;
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           transition: all 0.3s ease;
           width: 100%;
         }
@@ -1109,27 +1040,28 @@ const CheckOutPage = () => {
         .address-grid {
           display: grid;
           grid-template-columns: 1fr;
-          gap: 15px;
+          gap: 14px;
         }
 
         .form-actions {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 10px;
-          margin-top: 10px;
+          margin-top: 8px;
         }
 
         .cancel-btn {
           background: transparent;
           border: 2px solid #999;
           color: #999;
-          padding: 12px 24px;
+          padding: 11px 20px;
           border-radius: 6px;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.3s ease;
           text-transform: uppercase;
-          letter-spacing: 1px;
+          letter-spacing: 0.5px;
+          font-size: 0.8rem;
         }
 
         .cancel-btn:hover:not(:disabled) {
@@ -1141,13 +1073,14 @@ const CheckOutPage = () => {
           background: linear-gradient(135deg, ${COLORS.gold} 0%, #c9a347 100%);
           color: ${COLORS.burgundy};
           border: none;
-          padding: 12px 24px;
+          padding: 11px 20px;
           border-radius: 6px;
           font-weight: 700;
           cursor: pointer;
           transition: all 0.3s ease;
           text-transform: uppercase;
-          letter-spacing: 1px;
+          letter-spacing: 0.5px;
+          font-size: 0.8rem;
         }
 
         .save-btn:hover:not(:disabled) {
@@ -1166,13 +1099,13 @@ const CheckOutPage = () => {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 16px;
+          padding: 14px;
           border: 2px solid ${COLORS.gold}44;
           border-radius: 8px;
           cursor: pointer;
           transition: all 0.3s ease;
           background: rgba(255, 255, 255, 0.03);
-          margin-bottom: 12px;
+          margin-bottom: 10px;
         }
 
         .payment-option:last-child {
@@ -1191,8 +1124,8 @@ const CheckOutPage = () => {
         }
 
         .radio-outer {
-          width: 24px;
-          height: 24px;
+          width: 22px;
+          height: 22px;
           border: 2px solid ${COLORS.gold};
           border-radius: 50%;
           display: flex;
@@ -1202,15 +1135,15 @@ const CheckOutPage = () => {
         }
 
         .radio-inner {
-          width: 12px;
-          height: 12px;
+          width: 10px;
+          height: 10px;
           background: ${COLORS.gold};
           border-radius: 50%;
           animation: scaleIn 0.2s ease;
         }
 
         .payment-icon {
-          font-size: 1.5rem;
+          font-size: 1.4rem;
           color: ${COLORS.gold};
           flex-shrink: 0;
         }
@@ -1220,14 +1153,14 @@ const CheckOutPage = () => {
         }
 
         .payment-title {
-          font-size: 1rem;
+          font-size: 0.95rem;
           font-weight: 600;
           color: #fff;
-          margin-bottom: 4px;
+          margin-bottom: 3px;
         }
 
         .payment-subtitle {
-          font-size: 0.8rem;
+          font-size: 0.75rem;
           color: #aaa;
         }
 
@@ -1235,22 +1168,22 @@ const CheckOutPage = () => {
         .cart-items-list {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 10px;
         }
 
         .cart-item-row {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 12px;
+          padding: 10px;
           background: rgba(255, 255, 255, 0.05);
           border-radius: 8px;
           border: 1px solid ${COLORS.gold}22;
         }
 
         .item-image {
-          width: 70px;
-          height: 70px;
+          width: 65px;
+          height: 65px;
           object-fit: cover;
           border-radius: 6px;
           border: 1px solid ${COLORS.gold}44;
@@ -1263,27 +1196,28 @@ const CheckOutPage = () => {
         }
 
         .item-name {
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           color: #fff;
           margin-bottom: 4px;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+          font-weight: 500;
         }
 
         .item-quantity {
-          font-size: 0.8rem;
+          font-size: 0.75rem;
           color: #aaa;
           margin-bottom: 2px;
         }
 
         .item-unit-price {
-          font-size: 0.75rem;
+          font-size: 0.7rem;
           color: #999;
         }
 
         .item-price {
-          font-size: 1rem;
+          font-size: 0.95rem;
           font-weight: 600;
           color: ${COLORS.gold};
           flex-shrink: 0;
@@ -1292,9 +1226,9 @@ const CheckOutPage = () => {
         /* COUPON SECTION */
         .coupon-section {
           background: rgba(255, 255, 255, 0.05);
-          padding: 16px;
+          padding: 14px;
           border-radius: 8px;
-          margin-bottom: 20px;
+          margin-bottom: 16px;
           border: 1px dashed ${COLORS.gold}44;
         }
 
@@ -1302,16 +1236,16 @@ const CheckOutPage = () => {
           display: flex;
           align-items: center;
           gap: 8px;
-          margin-bottom: 12px;
+          margin-bottom: 10px;
           color: #fff;
           font-weight: 600;
-          font-size: 0.95rem;
+          font-size: 0.9rem;
         }
 
         .coupon-input-group {
           display: flex;
-          gap: 8px;
-          margin-bottom: 10px;
+          gap: 6px;
+          margin-bottom: 8px;
         }
 
         .coupon-input {
@@ -1319,9 +1253,9 @@ const CheckOutPage = () => {
           background: rgba(255, 255, 255, 0.08);
           border: 1px solid ${COLORS.gold}44;
           color: #fff;
-          padding: 10px 12px;
+          padding: 9px 10px;
           border-radius: 6px;
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           text-transform: uppercase;
           font-weight: 600;
         }
@@ -1335,14 +1269,14 @@ const CheckOutPage = () => {
           background: ${COLORS.gold};
           color: ${COLORS.burgundy};
           border: none;
-          padding: 10px 18px;
+          padding: 9px 16px;
           border-radius: 6px;
           font-weight: 700;
           cursor: pointer;
           transition: all 0.3s ease;
           text-transform: uppercase;
-          letter-spacing: 1px;
-          font-size: 0.85rem;
+          letter-spacing: 0.5px;
+          font-size: 0.8rem;
         }
 
         .apply-coupon-btn:hover:not(:disabled) {
@@ -1360,7 +1294,7 @@ const CheckOutPage = () => {
           background: transparent;
           border: 1px solid ${COLORS.gold};
           color: ${COLORS.gold};
-          padding: 10px;
+          padding: 9px;
           border-radius: 6px;
           font-weight: 600;
           cursor: pointer;
@@ -1368,8 +1302,8 @@ const CheckOutPage = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          font-size: 0.85rem;
+          gap: 6px;
+          font-size: 0.8rem;
         }
 
         .view-coupons-btn:hover {
@@ -1381,7 +1315,7 @@ const CheckOutPage = () => {
           justify-content: space-between;
           align-items: center;
           background: rgba(212, 175, 55, 0.15);
-          padding: 12px;
+          padding: 10px;
           border-radius: 6px;
           border: 1px solid ${COLORS.gold};
         }
@@ -1389,7 +1323,7 @@ const CheckOutPage = () => {
         .applied-coupon-info {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
           flex: 1;
         }
 
@@ -1400,12 +1334,12 @@ const CheckOutPage = () => {
         .coupon-name {
           font-weight: 700;
           color: ${COLORS.gold};
-          font-size: 1rem;
+          font-size: 0.95rem;
           margin-bottom: 2px;
         }
 
         .coupon-savings {
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           color: #ccc;
         }
 
@@ -1413,7 +1347,7 @@ const CheckOutPage = () => {
           background: transparent;
           border: 1px solid ${COLORS.error};
           color: ${COLORS.error};
-          padding: 8px 10px;
+          padding: 7px 9px;
           border-radius: 4px;
           cursor: pointer;
           transition: all 0.3s ease;
@@ -1429,9 +1363,9 @@ const CheckOutPage = () => {
         .price-breakdown {
           display: flex;
           flex-direction: column;
-          gap: 12px;
-          margin-bottom: 20px;
-          padding-bottom: 20px;
+          gap: 10px;
+          margin-bottom: 16px;
+          padding-bottom: 16px;
           border-bottom: 1px solid ${COLORS.gold}33;
         }
 
@@ -1440,7 +1374,7 @@ const CheckOutPage = () => {
           justify-content: space-between;
           align-items: center;
           color: #ddd;
-          font-size: 0.9rem;
+          font-size: 0.85rem;
         }
 
         .shipping-label {
@@ -1458,15 +1392,15 @@ const CheckOutPage = () => {
           color: #fff;
           padding: 2px 8px;
           border-radius: 4px;
-          font-size: 0.75rem;
+          font-size: 0.7rem;
           font-weight: 700;
         }
 
         .shipping-notice,
         .savings-notice {
-          padding: 10px 12px;
+          padding: 8px 10px;
           border-radius: 6px;
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           text-align: center;
           border: 1px solid;
         }
@@ -1485,7 +1419,7 @@ const CheckOutPage = () => {
 
         .discount-row {
           font-weight: 600;
-          font-size: 1rem;
+          font-size: 0.9rem;
         }
 
         .gift-notice {
@@ -1493,9 +1427,9 @@ const CheckOutPage = () => {
           align-items: center;
           background: rgba(212, 175, 55, 0.15);
           color: ${COLORS.gold};
-          padding: 10px 12px;
+          padding: 8px 10px;
           border-radius: 6px;
-          font-size: 0.85rem;
+          font-size: 0.8rem;
           border: 1px solid ${COLORS.gold}44;
         }
 
@@ -1503,26 +1437,26 @@ const CheckOutPage = () => {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 20px 0 10px 0;
+          padding: 16px 0 8px 0;
           border-top: 2px solid ${COLORS.gold};
-          margin-top: 10px;
+          margin-top: 8px;
         }
 
         .total-label {
-          font-size: 1.1rem;
+          font-size: 1rem;
           font-weight: 600;
           color: #fff;
         }
 
         .total-amount {
-          font-size: 1.5rem;
+          font-size: 1.4rem;
           font-weight: 700;
           color: ${COLORS.gold};
         }
 
         .gst-notice {
           color: #999;
-          font-size: 0.75rem;
+          font-size: 0.7rem;
           margin-top: 2px;
         }
 
@@ -1532,19 +1466,19 @@ const CheckOutPage = () => {
           background: linear-gradient(135deg, ${COLORS.gold} 0%, #c9a347 100%);
           color: ${COLORS.burgundy};
           border: none;
-          padding: 16px 24px;
+          padding: 15px 20px;
           border-radius: 8px;
           font-weight: 700;
-          font-size: 1rem;
+          font-size: 0.95rem;
           cursor: pointer;
           transition: all 0.3s ease;
           text-transform: uppercase;
-          letter-spacing: 1.5px;
+          letter-spacing: 1px;
           box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-top: 20px;
+          margin-top: 16px;
         }
 
         .place-order-btn:hover:not(:disabled) {
@@ -1563,8 +1497,8 @@ const CheckOutPage = () => {
           align-items: center;
           justify-content: center;
           color: #999;
-          font-size: 0.8rem;
-          margin-top: 12px;
+          font-size: 0.75rem;
+          margin-top: 10px;
         }
 
         /* SUCCESS OVERLAY */
@@ -1590,7 +1524,7 @@ const CheckOutPage = () => {
         }
 
         .checkmark-wrapper {
-          margin-bottom: 30px;
+          margin-bottom: 25px;
         }
 
         .scale-up-center {
@@ -1598,31 +1532,31 @@ const CheckOutPage = () => {
         }
 
         .success-title {
-          font-size: 2.5rem;
+          font-size: 2rem;
           color: ${COLORS.gold};
           margin-bottom: 10px;
-          letter-spacing: 3px;
+          letter-spacing: 2px;
           text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
         }
 
         .success-subtitle {
           color: #ccc;
-          font-size: 0.95rem;
-          margin-bottom: 30px;
+          font-size: 0.9rem;
+          margin-bottom: 25px;
         }
 
         .order-id-box {
           background: rgba(255, 255, 255, 0.1);
-          padding: 20px;
+          padding: 18px;
           border-radius: 10px;
           border: 2px solid ${COLORS.gold};
-          margin-bottom: 30px;
+          margin-bottom: 25px;
         }
 
         .order-label {
           display: block;
           color: #aaa;
-          font-size: 0.8rem;
+          font-size: 0.75rem;
           margin-bottom: 8px;
           letter-spacing: 1px;
         }
@@ -1636,16 +1570,16 @@ const CheckOutPage = () => {
 
         .order-number {
           color: ${COLORS.gold};
-          font-size: 1.5rem;
+          font-size: 1.3rem;
           font-weight: 700;
-          letter-spacing: 2px;
+          letter-spacing: 1.5px;
         }
 
         .copy-btn {
           background: rgba(212, 175, 55, 0.2);
           border: 1px solid ${COLORS.gold};
           color: ${COLORS.gold};
-          padding: 8px 10px;
+          padding: 7px 9px;
           border-radius: 4px;
           cursor: pointer;
           transition: all 0.3s ease;
@@ -1661,14 +1595,14 @@ const CheckOutPage = () => {
           background: linear-gradient(135deg, ${COLORS.gold} 0%, #c9a347 100%);
           color: ${COLORS.burgundy};
           border: none;
-          padding: 14px 30px;
+          padding: 13px 25px;
           border-radius: 8px;
           font-weight: 700;
-          font-size: 0.95rem;
+          font-size: 0.9rem;
           cursor: pointer;
           transition: all 0.3s ease;
           text-transform: uppercase;
-          letter-spacing: 1.5px;
+          letter-spacing: 1px;
           margin-bottom: 10px;
         }
 
@@ -1682,14 +1616,14 @@ const CheckOutPage = () => {
           background: transparent;
           border: 2px solid ${COLORS.gold};
           color: ${COLORS.gold};
-          padding: 12px 30px;
+          padding: 11px 25px;
           border-radius: 8px;
           font-weight: 600;
-          font-size: 0.9rem;
+          font-size: 0.85rem;
           cursor: pointer;
           transition: all 0.3s ease;
           text-transform: uppercase;
-          letter-spacing: 1px;
+          letter-spacing: 0.5px;
         }
 
         .continue-shopping-btn:hover {
@@ -1718,14 +1652,14 @@ const CheckOutPage = () => {
           border-radius: 12px;
           max-width: 600px;
           width: 100%;
-          max-height: 80vh;
+          max-height: 85vh;
           display: flex;
           flex-direction: column;
           animation: slideUp 0.3s ease;
         }
 
         .modal-header {
-          padding: 20px;
+          padding: 16px;
           border-bottom: 1px solid ${COLORS.gold}44;
           display: flex;
           justify-content: space-between;
@@ -1734,7 +1668,7 @@ const CheckOutPage = () => {
 
         .modal-header h2 {
           color: ${COLORS.gold};
-          font-size: 1.3rem;
+          font-size: 1.1rem;
           margin: 0;
         }
 
@@ -1742,7 +1676,7 @@ const CheckOutPage = () => {
           background: transparent;
           border: none;
           color: #fff;
-          font-size: 1.5rem;
+          font-size: 1.3rem;
           cursor: pointer;
           padding: 5px;
           display: flex;
@@ -1757,7 +1691,7 @@ const CheckOutPage = () => {
         }
 
         .modal-body {
-          padding: 20px;
+          padding: 16px;
           overflow-y: auto;
           flex: 1;
         }
@@ -1769,9 +1703,9 @@ const CheckOutPage = () => {
         }
 
         .spinner {
-          width: 40px;
-          height: 40px;
-          border: 4px solid ${COLORS.gold}33;
+          width: 35px;
+          height: 35px;
+          border: 3px solid ${COLORS.gold}33;
           border-top-color: ${COLORS.gold};
           border-radius: 50%;
           animation: spin 1s linear infinite;
@@ -1786,19 +1720,20 @@ const CheckOutPage = () => {
 
         .no-coupons p {
           margin-top: 15px;
+          font-size: 0.9rem;
         }
 
         .coupons-list {
           display: flex;
           flex-direction: column;
-          gap: 15px;
+          gap: 12px;
         }
 
         .coupon-card {
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid ${COLORS.gold}44;
           border-radius: 8px;
-          padding: 15px;
+          padding: 14px;
           transition: all 0.3s ease;
           position: relative;
         }
@@ -1815,56 +1750,56 @@ const CheckOutPage = () => {
 
         .coupon-badge {
           position: absolute;
-          top: -10px;
-          right: 15px;
+          top: -8px;
+          right: 12px;
           background: ${COLORS.gold};
           color: ${COLORS.burgundy};
-          padding: 5px 15px;
+          padding: 4px 12px;
           border-radius: 20px;
           font-weight: 700;
-          font-size: 0.85rem;
+          font-size: 0.75rem;
         }
 
         .coupon-details {
-          margin-bottom: 12px;
+          margin-bottom: 10px;
         }
 
         .coupon-code {
           color: ${COLORS.gold};
-          font-size: 1.2rem;
+          font-size: 1.05rem;
           font-weight: 700;
-          margin-bottom: 8px;
+          margin-bottom: 6px;
         }
 
         .coupon-description {
           color: #ddd;
-          font-size: 0.9rem;
-          margin-bottom: 8px;
+          font-size: 0.85rem;
+          margin-bottom: 6px;
         }
 
         .coupon-condition {
           color: #aaa;
-          font-size: 0.8rem;
-          margin-bottom: 4px;
+          font-size: 0.75rem;
+          margin-bottom: 3px;
         }
 
         .coupon-expiry {
           color: #999;
-          font-size: 0.75rem;
+          font-size: 0.7rem;
           font-style: italic;
         }
 
         .free-gift-tag {
           display: inline-flex;
           align-items: center;
-          gap: 5px;
+          gap: 4px;
           background: rgba(212, 175, 55, 0.2);
           color: ${COLORS.gold};
-          padding: 4px 10px;
+          padding: 3px 8px;
           border-radius: 4px;
-          font-size: 0.75rem;
+          font-size: 0.7rem;
           font-weight: 600;
-          margin-top: 8px;
+          margin-top: 6px;
         }
 
         .apply-modal-btn {
@@ -1872,14 +1807,14 @@ const CheckOutPage = () => {
           background: ${COLORS.gold};
           color: ${COLORS.burgundy};
           border: none;
-          padding: 10px;
+          padding: 9px;
           border-radius: 6px;
           font-weight: 700;
           cursor: pointer;
           transition: all 0.3s ease;
           text-transform: uppercase;
-          letter-spacing: 1px;
-          font-size: 0.85rem;
+          letter-spacing: 0.5px;
+          font-size: 0.8rem;
         }
 
         .apply-modal-btn:hover:not(:disabled) {
@@ -1891,7 +1826,7 @@ const CheckOutPage = () => {
           background: #666;
           color: #999;
           cursor: not-allowed;
-          font-size: 0.75rem;
+          font-size: 0.7rem;
         }
 
         /* ANIMATIONS */
@@ -1916,17 +1851,6 @@ const CheckOutPage = () => {
           to { transform: scale(1); }
         }
 
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
         @keyframes slideUp {
           from {
             transform: translateY(50px);
@@ -1942,26 +1866,94 @@ const CheckOutPage = () => {
           to { transform: rotate(360deg); }
         }
 
-        /* TABLET RESPONSIVE (768px - 1024px) */
-        @media (min-width: 768px) {
+        /* TABLET RESPONSIVE (min-width: 600px) */
+        @media (min-width: 600px) {
+          .checkout-page {
+            padding: 20px 15px;
+          }
+
+          .checkout-container {
+            gap: 20px;
+          }
+
+          .card-header {
+            font-size: 1rem;
+            padding: 16px 20px;
+          }
+
+          .card-content {
+            padding: 20px;
+          }
+
+          .address-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+
+          .item-image {
+            width: 75px;
+            height: 75px;
+          }
+
+          .item-name {
+            font-size: 0.9rem;
+          }
+
+          .item-price {
+            font-size: 1rem;
+          }
+
+          .payment-icon {
+            font-size: 1.5rem;
+          }
+
+          .payment-title {
+            font-size: 1rem;
+          }
+
+          .success-title {
+            font-size: 2.5rem;
+          }
+
+          .order-number {
+            font-size: 1.5rem;
+          }
+
+          .total-amount {
+            font-size: 1.6rem;
+          }
+        }
+
+        /* DESKTOP RESPONSIVE (min-width: 1024px) */
+        @media (min-width: 1024px) {
           .checkout-page {
             padding: 30px 20px;
           }
 
           .checkout-container {
-            gap: 25px;
+            flex-direction: row;
+            gap: 30px;
           }
 
-          .mobile-summary-toggle {
-            display: none;
+          .checkout-main {
+            flex: 1;
           }
 
           .checkout-sidebar {
-            display: block !important;
+            width: 420px;
+            flex-shrink: 0;
+          }
+
+          .sticky-summary {
+            position: sticky;
+            top: 20px;
           }
 
           .address-grid {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr 1fr 130px;
+          }
+
+          .form-actions {
+            grid-template-columns: 130px 1fr;
           }
 
           .card-header {
@@ -1974,40 +1966,12 @@ const CheckOutPage = () => {
           }
 
           .item-image {
-            width: 80px;
-            height: 80px;
+            width: 85px;
+            height: 85px;
           }
 
           .item-name {
             font-size: 1rem;
-          }
-
-          .success-title {
-            font-size: 3rem;
-          }
-
-          .order-number {
-            font-size: 1.8rem;
-          }
-        }
-
-        /* DESKTOP RESPONSIVE (1024px+) */
-        @media (min-width: 1024px) {
-          .checkout-page {
-            padding: 40px 20px;
-          }
-
-          .checkout-container {
-            grid-template-columns: 1fr 400px;
-            gap: 30px;
-          }
-
-          .address-grid {
-            grid-template-columns: 1fr 1fr 120px;
-          }
-
-          .form-actions {
-            grid-template-columns: 120px 1fr;
           }
 
           .payment-icon {
@@ -2025,50 +1989,20 @@ const CheckOutPage = () => {
           .total-amount {
             font-size: 1.8rem;
           }
-        }
-
-        /* SMALL MOBILE (< 480px) */
-        @media (max-width: 480px) {
-          .checkout-page {
-            padding: 15px 8px;
-          }
 
           .success-title {
-            font-size: 1.8rem;
+            font-size: 3rem;
           }
 
           .order-number {
-            font-size: 1.2rem;
+            font-size: 1.8rem;
           }
+        }
 
-          .place-order-btn {
-            font-size: 0.9rem;
-            padding: 14px 20px;
-          }
-
-          .payment-title {
-            font-size: 0.95rem;
-          }
-
-          .payment-subtitle {
-            font-size: 0.75rem;
-          }
-
-          .item-image {
-            width: 60px;
-            height: 60px;
-          }
-
-          .item-name {
-            font-size: 0.85rem;
-          }
-
-          .item-price {
-            font-size: 0.9rem;
-          }
-
-          .total-amount {
-            font-size: 1.3rem;
+        /* LARGE DESKTOP (min-width: 1400px) */
+        @media (min-width: 1400px) {
+          .checkout-sidebar {
+            width: 450px;
           }
         }
       `}</style>
