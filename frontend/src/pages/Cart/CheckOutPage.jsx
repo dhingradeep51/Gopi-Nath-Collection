@@ -22,7 +22,6 @@ import {
   FaChevronUp,
   FaCopy,
   FaCheck,
-  FaEdit,
 } from "react-icons/fa";
 
 // ==================== CONSTANTS ====================
@@ -35,31 +34,22 @@ const COLORS = {
   darkBg: "#1a050b",
   success: "#4BB543",
   error: "#ff4444",
-  warning: "#ffc107",
 };
 
 const BASE_URL = import.meta.env.VITE_API_URL || "/";
 
-// ==================== UTILITY FUNCTIONS ====================
+// ==================== HELPER FUNCTIONS ====================
 const validatePhone = (phone) => /^\d{10}$/.test(phone);
 const validatePincode = (pincode) => /^\d{6}$/.test(pincode);
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(amount).replace('₹', '₹');
-};
-
 // ==================== SUCCESS OVERLAY COMPONENT ====================
-const SuccessOverlay = ({ orderId, navigate, onClose }) => {
+const SuccessOverlay = ({ orderId, navigate }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopyOrderId = () => {
     navigator.clipboard.writeText(orderId);
     setCopied(true);
-    toast.success("Order ID copied to clipboard!");
+    toast.success("Order ID copied!");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -87,21 +77,19 @@ const SuccessOverlay = ({ orderId, navigate, onClose }) => {
           </div>
         </div>
 
-        <div className="success-actions">
-          <button
-            onClick={() => navigate("/dashboard/user/orders")}
-            className="view-orders-btn"
-          >
-            VIEW MY ORDERS
-          </button>
-          
-          <button
-            onClick={() => navigate("/")}
-            className="continue-shopping-btn"
-          >
-            CONTINUE SHOPPING
-          </button>
-        </div>
+        <button
+          onClick={() => navigate("/dashboard/user/orders")}
+          className="view-orders-btn"
+        >
+          VIEW MY ORDERS
+        </button>
+        
+        <button
+          onClick={() => navigate("/")}
+          className="continue-shopping-btn"
+        >
+          CONTINUE SHOPPING
+        </button>
       </div>
     </div>
   );
@@ -232,7 +220,7 @@ const AvailableCouponsModal = ({
                       className="apply-modal-btn"
                     >
                       {eligible 
-                        ? "APPLY COUPON" 
+                        ? "APPLY" 
                         : `Add ₹${shortfall} more to cart`}
                     </button>
                   </div>
@@ -240,396 +228,6 @@ const AvailableCouponsModal = ({
               })}
             </div>
           )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ==================== ADDRESS SECTION COMPONENT ====================
-const AddressSection = ({ 
-  formData, 
-  showAddressForm, 
-  setShowAddressForm, 
-  handleInputChange, 
-  handleUpdateAddress, 
-  loading 
-}) => {
-  return (
-    <div className="checkout-card">
-      <div className="card-header">
-        <FaMapMarkerAlt /> Shipping Address
-      </div>
-      <div className="card-content">
-        {!showAddressForm ? (
-          <div className="address-display">
-            <div className="address-info">
-              <p className="user-name">{formData.name}</p>
-              <p className="user-phone">📱 {formData.phone}</p>
-              <p className="user-address">
-                📍 {formData.address}
-                <br />
-                {formData.city}, {formData.state} - {formData.pincode}
-              </p>
-            </div>
-            <button
-              onClick={() => setShowAddressForm(true)}
-              className="change-address-btn"
-            >
-              <FaEdit /> CHANGE ADDRESS
-            </button>
-          </div>
-        ) : (
-          <div className="address-form">
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Full Name *</label>
-                <input
-                  className="form-input"
-                  placeholder="Enter your full name"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Phone Number *</label>
-                <input
-                  className="form-input"
-                  type="tel"
-                  placeholder="10-digit mobile number"
-                  value={formData.phone}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
-                    handleInputChange('phone', value);
-                  }}
-                  maxLength={10}
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Street Address *</label>
-              <textarea
-                className="form-textarea"
-                placeholder="House no., Building name, Street, Locality"
-                value={formData.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
-                rows={3}
-              />
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">City *</label>
-                <input
-                  className="form-input"
-                  placeholder="City"
-                  value={formData.city}
-                  onChange={(e) => handleInputChange('city', e.target.value)}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label className="form-label">State *</label>
-                <input
-                  className="form-input"
-                  placeholder="State"
-                  value={formData.state}
-                  onChange={(e) => handleInputChange('state', e.target.value)}
-                />
-              </div>
-              
-              <div className="form-group">
-                <label className="form-label">Pincode *</label>
-                <input
-                  className="form-input"
-                  placeholder="6-digit PIN"
-                  value={formData.pincode}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                    handleInputChange('pincode', value);
-                  }}
-                  maxLength={6}
-                />
-              </div>
-            </div>
-
-            <div className="form-actions">
-              <button
-                className="cancel-btn"
-                onClick={() => setShowAddressForm(false)}
-                disabled={loading}
-              >
-                CANCEL
-              </button>
-              <button
-                className="save-btn"
-                onClick={handleUpdateAddress}
-                disabled={loading}
-              >
-                {loading ? "SAVING..." : "SAVE ADDRESS"}
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// ==================== PAYMENT METHOD COMPONENT ====================
-const PaymentMethodSection = ({ paymentMethod, setPaymentMethod }) => {
-  return (
-    <div className="checkout-card">
-      <div className="card-header">
-        <FaCreditCard /> Payment Method
-      </div>
-      <div className="card-content">
-        <div
-          className={`payment-option ${paymentMethod === "online" ? "active" : ""}`}
-          onClick={() => setPaymentMethod("online")}
-        >
-          <div className="radio-outer">
-            {paymentMethod === "online" && <div className="radio-inner"></div>}
-          </div>
-          <FaShieldAlt className="payment-icon" />
-          <div className="payment-text">
-            <div className="payment-title">Online Payment</div>
-            <div className="payment-subtitle">
-              Secure PhonePe • UPI, Cards, Wallets
-            </div>
-          </div>
-        </div>
-
-        <div
-          className={`payment-option ${paymentMethod === "cod" ? "active" : ""}`}
-          onClick={() => setPaymentMethod("cod")}
-        >
-          <div className="radio-outer">
-            {paymentMethod === "cod" && <div className="radio-inner"></div>}
-          </div>
-          <FaMoneyBillWave className="payment-icon" />
-          <div className="payment-text">
-            <div className="payment-title">Cash on Delivery</div>
-            <div className="payment-subtitle">
-              Pay when your order arrives at doorstep
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ==================== CART ITEMS COMPONENT ====================
-const CartItemsSection = ({ cart }) => {
-  return (
-    <div className="checkout-card">
-      <div className="card-header">
-        <FaTag /> Order Items ({cart?.length || 0})
-      </div>
-      <div className="card-content">
-        <div className="cart-items-list">
-          {cart?.map((item) => (
-            <div key={item._id} className="cart-item-row">
-              <img
-                src={item.photos?.[0]?.url || "/placeholder.png"}
-                alt={item.name}
-                className="item-image"
-                loading="lazy"
-              />
-              <div className="item-details">
-                <h4 className="item-name">{item.name}</h4>
-                <p className="item-meta">
-                  <span className="item-quantity">Qty: {item.cartQuantity || 1}</span>
-                  <span className="item-separator">•</span>
-                  <span className="item-unit-price">₹{item.price.toLocaleString()} each</span>
-                </p>
-              </div>
-              <div className="item-price">
-                ₹{(item.price * (item.cartQuantity || 1)).toLocaleString()}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// ==================== ORDER SUMMARY COMPONENT ====================
-const OrderSummary = ({
-  cart,
-  totals,
-  couponCode,
-  setCouponCode,
-  appliedCoupon,
-  couponLoading,
-  handleApplyCoupon,
-  handleRemoveCoupon,
-  setShowCouponsModal,
-  handlePlaceOrder,
-  loading,
-  paymentMethod,
-}) => {
-  return (
-    <div className="checkout-card order-summary-card">
-      <div className="card-header">
-        <FaRupeeSign /> Order Summary
-      </div>
-      <div className="card-content">
-        
-        {/* Coupon Section */}
-        <div className="coupon-section">
-          <div className="coupon-header">
-            <FaGift style={{ color: COLORS.gold }} />
-            <span>Have a Coupon?</span>
-          </div>
-          
-          {!appliedCoupon ? (
-            <>
-              <div className="coupon-input-group">
-                <input
-                  type="text"
-                  className="coupon-input"
-                  placeholder="Enter coupon code"
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                  disabled={couponLoading}
-                />
-                <button
-                  onClick={() => handleApplyCoupon()}
-                  disabled={couponLoading || !couponCode.trim()}
-                  className="apply-coupon-btn"
-                >
-                  {couponLoading ? "..." : "APPLY"}
-                </button>
-              </div>
-              
-              <button
-                onClick={() => setShowCouponsModal(true)}
-                className="view-coupons-btn"
-              >
-                <FaTag /> View All Coupons
-              </button>
-            </>
-          ) : (
-            <div className="applied-coupon-box">
-              <div className="applied-coupon-info">
-                <FaPercentage style={{ color: COLORS.gold, fontSize: '1.5rem' }} />
-                <div className="applied-details">
-                  <div className="coupon-name">{appliedCoupon.name}</div>
-                  <div className="coupon-savings">
-                    You're saving ₹{totals.discount.toLocaleString()}! 🎉
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={handleRemoveCoupon}
-                className="remove-coupon-btn"
-                aria-label="Remove coupon"
-              >
-                <FaTrash />
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Price Breakdown */}
-        <div className="price-breakdown">
-          <div className="price-row">
-            <span>Subtotal ({cart?.length || 0} items)</span>
-            <span>₹{totals.sub.toLocaleString()}</span>
-          </div>
-
-          <div className="price-row">
-            <span className="shipping-label">
-              <FaTruck style={{ marginRight: "5px" }} />
-              Delivery Charges
-            </span>
-            <span className={totals.ship === 0 ? "free-shipping" : ""}>
-              {totals.ship === 0 ? (
-                <span className="free-badge">FREE</span>
-              ) : (
-                `₹${totals.ship}`
-              )}
-            </span>
-          </div>
-
-          {totals.savedAmount > 0 && (
-            <div className="savings-notice success">
-              🎉 You saved ₹{totals.savedAmount} on delivery!
-            </div>
-          )}
-
-          {totals.sub > 0 && totals.sub < FREE_SHIPPING_THRESHOLD && (
-            <div className="shipping-notice">
-              <FaTruck style={{ marginRight: "5px" }} />
-              Add ₹{(FREE_SHIPPING_THRESHOLD - totals.sub).toFixed(0)} more for FREE delivery!
-            </div>
-          )}
-
-          {appliedCoupon && totals.discount > 0 && (
-            <div className="price-row discount-row">
-              <span style={{ color: COLORS.gold, fontWeight: 600 }}>
-                <FaPercentage style={{ marginRight: "5px" }} />
-                Coupon Discount
-              </span>
-              <span style={{ color: COLORS.gold, fontWeight: 600 }}>
-                -₹{totals.discount.toLocaleString()}
-              </span>
-            </div>
-          )}
-
-          {appliedCoupon?.giftProductId && (
-            <div className="gift-notice">
-              <FaGift style={{ marginRight: "8px", color: COLORS.gold }} />
-              <span>🎁 Free gift included with this order!</span>
-            </div>
-          )}
-        </div>
-
-        {/* Total */}
-        <div className="summary-total">
-          <div>
-            <div className="total-label">Total Amount</div>
-            <div className="gst-notice">
-              (Incl. GST {totals.highestGst}%)
-            </div>
-          </div>
-          <div className="total-amount">
-            ₹{totals.total.toLocaleString()}
-          </div>
-        </div>
-
-        {/* Place Order Button */}
-        <button
-          disabled={loading || cart.length === 0}
-          onClick={handlePlaceOrder}
-          className="place-order-btn"
-        >
-          {loading ? (
-            <span className="loading-text">
-              <div className="btn-spinner"></div>
-              PROCESSING...
-            </span>
-          ) : paymentMethod === "online" ? (
-            <>
-              <FaShieldAlt style={{ marginRight: '8px' }} />
-              PAY ₹{totals.total.toLocaleString()}
-            </>
-          ) : (
-            <>
-              <FaMoneyBillWave style={{ marginRight: '8px' }} />
-              PLACE ORDER (COD)
-            </>
-          )}
-        </button>
-
-        <div className="secure-notice">
-          <FaShieldAlt style={{ marginRight: "5px" }} />
-          <small>100% Secure & Safe Payment</small>
         </div>
       </div>
     </div>
@@ -680,9 +278,9 @@ const CheckOutPage = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Redirect if cart is empty and not on success page
+  // Redirect if cart is empty
   useEffect(() => {
-    if (!isSuccess && (!cart || cart.length === 0)) {
+    if (!isSuccess && cart && cart.length === 0) {
       toast.error("Your cart is empty!");
       navigate("/cart");
     }
@@ -730,7 +328,7 @@ const CheckOutPage = () => {
     const highestGst = cart?.reduce(
       (max, item) => Math.max(max, item.gstRate || 18), 
       0
-    ) || 18;
+    ) || 0;
     
     const savedAmount = ship === 0 && sub >= FREE_SHIPPING_THRESHOLD 
       ? STANDARD_SHIPPING_FEE 
@@ -741,31 +339,14 @@ const CheckOutPage = () => {
 
   // ==================== HANDLERS ====================
   
-  const clearCartAndLocalStorage = () => {
-    // Clear cart from context
-    setCart([]);
-    
-    // Clear cart from localStorage
-    localStorage.removeItem("cart");
-    
-    // Optional: Clear any other cart-related data
-    localStorage.removeItem("appliedCoupon");
-    
-    console.log("Cart cleared successfully");
-  };
-
   const handlePlaceOrder = async () => {
     // Validation
-    if (!formData.phone || !formData.address || !formData.city || !formData.state || !formData.pincode) {
+    if (!formData.phone || !formData.address || !formData.city || !formData.state) {
       return toast.error("Please provide complete delivery details");
     }
 
     if (!validatePhone(formData.phone)) {
       return toast.error("Please enter a valid 10-digit phone number");
-    }
-
-    if (!validatePincode(formData.pincode)) {
-      return toast.error("Please enter a valid 6-digit pincode");
     }
 
     try {
@@ -805,7 +386,7 @@ const CheckOutPage = () => {
       );
 
       if (!data?.success) {
-        return toast.error(data?.message || "Order placement failed");
+        return toast.error(data?.message || "Order failed");
       }
 
       // Handle Online Payment
@@ -814,36 +395,23 @@ const CheckOutPage = () => {
           toast.error("Payment URL not received");
           return;
         }
-        
-        // Clear cart before redirecting to payment
-        clearCartAndLocalStorage();
-        
-        toast.loading("Redirecting to secure payment gateway...", { duration: 2000 });
-        
-        // Small delay to ensure state is saved
-        setTimeout(() => {
-          window.location.href = data.redirectUrl;
-        }, 500);
-        
+        toast.loading("Redirecting to secure payment gateway...");
+        window.location.href = data.redirectUrl;
         return;
       }
 
-      // Handle COD - Clear cart and show success
+      // Handle COD
       if (paymentMethod === "cod") {
-        setFinalOrderId(data.order.orderNumber || data.order._id);
-        
-        // Clear cart and localStorage
-        clearCartAndLocalStorage();
-        
-        // Show success state
+        setFinalOrderId(data.order.orderNumber);
+        localStorage.removeItem("cart");
+        setCart([]);
         setIsSuccess(true);
-        
         toast.success("Order placed successfully! 🎉");
       }
 
     } catch (error) {
       console.error("Place Order Error:", error);
-      const errorMsg = error.response?.data?.message || "Failed to place order. Please try again.";
+      const errorMsg = error.response?.data?.message || "Failed to place order";
       toast.error(errorMsg);
     } finally {
       setLoading(false);
@@ -960,11 +528,7 @@ const CheckOutPage = () => {
   return (
     <Layout title="Checkout - Gopi Nath Collection">
       {isSuccess && (
-        <SuccessOverlay 
-          orderId={finalOrderId} 
-          navigate={navigate}
-          onClose={() => setIsSuccess(false)}
-        />
+        <SuccessOverlay orderId={finalOrderId} navigate={navigate} />
       )}
       
       <AvailableCouponsModal
@@ -978,40 +542,214 @@ const CheckOutPage = () => {
       <div className="checkout-page">
         <div className="checkout-container">
           
-          {/* ==================== MOBILE STICKY SUMMARY ==================== */}
-          {isMobile && (
-            <div 
-              className="mobile-summary-toggle" 
-              onClick={() => setShowOrderSummary(!showOrderSummary)}
-            >
-              <div className="summary-toggle-left">
-                <FaRupeeSign />
-                <span>Total: ₹{totals.total.toLocaleString()}</span>
-              </div>
-              <div className="summary-toggle-right">
-                <span>{showOrderSummary ? 'Hide' : 'View'} Details</span>
-                {showOrderSummary ? <FaChevronUp /> : <FaChevronDown />}
-              </div>
-            </div>
-          )}
-
           {/* ==================== MAIN CONTENT ==================== */}
           <div className="checkout-main">
-            <AddressSection
-              formData={formData}
-              showAddressForm={showAddressForm}
-              setShowAddressForm={setShowAddressForm}
-              handleInputChange={handleInputChange}
-              handleUpdateAddress={handleUpdateAddress}
-              loading={loading}
-            />
+            
+            {/* Mobile Sticky Summary Toggle */}
+            {isMobile && (
+              <div 
+                className="mobile-summary-toggle" 
+                onClick={() => setShowOrderSummary(!showOrderSummary)}
+              >
+                <div className="summary-toggle-left">
+                  <FaRupeeSign />
+                  <span>Total: ₹{totals.total.toLocaleString()}</span>
+                </div>
+                <div className="summary-toggle-right">
+                  <span>{showOrderSummary ? 'Hide' : 'View'} Details</span>
+                  {showOrderSummary ? <FaChevronUp /> : <FaChevronDown />}
+                </div>
+              </div>
+            )}
 
-            <PaymentMethodSection
-              paymentMethod={paymentMethod}
-              setPaymentMethod={setPaymentMethod}
-            />
+            {/* Address Section */}
+            <div className="checkout-card">
+              <div className="card-header">
+                <FaMapMarkerAlt /> Shipping Destination
+              </div>
+              <div className="card-content">
+                {!showAddressForm ? (
+                  <div className="address-display">
+                    <p className="user-name">{formData.name}</p>
+                    <p className="user-phone">📱 {formData.phone}</p>
+                    <p className="user-address">
+                      📍 {formData.address}
+                      <br />
+                      {formData.city}, {formData.state} - {formData.pincode}
+                    </p>
+                    <button
+                      onClick={() => setShowAddressForm(true)}
+                      className="change-address-btn"
+                    >
+                      CHANGE ADDRESS
+                    </button>
+                  </div>
+                ) : (
+                  <div className="address-form">
+                    <div className="form-group">
+                      <label className="form-label">Full Name *</label>
+                      <input
+                        className="form-input"
+                        placeholder="Enter your full name"
+                        value={formData.name}
+                        onChange={(e) => handleInputChange('name', e.target.value)}
+                      />
+                    </div>
 
-            <CartItemsSection cart={cart} />
+                    <div className="form-group">
+                      <label className="form-label">Phone Number *</label>
+                      <input
+                        className="form-input"
+                        type="tel"
+                        placeholder="10-digit mobile number"
+                        value={formData.phone}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                          handleInputChange('phone', value);
+                        }}
+                        maxLength={10}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label">Street Address *</label>
+                      <textarea
+                        className="form-textarea"
+                        placeholder="House no., Building name, Street"
+                        value={formData.address}
+                        onChange={(e) => handleInputChange('address', e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="address-grid">
+                      <div className="form-group">
+                        <label className="form-label">City *</label>
+                        <input
+                          className="form-input"
+                          placeholder="City"
+                          value={formData.city}
+                          onChange={(e) => handleInputChange('city', e.target.value)}
+                        />
+                      </div>
+                      
+                      <div className="form-group">
+                        <label className="form-label">State *</label>
+                        <input
+                          className="form-input"
+                          placeholder="State"
+                          value={formData.state}
+                          onChange={(e) => handleInputChange('state', e.target.value)}
+                        />
+                      </div>
+                      
+                      <div className="form-group">
+                        <label className="form-label">Pincode *</label>
+                        <input
+                          className="form-input"
+                          placeholder="6-digit PIN"
+                          value={formData.pincode}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                            handleInputChange('pincode', value);
+                          }}
+                          maxLength={6}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-actions">
+                      <button
+                        className="cancel-btn"
+                        onClick={() => setShowAddressForm(false)}
+                        disabled={loading}
+                      >
+                        CANCEL
+                      </button>
+                      <button
+                        className="save-btn"
+                        onClick={handleUpdateAddress}
+                        disabled={loading}
+                      >
+                        {loading ? "SAVING..." : "SAVE DETAILS"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Payment Method Section */}
+            <div className="checkout-card">
+              <div className="card-header">
+                <FaCreditCard /> Payment Method
+              </div>
+              <div className="card-content">
+                <div
+                  className={`payment-option ${paymentMethod === "online" ? "active" : ""}`}
+                  onClick={() => setPaymentMethod("online")}
+                >
+                  <div className="radio-outer">
+                    {paymentMethod === "online" && <div className="radio-inner"></div>}
+                  </div>
+                  <FaShieldAlt className="payment-icon" />
+                  <div className="payment-text">
+                    <div className="payment-title">Online Payment</div>
+                    <div className="payment-subtitle">
+                      Secure PhonePe (UPI, Cards, Wallets)
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  className={`payment-option ${paymentMethod === "cod" ? "active" : ""}`}
+                  onClick={() => setPaymentMethod("cod")}
+                >
+                  <div className="radio-outer">
+                    {paymentMethod === "cod" && <div className="radio-inner"></div>}
+                  </div>
+                  <FaMoneyBillWave className="payment-icon" />
+                  <div className="payment-text">
+                    <div className="payment-title">Cash on Delivery</div>
+                    <div className="payment-subtitle">
+                      Pay when your order arrives
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Cart Items Section */}
+            <div className="checkout-card">
+              <div className="card-header">
+                <FaTag /> Order Items ({cart?.length || 0})
+              </div>
+              <div className="card-content">
+                <div className="cart-items-list">
+                  {cart?.map((item) => (
+                    <div key={item._id} className="cart-item-row">
+                      <img
+                        src={item.photos?.[0]?.url || "/placeholder.png"}
+                        alt={item.name}
+                        className="item-image"
+                      />
+                      <div className="item-details">
+                        <h4 className="item-name">{item.name}</h4>
+                        <p className="item-quantity">
+                          Quantity: {item.cartQuantity || 1}
+                        </p>
+                        <p className="item-unit-price">
+                          ₹{item.price.toLocaleString()} each
+                        </p>
+                      </div>
+                      <div className="item-price">
+                        ₹{(item.price * (item.cartQuantity || 1)).toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* ==================== SIDEBAR / ORDER SUMMARY ==================== */}
@@ -1020,27 +758,166 @@ const CheckOutPage = () => {
               isMobile && showOrderSummary ? 'mobile-expanded' : ''
             } ${isMobile && !showOrderSummary ? 'mobile-collapsed' : ''}`}
           >
-            <OrderSummary
-              cart={cart}
-              totals={totals}
-              couponCode={couponCode}
-              setCouponCode={setCouponCode}
-              appliedCoupon={appliedCoupon}
-              couponLoading={couponLoading}
-              handleApplyCoupon={handleApplyCoupon}
-              handleRemoveCoupon={handleRemoveCoupon}
-              setShowCouponsModal={setShowCouponsModal}
-              handlePlaceOrder={handlePlaceOrder}
-              loading={loading}
-              paymentMethod={paymentMethod}
-            />
+            <div className="checkout-card">
+              <div className="card-header">Order Summary</div>
+              <div className="card-content">
+                
+                {/* Coupon Section */}
+                <div className="coupon-section">
+                  <div className="coupon-header">
+                    <FaGift style={{ color: COLORS.gold }} />
+                    <span>Apply Coupon</span>
+                  </div>
+                  
+                  {!appliedCoupon ? (
+                    <>
+                      <div className="coupon-input-group">
+                        <input
+                          type="text"
+                          className="coupon-input"
+                          placeholder="Enter coupon code"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          disabled={couponLoading}
+                        />
+                        <button
+                          onClick={() => handleApplyCoupon()}
+                          disabled={couponLoading || !couponCode.trim()}
+                          className="apply-coupon-btn"
+                        >
+                          {couponLoading ? "..." : "APPLY"}
+                        </button>
+                      </div>
+                      
+                      <button
+                        onClick={() => setShowCouponsModal(true)}
+                        className="view-coupons-btn"
+                      >
+                        <FaTag /> View Available Coupons
+                      </button>
+                    </>
+                  ) : (
+                    <div className="applied-coupon-box">
+                      <div className="applied-coupon-info">
+                        <FaPercentage style={{ color: COLORS.gold, fontSize: '1.5rem' }} />
+                        <div className="applied-details">
+                          <div className="coupon-name">{appliedCoupon.name}</div>
+                          <div className="coupon-savings">
+                            Saving ₹{totals.discount.toLocaleString()}! 🎉
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleRemoveCoupon}
+                        className="remove-coupon-btn"
+                        aria-label="Remove coupon"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Price Breakdown */}
+                <div className="price-breakdown">
+                  <div className="price-row">
+                    <span>Subtotal ({cart?.length || 0} items)</span>
+                    <span>₹{totals.sub.toLocaleString()}</span>
+                  </div>
+
+                  <div className="price-row">
+                    <span className="shipping-label">
+                      <FaTruck style={{ marginRight: "5px" }} />
+                      Delivery Charges
+                    </span>
+                    <span className={totals.ship === 0 ? "free-shipping" : ""}>
+                      {totals.ship === 0 ? (
+                        <span className="free-badge">FREE</span>
+                      ) : (
+                        `₹${totals.ship}`
+                      )}
+                    </span>
+                  </div>
+
+                  {totals.savedAmount > 0 && (
+                    <div className="savings-notice success">
+                      🎉 You saved ₹{totals.savedAmount} on delivery!
+                    </div>
+                  )}
+
+                  {totals.sub > 0 && totals.sub < FREE_SHIPPING_THRESHOLD && (
+                    <div className="shipping-notice">
+                      Add ₹{(FREE_SHIPPING_THRESHOLD - totals.sub).toFixed(0)} more for FREE delivery! 🚚
+                    </div>
+                  )}
+
+                  {appliedCoupon && totals.discount > 0 && (
+                    <div className="price-row discount-row">
+                      <span style={{ color: COLORS.gold, fontWeight: 600 }}>
+                        <FaPercentage style={{ marginRight: "5px" }} />
+                        Coupon Discount
+                      </span>
+                      <span style={{ color: COLORS.gold, fontWeight: 600 }}>
+                        -₹{totals.discount.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+
+                  {appliedCoupon?.giftProductId && (
+                    <div className="gift-notice">
+                      <FaGift style={{ marginRight: "8px", color: COLORS.gold }} />
+                      <span>🎁 Free gift included with this order!</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Total */}
+                <div className="summary-total">
+                  <div>
+                    <div className="total-label">Total Amount</div>
+                    <div className="gst-notice">
+                      (Incl. GST {totals.highestGst}%)
+                    </div>
+                  </div>
+                  <div className="total-amount">
+                    ₹{totals.total.toLocaleString()}
+                  </div>
+                </div>
+
+                {/* Place Order Button */}
+                <button
+                  disabled={loading || cart.length === 0}
+                  onClick={handlePlaceOrder}
+                  className="place-order-btn"
+                >
+                  {loading ? (
+                    <span>PROCESSING...</span>
+                  ) : paymentMethod === "online" ? (
+                    <>
+                      <FaShieldAlt style={{ marginRight: '8px' }} />
+                      PAY ₹{totals.total.toLocaleString()}
+                    </>
+                  ) : (
+                    <>
+                      <FaMoneyBillWave style={{ marginRight: '8px' }} />
+                      PLACE ORDER (COD)
+                    </>
+                  )}
+                </button>
+
+                <div className="secure-notice">
+                  <FaShieldAlt style={{ marginRight: "5px" }} />
+                  <small>100% Secure Payment</small>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* ==================== STYLES ==================== */}
       <style>{`
-        /* ==================== BASE STYLES ==================== */
+        /* MOBILE-FIRST RESPONSIVE DESIGN */
         * {
           box-sizing: border-box;
           margin: 0;
@@ -1050,7 +927,7 @@ const CheckOutPage = () => {
         .checkout-page {
           min-height: 100vh;
           background: linear-gradient(135deg, ${COLORS.darkBg} 0%, ${COLORS.burgundy} 100%);
-          padding: 15px;
+          padding: 20px 10px;
         }
 
         .checkout-container {
@@ -1058,38 +935,33 @@ const CheckOutPage = () => {
           margin: 0 auto;
           display: grid;
           grid-template-columns: 1fr;
-          gap: 15px;
+          gap: 20px;
         }
 
-        /* ==================== MOBILE STICKY SUMMARY ==================== */
+        /* MOBILE STICKY SUMMARY */
         .mobile-summary-toggle {
           position: sticky;
-          top: 60px;
+          top: 0;
           z-index: 100;
           background: linear-gradient(135deg, ${COLORS.burgundy} 0%, ${COLORS.darkBg} 100%);
           padding: 15px 20px;
           border-radius: 12px;
-          margin-bottom: 15px;
+          margin-bottom: 20px;
           display: flex;
           justify-content: space-between;
           align-items: center;
           cursor: pointer;
           border: 2px solid ${COLORS.gold};
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-          transition: all 0.3s ease;
-        }
-
-        .mobile-summary-toggle:active {
-          transform: scale(0.98);
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
 
         .summary-toggle-left {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
           color: ${COLORS.gold};
           font-weight: 700;
-          font-size: 1.1rem;
+          font-size: 1.2rem;
         }
 
         .summary-toggle-right {
@@ -1098,7 +970,6 @@ const CheckOutPage = () => {
           gap: 8px;
           color: #fff;
           font-size: 0.9rem;
-          font-weight: 500;
         }
 
         .checkout-sidebar.mobile-collapsed {
@@ -1110,14 +981,14 @@ const CheckOutPage = () => {
           animation: slideDown 0.3s ease;
         }
 
-        /* ==================== CARD STYLES ==================== */
+        /* CARD STYLES */
         .checkout-card {
           background: rgba(255, 255, 255, 0.05);
           backdrop-filter: blur(10px);
           border: 1px solid ${COLORS.gold}33;
           border-radius: 12px;
           overflow: hidden;
-          margin-bottom: 15px;
+          margin-bottom: 20px;
           transition: all 0.3s ease;
         }
 
@@ -1129,9 +1000,9 @@ const CheckOutPage = () => {
         .card-header {
           background: linear-gradient(135deg, ${COLORS.burgundy} 0%, ${COLORS.darkBg} 100%);
           color: ${COLORS.gold};
-          padding: 14px 18px;
+          padding: 16px 20px;
           font-weight: 600;
-          font-size: 0.95rem;
+          font-size: 1rem;
           display: flex;
           align-items: center;
           gap: 10px;
@@ -1139,36 +1010,33 @@ const CheckOutPage = () => {
         }
 
         .card-content {
-          padding: 18px;
+          padding: 20px;
           color: #fff;
         }
 
-        /* ==================== ADDRESS SECTION ==================== */
+        /* ADDRESS DISPLAY */
         .address-display {
           animation: fadeIn 0.3s ease;
         }
 
-        .address-info {
-          margin-bottom: 18px;
-        }
-
         .user-name {
-          font-size: 1.1rem;
-          font-weight: 700;
+          font-size: 1.2rem;
+          font-weight: 600;
           color: ${COLORS.gold};
           margin-bottom: 8px;
         }
 
         .user-phone {
-          font-size: 0.95rem;
+          font-size: 1rem;
           color: #ddd;
-          margin-bottom: 10px;
+          margin-bottom: 12px;
         }
 
         .user-address {
-          font-size: 0.9rem;
+          font-size: 0.95rem;
           color: #bbb;
           line-height: 1.6;
+          margin-bottom: 20px;
         }
 
         .change-address-btn {
@@ -1176,38 +1044,28 @@ const CheckOutPage = () => {
           border: 2px solid ${COLORS.gold};
           color: ${COLORS.gold};
           padding: 12px 24px;
-          border-radius: 8px;
+          border-radius: 6px;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.3s ease;
           text-transform: uppercase;
           letter-spacing: 1px;
           width: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
         }
 
         .change-address-btn:hover {
           background: ${COLORS.gold};
           color: ${COLORS.burgundy};
           transform: translateY(-2px);
-          box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+          box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
         }
 
-        /* ==================== ADDRESS FORM ==================== */
+        /* ADDRESS FORM */
         .address-form {
           display: flex;
           flex-direction: column;
           gap: 15px;
           animation: fadeIn 0.3s ease;
-        }
-
-        .form-row {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 15px;
         }
 
         .form-group {
@@ -1218,7 +1076,7 @@ const CheckOutPage = () => {
 
         .form-label {
           color: ${COLORS.gold};
-          font-size: 0.8rem;
+          font-size: 0.85rem;
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: 0.5px;
@@ -1229,16 +1087,11 @@ const CheckOutPage = () => {
           background: rgba(255, 255, 255, 0.08);
           border: 1px solid ${COLORS.gold}44;
           color: #fff;
-          padding: 12px 14px;
-          border-radius: 8px;
-          font-size: 0.9rem;
+          padding: 12px 16px;
+          border-radius: 6px;
+          font-size: 0.95rem;
           transition: all 0.3s ease;
           width: 100%;
-        }
-
-        .form-input::placeholder,
-        .form-textarea::placeholder {
-          color: rgba(255, 255, 255, 0.4);
         }
 
         .form-input:focus,
@@ -1246,54 +1099,55 @@ const CheckOutPage = () => {
           outline: none;
           border-color: ${COLORS.gold};
           box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.2);
-          background: rgba(255, 255, 255, 0.12);
         }
 
         .form-textarea {
           resize: vertical;
           font-family: inherit;
-          min-height: 80px;
+        }
+
+        .address-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 15px;
         }
 
         .form-actions {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 10px;
-          margin-top: 5px;
+          margin-top: 10px;
         }
 
         .cancel-btn {
           background: transparent;
           border: 2px solid #999;
           color: #999;
-          padding: 12px 20px;
-          border-radius: 8px;
+          padding: 12px 24px;
+          border-radius: 6px;
           font-weight: 600;
           cursor: pointer;
           transition: all 0.3s ease;
           text-transform: uppercase;
           letter-spacing: 1px;
-          font-size: 0.85rem;
         }
 
         .cancel-btn:hover:not(:disabled) {
           border-color: #fff;
           color: #fff;
-          background: rgba(255, 255, 255, 0.05);
         }
 
         .save-btn {
           background: linear-gradient(135deg, ${COLORS.gold} 0%, #c9a347 100%);
           color: ${COLORS.burgundy};
           border: none;
-          padding: 12px 20px;
-          border-radius: 8px;
+          padding: 12px 24px;
+          border-radius: 6px;
           font-weight: 700;
           cursor: pointer;
           transition: all 0.3s ease;
           text-transform: uppercase;
           letter-spacing: 1px;
-          font-size: 0.85rem;
         }
 
         .save-btn:hover:not(:disabled) {
@@ -1307,14 +1161,14 @@ const CheckOutPage = () => {
           cursor: not-allowed;
         }
 
-        /* ==================== PAYMENT OPTIONS ==================== */
+        /* PAYMENT OPTIONS */
         .payment-option {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 14px;
+          padding: 16px;
           border: 2px solid ${COLORS.gold}44;
-          border-radius: 10px;
+          border-radius: 8px;
           cursor: pointer;
           transition: all 0.3s ease;
           background: rgba(255, 255, 255, 0.03);
@@ -1327,8 +1181,7 @@ const CheckOutPage = () => {
 
         .payment-option:hover {
           border-color: ${COLORS.gold}88;
-          background: rgba(255, 255, 255, 0.06);
-          transform: translateY(-2px);
+          background: rgba(255, 255, 255, 0.05);
         }
 
         .payment-option.active {
@@ -1338,8 +1191,8 @@ const CheckOutPage = () => {
         }
 
         .radio-outer {
-          width: 22px;
-          height: 22px;
+          width: 24px;
+          height: 24px;
           border: 2px solid ${COLORS.gold};
           border-radius: 50%;
           display: flex;
@@ -1357,7 +1210,7 @@ const CheckOutPage = () => {
         }
 
         .payment-icon {
-          font-size: 1.4rem;
+          font-size: 1.5rem;
           color: ${COLORS.gold};
           flex-shrink: 0;
         }
@@ -1367,18 +1220,18 @@ const CheckOutPage = () => {
         }
 
         .payment-title {
-          font-size: 0.95rem;
+          font-size: 1rem;
           font-weight: 600;
           color: #fff;
-          margin-bottom: 3px;
+          margin-bottom: 4px;
         }
 
         .payment-subtitle {
-          font-size: 0.75rem;
+          font-size: 0.8rem;
           color: #aaa;
         }
 
-        /* ==================== CART ITEMS ==================== */
+        /* CART ITEMS */
         .cart-items-list {
           display: flex;
           flex-direction: column;
@@ -1391,21 +1244,15 @@ const CheckOutPage = () => {
           gap: 12px;
           padding: 12px;
           background: rgba(255, 255, 255, 0.05);
-          border-radius: 10px;
+          border-radius: 8px;
           border: 1px solid ${COLORS.gold}22;
-          transition: all 0.3s ease;
-        }
-
-        .cart-item-row:hover {
-          background: rgba(255, 255, 255, 0.08);
-          border-color: ${COLORS.gold}44;
         }
 
         .item-image {
           width: 70px;
           height: 70px;
           object-fit: cover;
-          border-radius: 8px;
+          border-radius: 6px;
           border: 1px solid ${COLORS.gold}44;
           flex-shrink: 0;
         }
@@ -1417,43 +1264,37 @@ const CheckOutPage = () => {
 
         .item-name {
           font-size: 0.9rem;
-          font-weight: 600;
           color: #fff;
-          margin-bottom: 6px;
+          margin-bottom: 4px;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
 
-        .item-meta {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 0.75rem;
-          color: #aaa;
-        }
-
         .item-quantity {
-          color: #ddd;
+          font-size: 0.8rem;
+          color: #aaa;
+          margin-bottom: 2px;
         }
 
-        .item-separator {
-          color: ${COLORS.gold}66;
+        .item-unit-price {
+          font-size: 0.75rem;
+          color: #999;
         }
 
         .item-price {
-          font-size: 0.95rem;
-          font-weight: 700;
+          font-size: 1rem;
+          font-weight: 600;
           color: ${COLORS.gold};
           flex-shrink: 0;
         }
 
-        /* ==================== COUPON SECTION ==================== */
+        /* COUPON SECTION */
         .coupon-section {
           background: rgba(255, 255, 255, 0.05);
-          padding: 15px;
-          border-radius: 10px;
-          margin-bottom: 18px;
+          padding: 16px;
+          border-radius: 8px;
+          margin-bottom: 20px;
           border: 1px dashed ${COLORS.gold}44;
         }
 
@@ -1464,7 +1305,7 @@ const CheckOutPage = () => {
           margin-bottom: 12px;
           color: #fff;
           font-weight: 600;
-          font-size: 0.9rem;
+          font-size: 0.95rem;
         }
 
         .coupon-input-group {
@@ -1480,36 +1321,28 @@ const CheckOutPage = () => {
           color: #fff;
           padding: 10px 12px;
           border-radius: 6px;
-          font-size: 0.85rem;
+          font-size: 0.9rem;
           text-transform: uppercase;
           font-weight: 600;
-          letter-spacing: 0.5px;
-        }
-
-        .coupon-input::placeholder {
-          color: rgba(255, 255, 255, 0.4);
-          text-transform: none;
-          font-weight: 400;
         }
 
         .coupon-input:focus {
           outline: none;
           border-color: ${COLORS.gold};
-          box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
         }
 
         .apply-coupon-btn {
           background: ${COLORS.gold};
           color: ${COLORS.burgundy};
           border: none;
-          padding: 10px 16px;
+          padding: 10px 18px;
           border-radius: 6px;
           font-weight: 700;
           cursor: pointer;
           transition: all 0.3s ease;
           text-transform: uppercase;
           letter-spacing: 1px;
-          font-size: 0.8rem;
+          font-size: 0.85rem;
         }
 
         .apply-coupon-btn:hover:not(:disabled) {
@@ -1536,12 +1369,11 @@ const CheckOutPage = () => {
           align-items: center;
           justify-content: center;
           gap: 8px;
-          font-size: 0.8rem;
+          font-size: 0.85rem;
         }
 
         .view-coupons-btn:hover {
           background: rgba(212, 175, 55, 0.1);
-          transform: translateY(-1px);
         }
 
         .applied-coupon-box {
@@ -1550,7 +1382,7 @@ const CheckOutPage = () => {
           align-items: center;
           background: rgba(212, 175, 55, 0.15);
           padding: 12px;
-          border-radius: 8px;
+          border-radius: 6px;
           border: 1px solid ${COLORS.gold};
         }
 
@@ -1559,26 +1391,21 @@ const CheckOutPage = () => {
           align-items: center;
           gap: 12px;
           flex: 1;
-          min-width: 0;
         }
 
         .applied-details {
           flex: 1;
-          min-width: 0;
         }
 
         .coupon-name {
           font-weight: 700;
           color: ${COLORS.gold};
-          font-size: 0.95rem;
+          font-size: 1rem;
           margin-bottom: 2px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
         }
 
         .coupon-savings {
-          font-size: 0.8rem;
+          font-size: 0.85rem;
           color: #ccc;
         }
 
@@ -1587,7 +1414,7 @@ const CheckOutPage = () => {
           border: 1px solid ${COLORS.error};
           color: ${COLORS.error};
           padding: 8px 10px;
-          border-radius: 6px;
+          border-radius: 4px;
           cursor: pointer;
           transition: all 0.3s ease;
           flex-shrink: 0;
@@ -1596,16 +1423,15 @@ const CheckOutPage = () => {
         .remove-coupon-btn:hover {
           background: ${COLORS.error};
           color: #fff;
-          transform: scale(1.05);
         }
 
-        /* ==================== PRICE BREAKDOWN ==================== */
+        /* PRICE BREAKDOWN */
         .price-breakdown {
           display: flex;
           flex-direction: column;
           gap: 12px;
-          margin-bottom: 18px;
-          padding-bottom: 18px;
+          margin-bottom: 20px;
+          padding-bottom: 20px;
           border-bottom: 1px solid ${COLORS.gold}33;
         }
 
@@ -1614,7 +1440,7 @@ const CheckOutPage = () => {
           justify-content: space-between;
           align-items: center;
           color: #ddd;
-          font-size: 0.85rem;
+          font-size: 0.9rem;
         }
 
         .shipping-label {
@@ -1630,29 +1456,24 @@ const CheckOutPage = () => {
         .free-badge {
           background: ${COLORS.success};
           color: #fff;
-          padding: 3px 10px;
+          padding: 2px 8px;
           border-radius: 4px;
-          font-size: 0.7rem;
+          font-size: 0.75rem;
           font-weight: 700;
-          letter-spacing: 0.5px;
         }
 
         .shipping-notice,
         .savings-notice {
           padding: 10px 12px;
-          border-radius: 8px;
-          font-size: 0.8rem;
+          border-radius: 6px;
+          font-size: 0.85rem;
           text-align: center;
           border: 1px solid;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 5px;
         }
 
         .shipping-notice {
           background: rgba(255, 193, 7, 0.15);
-          color: ${COLORS.warning};
+          color: #ffc107;
           border-color: rgba(255, 193, 7, 0.3);
         }
 
@@ -1664,7 +1485,7 @@ const CheckOutPage = () => {
 
         .discount-row {
           font-weight: 600;
-          font-size: 0.9rem;
+          font-size: 1rem;
         }
 
         .gift-notice {
@@ -1673,8 +1494,8 @@ const CheckOutPage = () => {
           background: rgba(212, 175, 55, 0.15);
           color: ${COLORS.gold};
           padding: 10px 12px;
-          border-radius: 8px;
-          font-size: 0.8rem;
+          border-radius: 6px;
+          font-size: 0.85rem;
           border: 1px solid ${COLORS.gold}44;
         }
 
@@ -1682,78 +1503,59 @@ const CheckOutPage = () => {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 18px 0 10px 0;
+          padding: 20px 0 10px 0;
           border-top: 2px solid ${COLORS.gold};
           margin-top: 10px;
         }
 
         .total-label {
-          font-size: 1rem;
+          font-size: 1.1rem;
           font-weight: 600;
           color: #fff;
         }
 
         .total-amount {
-          font-size: 1.4rem;
+          font-size: 1.5rem;
           font-weight: 700;
           color: ${COLORS.gold};
         }
 
         .gst-notice {
           color: #999;
-          font-size: 0.7rem;
+          font-size: 0.75rem;
           margin-top: 2px;
         }
 
-        /* ==================== PLACE ORDER BUTTON ==================== */
+        /* PLACE ORDER BUTTON */
         .place-order-btn {
           width: 100%;
           background: linear-gradient(135deg, ${COLORS.gold} 0%, #c9a347 100%);
           color: ${COLORS.burgundy};
           border: none;
           padding: 16px 24px;
-          border-radius: 10px;
+          border-radius: 8px;
           font-weight: 700;
-          font-size: 0.95rem;
+          font-size: 1rem;
           cursor: pointer;
           transition: all 0.3s ease;
           text-transform: uppercase;
           letter-spacing: 1.5px;
-          box-shadow: 0 4px 20px rgba(212, 175, 55, 0.3);
+          box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
           display: flex;
           align-items: center;
           justify-content: center;
-          margin-top: 18px;
+          margin-top: 20px;
         }
 
         .place-order-btn:hover:not(:disabled) {
           transform: translateY(-3px);
-          box-shadow: 0 8px 30px rgba(212, 175, 55, 0.5);
-        }
-
-        .place-order-btn:active:not(:disabled) {
-          transform: translateY(-1px);
+          box-shadow: 0 8px 25px rgba(212, 175, 55, 0.5);
         }
 
         .place-order-btn:disabled {
-          opacity: 0.6;
+          opacity: 0.5;
           cursor: not-allowed;
           transform: none;
-        }
-
-        .loading-text {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-
-        .btn-spinner {
-          width: 16px;
-          height: 16px;
-          border: 2px solid ${COLORS.burgundy}44;
-          border-top-color: ${COLORS.burgundy};
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
         }
 
         .secure-notice {
@@ -1761,11 +1563,11 @@ const CheckOutPage = () => {
           align-items: center;
           justify-content: center;
           color: #999;
-          font-size: 0.75rem;
+          font-size: 0.8rem;
           margin-top: 12px;
         }
 
-        /* ==================== SUCCESS OVERLAY ==================== */
+        /* SUCCESS OVERLAY */
         .success-overlay {
           position: fixed;
           top: 0;
@@ -1788,7 +1590,7 @@ const CheckOutPage = () => {
         }
 
         .checkmark-wrapper {
-          margin-bottom: 25px;
+          margin-bottom: 30px;
         }
 
         .scale-up-center {
@@ -1796,32 +1598,31 @@ const CheckOutPage = () => {
         }
 
         .success-title {
-          font-size: 2rem;
+          font-size: 2.5rem;
           color: ${COLORS.gold};
           margin-bottom: 10px;
           letter-spacing: 3px;
           text-shadow: 0 0 20px rgba(212, 175, 55, 0.5);
-          font-weight: 800;
         }
 
         .success-subtitle {
           color: #ccc;
-          font-size: 0.9rem;
-          margin-bottom: 25px;
+          font-size: 0.95rem;
+          margin-bottom: 30px;
         }
 
         .order-id-box {
           background: rgba(255, 255, 255, 0.1);
-          padding: 18px;
+          padding: 20px;
           border-radius: 10px;
           border: 2px solid ${COLORS.gold};
-          margin-bottom: 25px;
+          margin-bottom: 30px;
         }
 
         .order-label {
           display: block;
           color: #aaa;
-          font-size: 0.75rem;
+          font-size: 0.8rem;
           margin-bottom: 8px;
           letter-spacing: 1px;
         }
@@ -1835,7 +1636,7 @@ const CheckOutPage = () => {
 
         .order-number {
           color: ${COLORS.gold};
-          font-size: 1.3rem;
+          font-size: 1.5rem;
           font-weight: 700;
           letter-spacing: 2px;
         }
@@ -1845,24 +1646,14 @@ const CheckOutPage = () => {
           border: 1px solid ${COLORS.gold};
           color: ${COLORS.gold};
           padding: 8px 10px;
-          border-radius: 6px;
+          border-radius: 4px;
           cursor: pointer;
           transition: all 0.3s ease;
-          display: flex;
-          align-items: center;
-          justify-content: center;
         }
 
         .copy-btn:hover {
           background: ${COLORS.gold};
           color: ${COLORS.burgundy};
-          transform: scale(1.1);
-        }
-
-        .success-actions {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
         }
 
         .view-orders-btn {
@@ -1871,13 +1662,14 @@ const CheckOutPage = () => {
           color: ${COLORS.burgundy};
           border: none;
           padding: 14px 30px;
-          border-radius: 10px;
+          border-radius: 8px;
           font-weight: 700;
-          font-size: 0.9rem;
+          font-size: 0.95rem;
           cursor: pointer;
           transition: all 0.3s ease;
           text-transform: uppercase;
           letter-spacing: 1.5px;
+          margin-bottom: 10px;
         }
 
         .view-orders-btn:hover {
@@ -1891,9 +1683,9 @@ const CheckOutPage = () => {
           border: 2px solid ${COLORS.gold};
           color: ${COLORS.gold};
           padding: 12px 30px;
-          border-radius: 10px;
+          border-radius: 8px;
           font-weight: 600;
-          font-size: 0.85rem;
+          font-size: 0.9rem;
           cursor: pointer;
           transition: all 0.3s ease;
           text-transform: uppercase;
@@ -1902,17 +1694,16 @@ const CheckOutPage = () => {
 
         .continue-shopping-btn:hover {
           background: rgba(212, 175, 55, 0.1);
-          transform: translateY(-2px);
         }
 
-        /* ==================== COUPONS MODAL ==================== */
+        /* COUPONS MODAL */
         .modal-overlay {
           position: fixed;
           top: 0;
           left: 0;
           right: 0;
           bottom: 0;
-          background: rgba(0, 0, 0, 0.92);
+          background: rgba(0, 0, 0, 0.9);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1924,18 +1715,17 @@ const CheckOutPage = () => {
         .modal-content {
           background: linear-gradient(135deg, ${COLORS.burgundy} 0%, ${COLORS.darkBg} 100%);
           border: 2px solid ${COLORS.gold};
-          border-radius: 16px;
+          border-radius: 12px;
           max-width: 600px;
           width: 100%;
-          max-height: 85vh;
+          max-height: 80vh;
           display: flex;
           flex-direction: column;
           animation: slideUp 0.3s ease;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
         }
 
         .modal-header {
-          padding: 18px 20px;
+          padding: 20px;
           border-bottom: 1px solid ${COLORS.gold}44;
           display: flex;
           justify-content: space-between;
@@ -1944,9 +1734,8 @@ const CheckOutPage = () => {
 
         .modal-header h2 {
           color: ${COLORS.gold};
-          font-size: 1.2rem;
+          font-size: 1.3rem;
           margin: 0;
-          font-weight: 700;
         }
 
         .modal-close-btn {
@@ -1971,24 +1760,6 @@ const CheckOutPage = () => {
           padding: 20px;
           overflow-y: auto;
           flex: 1;
-        }
-
-        .modal-body::-webkit-scrollbar {
-          width: 8px;
-        }
-
-        .modal-body::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 4px;
-        }
-
-        .modal-body::-webkit-scrollbar-thumb {
-          background: ${COLORS.gold}66;
-          border-radius: 4px;
-        }
-
-        .modal-body::-webkit-scrollbar-thumb:hover {
-          background: ${COLORS.gold};
         }
 
         .loading-coupons {
@@ -2026,7 +1797,7 @@ const CheckOutPage = () => {
         .coupon-card {
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid ${COLORS.gold}44;
-          border-radius: 12px;
+          border-radius: 8px;
           padding: 15px;
           transition: all 0.3s ease;
           position: relative;
@@ -2034,8 +1805,7 @@ const CheckOutPage = () => {
 
         .coupon-card:hover:not(.disabled) {
           border-color: ${COLORS.gold};
-          box-shadow: 0 4px 20px rgba(212, 175, 55, 0.25);
-          transform: translateY(-2px);
+          box-shadow: 0 4px 16px rgba(212, 175, 55, 0.2);
         }
 
         .coupon-card.disabled {
@@ -2045,15 +1815,14 @@ const CheckOutPage = () => {
 
         .coupon-badge {
           position: absolute;
-          top: -8px;
+          top: -10px;
           right: 15px;
           background: ${COLORS.gold};
           color: ${COLORS.burgundy};
-          padding: 4px 12px;
+          padding: 5px 15px;
           border-radius: 20px;
           font-weight: 700;
-          font-size: 0.75rem;
-          box-shadow: 0 2px 10px rgba(212, 175, 55, 0.4);
+          font-size: 0.85rem;
         }
 
         .coupon-details {
@@ -2062,27 +1831,26 @@ const CheckOutPage = () => {
 
         .coupon-code {
           color: ${COLORS.gold};
-          font-size: 1.1rem;
+          font-size: 1.2rem;
           font-weight: 700;
           margin-bottom: 8px;
         }
 
         .coupon-description {
           color: #ddd;
-          font-size: 0.85rem;
+          font-size: 0.9rem;
           margin-bottom: 8px;
-          line-height: 1.4;
         }
 
         .coupon-condition {
           color: #aaa;
-          font-size: 0.75rem;
+          font-size: 0.8rem;
           margin-bottom: 4px;
         }
 
         .coupon-expiry {
           color: #999;
-          font-size: 0.7rem;
+          font-size: 0.75rem;
           font-style: italic;
         }
 
@@ -2093,8 +1861,8 @@ const CheckOutPage = () => {
           background: rgba(212, 175, 55, 0.2);
           color: ${COLORS.gold};
           padding: 4px 10px;
-          border-radius: 6px;
-          font-size: 0.7rem;
+          border-radius: 4px;
+          font-size: 0.75rem;
           font-weight: 600;
           margin-top: 8px;
         }
@@ -2104,29 +1872,29 @@ const CheckOutPage = () => {
           background: ${COLORS.gold};
           color: ${COLORS.burgundy};
           border: none;
-          padding: 11px;
-          border-radius: 8px;
+          padding: 10px;
+          border-radius: 6px;
           font-weight: 700;
           cursor: pointer;
           transition: all 0.3s ease;
           text-transform: uppercase;
           letter-spacing: 1px;
-          font-size: 0.8rem;
+          font-size: 0.85rem;
         }
 
         .apply-modal-btn:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4);
+          box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
         }
 
         .apply-modal-btn:disabled {
           background: #666;
           color: #999;
           cursor: not-allowed;
-          font-size: 0.7rem;
+          font-size: 0.75rem;
         }
 
-        /* ==================== ANIMATIONS ==================== */
+        /* ANIMATIONS */
         @keyframes fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
@@ -2174,14 +1942,14 @@ const CheckOutPage = () => {
           to { transform: rotate(360deg); }
         }
 
-        /* ==================== RESPONSIVE - TABLET (768px - 1024px) ==================== */
+        /* TABLET RESPONSIVE (768px - 1024px) */
         @media (min-width: 768px) {
           .checkout-page {
-            padding: 25px;
+            padding: 30px 20px;
           }
 
           .checkout-container {
-            gap: 20px;
+            gap: 25px;
           }
 
           .mobile-summary-toggle {
@@ -2192,17 +1960,17 @@ const CheckOutPage = () => {
             display: block !important;
           }
 
-          .form-row {
+          .address-grid {
             grid-template-columns: repeat(2, 1fr);
           }
 
           .card-header {
-            font-size: 1.05rem;
-            padding: 16px 22px;
+            font-size: 1.1rem;
+            padding: 18px 24px;
           }
 
           .card-content {
-            padding: 22px;
+            padding: 24px;
           }
 
           .item-image {
@@ -2211,114 +1979,79 @@ const CheckOutPage = () => {
           }
 
           .item-name {
-            font-size: 0.95rem;
+            font-size: 1rem;
           }
 
           .success-title {
-            font-size: 2.5rem;
+            font-size: 3rem;
           }
 
           .order-number {
-            font-size: 1.5rem;
-          }
-
-          .payment-icon {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
           }
         }
 
-        /* ==================== RESPONSIVE - DESKTOP (1024px+) ==================== */
+        /* DESKTOP RESPONSIVE (1024px+) */
         @media (min-width: 1024px) {
           .checkout-page {
             padding: 40px 20px;
           }
 
           .checkout-container {
-            grid-template-columns: 1fr 420px;
+            grid-template-columns: 1fr 400px;
             gap: 30px;
           }
 
-          .form-row {
-            grid-template-columns: 1fr 1fr 130px;
+          .address-grid {
+            grid-template-columns: 1fr 1fr 120px;
           }
 
           .form-actions {
-            grid-template-columns: 130px 1fr;
+            grid-template-columns: 120px 1fr;
           }
 
           .payment-icon {
-            font-size: 1.6rem;
+            font-size: 1.8rem;
           }
 
           .payment-title {
-            font-size: 1rem;
-          }
-
-          .payment-subtitle {
-            font-size: 0.8rem;
-          }
-
-          .total-amount {
-            font-size: 1.6rem;
-          }
-
-          .item-image {
-            width: 90px;
-            height: 90px;
-          }
-
-          .order-summary-card {
-            position: sticky;
-            top: 80px;
-            align-self: start;
-          }
-        }
-
-        /* ==================== RESPONSIVE - LARGE DESKTOP (1440px+) ==================== */
-        @media (min-width: 1440px) {
-          .checkout-container {
-            grid-template-columns: 1fr 450px;
-          }
-        }
-
-        /* ==================== RESPONSIVE - SMALL MOBILE (< 480px) ==================== */
-        @media (max-width: 480px) {
-          .checkout-page {
-            padding: 12px 8px;
-          }
-
-          .mobile-summary-toggle {
-            padding: 12px 15px;
-          }
-
-          .summary-toggle-left {
-            font-size: 1rem;
-          }
-
-          .summary-toggle-right {
-            font-size: 0.8rem;
-          }
-
-          .success-title {
-            font-size: 1.6rem;
-            letter-spacing: 2px;
-          }
-
-          .order-number {
             font-size: 1.1rem;
           }
 
-          .place-order-btn {
+          .payment-subtitle {
             font-size: 0.85rem;
+          }
+
+          .total-amount {
+            font-size: 1.8rem;
+          }
+        }
+
+        /* SMALL MOBILE (< 480px) */
+        @media (max-width: 480px) {
+          .checkout-page {
+            padding: 15px 8px;
+          }
+
+          .success-title {
+            font-size: 1.8rem;
+          }
+
+          .order-number {
+            font-size: 1.2rem;
+          }
+
+          .place-order-btn {
+            font-size: 0.9rem;
             padding: 14px 20px;
           }
 
           .payment-title {
-            font-size: 0.9rem;
+            font-size: 0.95rem;
           }
 
           .payment-subtitle {
-            font-size: 0.7rem;
+            font-size: 0.75rem;
           }
 
           .item-image {
@@ -2327,38 +2060,15 @@ const CheckOutPage = () => {
           }
 
           .item-name {
-            font-size: 0.8rem;
-          }
-
-          .item-meta {
-            font-size: 0.7rem;
+            font-size: 0.85rem;
           }
 
           .item-price {
-            font-size: 0.85rem;
+            font-size: 0.9rem;
           }
 
           .total-amount {
-            font-size: 1.2rem;
-          }
-
-          .card-header {
-            font-size: 0.9rem;
-            padding: 12px 15px;
-          }
-
-          .card-content {
-            padding: 15px;
-          }
-
-          .form-label {
-            font-size: 0.75rem;
-          }
-
-          .form-input,
-          .form-textarea {
-            font-size: 0.85rem;
-            padding: 10px 12px;
+            font-size: 1.3rem;
           }
         }
       `}</style>
