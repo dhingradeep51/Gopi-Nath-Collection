@@ -509,6 +509,21 @@ const CheckOutPage = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // ==================== IMAGE HELPER ====================
+  // Resolves the correct image URL from various possible cart item structures
+  const getItemImage = (item) => {
+    return (
+      item.photos?.[0]?.url ||
+      item.photo?.[0]?.url ||
+      item.images?.[0]?.url ||
+      item.images?.[0] ||
+      item.photo?.[0] ||
+      item.image ||
+      item.photo ||
+      `${BASE_URL}api/v1/product/product-photo/${item._id}`
+    );
+  };
+
   // ==================== RENDER ====================
   
   return (
@@ -698,9 +713,14 @@ const CheckOutPage = () => {
                   {cart?.map((item) => (
                     <div key={item._id} className="cart-item-row">
                       <img
-                        src={item.photos?.[0]?.url || "/placeholder.png"}
+                        src={getItemImage(item)}
                         alt={item.name}
                         className="item-image"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src =
+                            "https://placehold.co/85x85/2D0A14/D4AF37?text=IMG";
+                        }}
                       />
                       <div className="item-details">
                         <h4 className="item-name">{item.name}</h4>
@@ -1188,6 +1208,7 @@ const CheckOutPage = () => {
           border-radius: 6px;
           border: 1px solid ${COLORS.gold}44;
           flex-shrink: 0;
+          background: rgba(255,255,255,0.05);
         }
 
         .item-details {
