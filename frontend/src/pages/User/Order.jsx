@@ -297,14 +297,7 @@ const UserOrders = () => {
         .total-label { font-size: 11px; color: #aaa; margin-bottom: 2px; }
         .total-amount { font-weight: 700; color: ${COLORS.gold}; font-size: 1.2rem; }
 
-        /* ── Payment warning ── */
-        .payment-warning {
-          display: flex; align-items: center; gap: 8px;
-          background: rgba(255,77,79,0.1);
-          border: 1px solid ${COLORS.error}44;
-          border-radius: 6px; padding: 10px 14px;
-          margin-top: 14px; font-size: 12px; color: ${COLORS.error};
-        }
+       
 
         /* ── Empty state ── */
         .empty-state {
@@ -432,7 +425,6 @@ const UserOrders = () => {
                         Ordered on {moment(o.createdAt).format("MMM DD, YYYY")}
                       </div>
                     </div>
-                    <PaymentBadge status={o.paymentDetails?.status} />
                   </div>
 
                   {/* Products */}
