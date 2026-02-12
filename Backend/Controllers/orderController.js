@@ -317,7 +317,7 @@ export const getOrdersController = async (req, res) => {
       .populate({
         path: "products.product",
         select: "name photo"
-      })
+      })//
       .populate({
         path: "paymentDetails",
         model: PaymentModel, // Use the actual Model object instead of a string
