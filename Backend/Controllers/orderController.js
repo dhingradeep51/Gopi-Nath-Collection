@@ -318,14 +318,14 @@ export const getOrdersController = async (req, res) => {
         path: "products.product",
         select: "name photo"
       })
-      // ✅ POPULATE PAYMENT STATUS
+      // ✅ POPULATE PAYMENT STATUS with all needed fields
       .populate({
         path: "paymentDetails",
-        select: "status method"
+        select: "status method merchantTransactionId amount"
       })
       .sort({ createdAt: -1 });
 
-    res.status(200).send(orders);  // <-- Sends orders array directly
+    res.status(200).send(orders);
   } catch (error) {
     console.error("Get user orders error:", error);
     res.status(500).send({
