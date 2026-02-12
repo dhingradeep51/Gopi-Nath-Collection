@@ -30,7 +30,7 @@ const getProductImage = (p) =>
   p?.photo?.[0]?.url ||
   p?.images?.[0]?.url ||
   p?.image ||
-  `${BASE_URL}api/v1/product/product-photo/${p?.product?._id || p?._id}`;
+  `${BASE_URL}api/v1/product/product-photo/${p?.product?._id || p?._id}/0`;
 
 // ─── Payment badge ───────────────────────────────────────────────
 const PaymentBadge = ({ status }) => {
@@ -117,6 +117,8 @@ const getDeliveryStatus = (order) => {
   const paymentStatus = order?.paymentDetails?.status;
   const orderStatus = order?.status;
 
+  console.log(`Order ${order?.orderNumber}: Payment=${paymentStatus}, Order=${orderStatus}`);
+
   // If payment failed, show payment failed status
   if (paymentStatus === "FAILED") {
     return {
@@ -126,9 +128,17 @@ const getDeliveryStatus = (order) => {
   }
 
   // If payment is pending, show awaiting payment
-  if (paymentStatus === "PENDING_PAYMENT") {
+  if (paymentStatus === "PENDING_PAYMENT" || paymentStatus === "PENDING") {
     return {
       text: "AWAITING PAYMENT",
+      color: COLORS.warning
+    };
+  }
+
+  // If COD and order is not processed, show awaiting confirmation
+  if (paymentStatus === "COD" && (orderStatus === "Not Processed" || !orderStatus)) {
+    return {
+      text: "AWAITING CONFIRMATION",
       color: COLORS.warning
     };
   }
@@ -161,7 +171,16 @@ const UserOrders = () => {
       const { data } = await axios.get(`${BASE_URL}api/v1/order/orders`, {
         headers: { Authorization: `Bearer ${auth?.token}` },
       });
-      setOrders(Array.isArray(data) ? data : data?.orders || []);
+      const ordersList = Array.isArray(data) ? data : data?.orders || [];
+      
+      // Debug: Log payment statuses
+      console.log("Orders with payment status:", ordersList.map(o => ({
+        orderNumber: o.orderNumber,
+        paymentStatus: o.paymentDetails?.status,
+        orderStatus: o.status
+      })));
+      
+      setOrders(ordersList);
     } catch (error) {
       console.error("Error fetching orders:", error);
       toast.error("Failed to load your divine registry");
@@ -526,11 +545,31 @@ const UserOrders = () => {
                   <div className="summary-box">
                     <div className="summary-inner">
                       <div className="delivery-status">
-                        <FaTruck style={{ color: deliveryStatus.color }} />
-                        <span>Status:</span>
-                        <strong style={{ color: deliveryStatus.color, marginLeft: 4 }}>
-                          {deliveryStatus.text}
-                        </strong>
+                        {o.paymentDetails?.status === "FAILED" ? (
+                          <>
+                            <FaTimesCircle style={{ color: deliveryStatus.color }} />
+                            <span>Status:</span>
+                            <strong style={{ color: deliveryStatus.color, marginLeft: 4 }}>
+                              {deliveryStatus.text}
+                            </strong>
+                          </>
+                        ) : o.paymentDetails?.status === "PENDING_PAYMENT" ? (
+                          <>
+                            <FaClock style={{ color: deliveryStatus.color }} />
+                            <span>Status:</span>
+                            <strong style={{ color: deliveryStatus.color, marginLeft: 4 }}>
+                              {deliveryStatus.text}
+                            </strong>
+                          </>
+                        ) : (
+                          <>
+                            <FaTruck style={{ color: deliveryStatus.color }} />
+                            <span>Status:</span>
+                            <strong style={{ color: deliveryStatus.color, marginLeft: 4 }}>
+                              {deliveryStatus.text}
+                            </strong>
+                          </>
+                        )}
                       </div>
                       <div className="total-block">
                         <div className="total-label">Grand Total</div>
