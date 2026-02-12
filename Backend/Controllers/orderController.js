@@ -320,58 +320,23 @@ export const getOrdersController = async (req, res) => {
       })
       .populate({
         path: "paymentDetails",
-        select: "status method merchantTransactionId transactionId amount createdAt"
+        // Ensure these field names match your PaymentModel exactly
+        select: "status method merchantTransactionId transactionId amount createdAt" 
       })
       .sort({ createdAt: -1 })
       .lean();
 
-    // ✅ Verify population worked
-    if (orders.length > 0) {
-      console.log("✅ First order structure:", {
-        orderNumber: orders[0].orderNumber,
-        paymentDetailsType: typeof orders[0].paymentDetails,
-        paymentDetails: orders[0].paymentDetails,
-        isPopulated: orders[0].paymentDetails && typeof orders[0].paymentDetails === 'object'
-      });
-    }
+    // Map to handle null/missing payment details gracefully
+    const formattedOrders = orders.map(order => ({
+      ...order,
+      paymentDetails: order.paymentDetails || {
+        status: 'PENDING',
+        method: 'NOT_FOUND',
+        amount: 0
+      }
+    }));
 
-    // ✅ Manual fallback if population failed
-    const ordersWithPayment = await Promise.all(
-      orders.map(async (order) => {
-        // If paymentDetails is still a string/ObjectId, manually populate it
-        if (order.paymentDetails && typeof order.paymentDetails === 'string') {
-          console.warn(`⚠️ Payment not populated for order ${order.orderNumber}, fetching manually`);
-          const payment = await PaymentModel.findById(order.paymentDetails)
-            .select("status method merchantTransactionId transactionId amount createdAt")
-            .lean();
-          
-          return {
-            ...order,
-            paymentDetails: payment || {
-              status: 'PENDING',
-              method: 'unknown'
-            }
-          };
-        }
-        
-        // If paymentDetails is null/undefined, provide default
-        if (!order.paymentDetails) {
-          console.warn(`⚠️ No payment details for order ${order.orderNumber}`);
-          return {
-            ...order,
-            paymentDetails: {
-              status: 'PENDING',
-              method: 'unknown'
-            }
-          };
-        }
-        
-        return order;
-      })
-    );
-
-    console.log(`✅ Returning ${ordersWithPayment.length} orders`);
-    res.status(200).send(ordersWithPayment);
+    res.status(200).json(formattedOrders);
 
   } catch (error) {
     console.error("❌ Get user orders error:", error);
