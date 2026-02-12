@@ -313,31 +313,36 @@ export const userOrderStatusController = async (req, res) => {
 };
 export const getOrdersController = async (req, res) => {
   try {
+    // 1. Fetch orders and ensure we populate the CORRECT ref name
     const orders = await OrderModel.find({ buyer: req.user._id })
       .populate({
         path: "products.product",
         select: "name photo photos images image slug"
       })
       .populate({
-        path: "paymentDetails",
-        // Ensure these field names match your PaymentModel exactly
+        path: "paymentDetails", // This path must exist in orderSchema
+        model: "Payment",       // Explicitly tell Mongoose which model to use
         select: "status method merchantTransactionId transactionId amount createdAt" 
       })
       .sort({ createdAt: -1 })
       .lean();
 
-    // Map to handle null/missing payment details gracefully
-    const formattedOrders = orders.map(order => ({
-      ...order,
-      paymentDetails: order.paymentDetails || {
-        status: 'PENDING',
-        method: 'NOT_FOUND',
-        amount: 0
-      }
-    }));
+    // 2. Map through to ensure the frontend never receives 'undefined'
+    const formattedOrders = orders.map(order => {
+      // If population failed, paymentDetails will be a String ID or null
+      const isPopulated = order.paymentDetails && typeof order.paymentDetails === 'object';
+      
+      return {
+        ...order,
+        paymentDetails: isPopulated ? order.paymentDetails : {
+          status: 'PENDING',
+          method: 'unknown',
+          amount: order.totalPaid || 0
+        }
+      };
+    });
 
     res.status(200).json(formattedOrders);
-
   } catch (error) {
     console.error("❌ Get user orders error:", error);
     res.status(500).send({
