@@ -313,36 +313,52 @@ export const userOrderStatusController = async (req, res) => {
 };
 export const getOrdersController = async (req, res) => {
   try {
-    // 1. Fetch orders and ensure we populate the CORRECT ref name
+    // 1. Fetch orders from database
     const orders = await OrderModel.find({ buyer: req.user._id })
       .populate({
         path: "products.product",
         select: "name photo photos images image slug"
       })
       .populate({
-        path: "paymentDetails", // This path must exist in orderSchema
-        model: "Payment",       // Explicitly tell Mongoose which model to use
+        path: "paymentDetails",
+        // Explicitly naming the model helps if there's a ref mismatch
+        model: "Payment", 
         select: "status method merchantTransactionId transactionId amount createdAt" 
       })
       .sort({ createdAt: -1 })
       .lean();
 
-    // 2. Map through to ensure the frontend never receives 'undefined'
+    // 🔍 LOG 1: Check raw population result
+    if (orders.length > 0) {
+      console.log("--- DEBUG: RAW DATA FROM DB ---");
+      console.log("Order Number:", orders[0].orderNumber);
+      console.log("paymentDetails Type:", typeof orders[0].paymentDetails);
+      console.log("paymentDetails Content:", JSON.stringify(orders[0].paymentDetails, null, 2));
+    } else {
+      console.log("--- DEBUG: No orders found for this user ---");
+    }
+
+    // 2. Map and format
     const formattedOrders = orders.map(order => {
-      // If population failed, paymentDetails will be a String ID or null
+      // Logic to check if population actually worked
       const isPopulated = order.paymentDetails && typeof order.paymentDetails === 'object';
       
       return {
         ...order,
         paymentDetails: isPopulated ? order.paymentDetails : {
           status: 'PENDING',
-          method: 'unknown',
-          amount: order.totalPaid || 0
+          method: 'UNKNOWN_OR_NOT_POPULATED',
+          amount: order.totalPaid || 0,
+          _isManualFallback: true // Helps you identify fallbacks in the frontend console
         }
       };
     });
 
+    // 🔍 LOG 2: Check final response being sent to frontend
+    console.log(`--- DEBUG: Sending ${formattedOrders.length} orders to frontend ---`);
+
     res.status(200).json(formattedOrders);
+
   } catch (error) {
     console.error("❌ Get user orders error:", error);
     res.status(500).send({

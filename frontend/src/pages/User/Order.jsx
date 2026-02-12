@@ -30,7 +30,7 @@ const getProductImage = (p) =>
   p?.photo?.[0]?.url ||
   p?.images?.[0]?.url ||
   p?.image ||
-  `${BASE_URL}api/v1/product/product-photo/${p?.product?._id || p?._id}`;
+  `${BASE_URL}api/v1/product/product-photo/${p?.product?._id || p?._id}/0`;
 
 // ─── Payment badge ───────────────────────────────────────────────
 const PaymentBadge = ({ status }) => {
