@@ -3,41 +3,130 @@ import Layout from "../../components/Layout";
 import axios from "axios";
 import { useAuth } from "../../context/auth";
 import moment from "moment";
-import { 
-  FaStar, FaPen, FaShoppingBag, FaHome, FaGift, FaCheckCircle, FaClock, FaTimesCircle, FaTruck 
+import {
+  FaStar, FaPen, FaShoppingBag, FaHome, FaGift,
+  FaCheckCircle, FaClock, FaTimesCircle, FaTruck,
+  FaPercent, FaTimes
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
-const UserOrders = () => {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [auth] = useAuth();
-  const navigate = useNavigate();
-  
-  const BASE_URL = import.meta.env.VITE_API_URL || "";
+const BASE_URL = import.meta.env.VITE_API_URL || "";
 
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState("");
-  const [hover, setHover] = useState(0);
+const COLORS = {
+  deepBurgundy: "#2D0A14",
+  richBurgundy: "#3D0E1C",
+  gold: "#D4AF37",
+  white: "#FFFFFF",
+  disabled: "#555555",
+  success: "#4BB543",
+  error: "#ff4d4f",
+  warning: "#faad14",
+};
 
-  const colors = {
-    deepBurgundy: "#2D0A14", 
-    richBurgundy: "#3D0E1C", 
-    gold: "#D4AF37",         
-    white: "#FFFFFF",
-    disabled: "#555555",
-    success: "#4BB543",
-    error: "#ff4d4f",
-    warning: "#faad14"
+// ─── Image helper ───────────────────────────────────────────────
+const getProductImage = (p) =>
+  p?.photos?.[0]?.url ||
+  p?.photo?.[0]?.url ||
+  p?.images?.[0]?.url ||
+  p?.image ||
+  `${BASE_URL}api/v1/product/product-photo/${p?.product?._id || p?._id}`;
+
+// ─── Payment badge ───────────────────────────────────────────────
+const PaymentBadge = ({ status }) => {
+  const map = {
+    PAID:            { cls: "badge-paid",    icon: <FaCheckCircle size={10} />, label: "PAID" },
+    FAILED:          { cls: "badge-failed",  icon: <FaTimesCircle size={10} />, label: "FAILED" },
+    COD:             { cls: "badge-cod",     icon: <FaTruck size={10} />,       label: "COD" },
+    PENDING_PAYMENT: { cls: "badge-pending", icon: <FaClock size={10} />,       label: "PENDING" },
   };
+  const cfg = map[status] || { cls: "badge-pending", icon: <FaClock size={10} />, label: status || "UNPAID" };
+  return (
+    <span className={`status-badge ${cfg.cls}`}>
+      {cfg.icon} {cfg.label}
+    </span>
+  );
+};
+
+// ─── Star rating ─────────────────────────────────────────────────
+const StarRating = ({ rating, hover, setRating, setHover }) => (
+  <div style={{ display: "flex", gap: 10, justifyContent: "center", marginBottom: 24 }}>
+    {[1,2,3,4,5].map((i) => (
+      <FaStar
+        key={i}
+        size={34}
+        color={(i <= (hover || rating)) ? COLORS.gold : COLORS.disabled}
+        style={{ cursor: "pointer", transition: "color 0.15s" }}
+        onMouseEnter={() => setHover(i)}
+        onMouseLeave={() => setHover(0)}
+        onClick={() => setRating(i)}
+      />
+    ))}
+  </div>
+);
+
+// ─── Review Modal ────────────────────────────────────────────────
+const ReviewModal = ({ productId, onClose, onSubmit }) => {
+  const [rating, setRating]   = useState(0);
+  const [hover, setHover]     = useState(0);
+  const [comment, setComment] = useState("");
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!rating) return toast.error("Please select a rating");
+    onSubmit(productId, rating, comment);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}><FaTimes /></button>
+        <h3 className="modal-title">Divine Feedback</h3>
+        <p className="modal-sub">Bless others with your experience</p>
+        <form onSubmit={handleSubmit}>
+          <StarRating rating={rating} hover={hover} setRating={setRating} setHover={setHover} />
+          <textarea
+            className="modal-textarea"
+            placeholder="Tell us about the craftsmanship..."
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            required
+          />
+          <button type="submit" className="modal-submit-btn">SUBMIT REVIEW</button>
+          <button type="button" className="modal-cancel-btn" onClick={onClose}>DISMISS</button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// ─── Loading Spinner ─────────────────────────────────────────────
+const Loader = () => (
+  <Layout>
+    <div style={{ display:"flex", flexDirection:"column", justifyContent:"center", alignItems:"center", height:"80vh", background: COLORS.deepBurgundy }}>
+      <div className="custom-spinner" />
+      <h4 style={{ color: COLORS.gold, fontFamily:"serif", letterSpacing:"2px", textTransform:"uppercase", marginTop:20, fontSize:"1.1rem" }}>
+        Fetching your divine history...
+      </h4>
+    </div>
+  </Layout>
+);
+
+// ─── MAIN COMPONENT ──────────────────────────────────────────────
+const UserOrders = () => {
+  const [orders, setOrders]               = useState([]);
+  const [loading, setLoading]             = useState(true);
+  const [auth]                            = useAuth();
+  const navigate                          = useNavigate();
+  const [selectedProduct, setSelectedProduct] = useState(null);
 
   const getOrders = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`${BASE_URL}api/v1/order/orders`);
-      setOrders(data);
+      const { data } = await axios.get(`${BASE_URL}api/v1/order/orders`, {
+        headers: { Authorization: `Bearer ${auth?.token}` },
+      });
+      setOrders(Array.isArray(data) ? data : data?.orders || []);
     } catch (error) {
       console.error("Error fetching orders:", error);
       toast.error("Failed to load your divine registry");
@@ -50,166 +139,313 @@ const UserOrders = () => {
     if (auth?.token) getOrders();
   }, [auth?.token]);
 
-  const handleReviewSubmit = async (e) => {
-    e.preventDefault();
+  const handleReviewSubmit = async (productId, rating, comment) => {
     try {
       const { data } = await axios.post(
-        `${BASE_URL}api/v1/product/add-review/${selectedProduct}`, 
-        { rating, comment }
+        `${BASE_URL}api/v1/product/add-review/${productId}`,
+        { rating, comment },
+        { headers: { Authorization: `Bearer ${auth?.token}` } }
       );
-
       if (data?.success) {
-        toast.success(data.message);
+        toast.success(data.message || "Review submitted!");
         setSelectedProduct(null);
-        setRating(0);
-        setComment("");
-        getOrders(); 
+        getOrders();
+      } else {
+        toast.error(data?.message || "Failed to submit review");
       }
     } catch (error) {
-      toast.error("Failed to submit review");
+      toast.error(error.response?.data?.message || "Failed to submit review");
     }
   };
 
-  if (loading) {
-    return (
-      <Layout>
-        <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", height: "80vh", background: colors.deepBurgundy }}>
-          <div className="spinner-grow" role="status" style={{ width: "3.5rem", height: "3.5rem", color: colors.gold }}>
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <h4 style={{ color: colors.gold, fontFamily: "serif", letterSpacing: "2px", textTransform: "uppercase", marginTop: "20px", fontSize: "1.1rem" }}>
-            Fetching your divine history...
-          </h4>
-        </div>
-      </Layout>
-    );
-  }
+  if (loading) return <Loader />;
 
   return (
-    <Layout title={"My Orders - Gopi Nath Collection"}>
+    <Layout title="My Orders - Gopi Nath Collection">
       <style>{`
-        .orders-page-wrapper { background-color: ${colors.deepBurgundy}; min-height: 100vh; padding: 20px; font-family: 'Segoe UI', sans-serif; }
-        .order-card { background: ${colors.richBurgundy}; border: 1px solid ${colors.gold}44; border-radius: 12px; padding: 20px; margin-bottom: 25px; cursor: pointer; transition: 0.3s ease; position: relative; overflow: hidden; }
-        .order-card:hover { border-color: ${colors.gold}; transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        
-        /* Payment Badges */
-        .status-badge { font-size: 10px; padding: 4px 12px; border-radius: 20px; font-weight: bold; letter-spacing: 1px; display: flex; align-items: center; gap: 5px; }
-        .badge-paid { background: rgba(75, 181, 67, 0.15); color: #4BB543; border: 1px solid #4BB543; }
-        .badge-pending { background: rgba(250, 173, 20, 0.15); color: #faad14; border: 1px solid #faad14; }
-        .badge-failed { background: rgba(255, 77, 79, 0.15); color: #ff4d4f; border: 1px solid #ff4d4f; }
-        .badge-cod { background: rgba(212, 175, 55, 0.15); color: ${colors.gold}; border: 1px solid ${colors.gold}; }
+        /* ── Reset ── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        .product-img { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid ${colors.gold}33; background: #000; }
-        .price-summary-box { background: rgba(0,0,0,0.4); padding: 18px; border-radius: 10px; margin-top: 15px; border-left: 4px solid ${colors.gold}; }
-        .nav-header { display: flex; justify-content: space-between; align-items: center; max-width: 850px; margin: 0 auto 30px auto; border-bottom: 1px solid ${colors.gold}22; padding-bottom: 15px; }
-        .btn-shop { background: transparent; border: 1px solid ${colors.gold}; color: ${colors.gold}; padding: 10px 22px; border-radius: 6px; display: flex; align-items: center; gap: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        .btn-shop:hover { background: ${colors.gold}; color: ${colors.deepBurgundy}; }
-        .gift-tag { color: ${colors.gold}; background: rgba(212,175,55,0.1); padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid ${colors.gold}44; display: inline-flex; align-items: center; gap: 4px; }
-        
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        /* ── Page ── */
+        .orders-wrapper {
+          background: linear-gradient(160deg, ${COLORS.deepBurgundy} 0%, #1a0510 100%);
+          min-height: 100vh;
+          padding: 20px 12px 40px;
+          font-family: 'Segoe UI', sans-serif;
+        }
+
+        .orders-inner { max-width: 860px; margin: 0 auto; }
+
+        /* ── Nav header ── */
+        .nav-hdr {
+          display: flex; justify-content: space-between; align-items: center;
+          margin-bottom: 28px;
+          border-bottom: 1px solid ${COLORS.gold}33;
+          padding-bottom: 16px;
+          flex-wrap: wrap; gap: 12px;
+        }
+        .nav-title {
+          color: ${COLORS.gold}; font-family: serif; font-size: clamp(1.4rem, 5vw, 1.9rem);
+        }
+        .btn-back {
+          background: transparent; border: 1px solid ${COLORS.gold}; color: ${COLORS.gold};
+          padding: 10px 20px; border-radius: 6px; display: flex; align-items: center;
+          gap: 8px; font-weight: bold; cursor: pointer; transition: 0.25s; font-size: 0.85rem;
+          white-space: nowrap;
+        }
+        .btn-back:hover { background: ${COLORS.gold}; color: ${COLORS.deepBurgundy}; }
+
+        /* ── Order card ── */
+        .order-card {
+          background: ${COLORS.richBurgundy};
+          border: 1px solid ${COLORS.gold}33;
+          border-radius: 12px;
+          padding: 20px;
+          margin-bottom: 22px;
+          cursor: pointer;
+          transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+        }
+        .order-card:hover {
+          border-color: ${COLORS.gold}88;
+          transform: translateY(-3px);
+          box-shadow: 0 12px 32px rgba(0,0,0,0.55);
+        }
+
+        /* ── Card top row ── */
+        .card-top {
+          display: flex; justify-content: space-between; align-items: flex-start;
+          margin-bottom: 16px; gap: 10px; flex-wrap: wrap;
+        }
+        .order-num { color: ${COLORS.gold}; font-weight: 700; font-size: 15px; letter-spacing: 1px; }
+        .order-date { color: #888; font-size: 12px; margin-top: 4px; }
+
+        /* ── Payment status badges ── */
+        .status-badge {
+          font-size: 10px; padding: 5px 12px; border-radius: 20px;
+          font-weight: 700; letter-spacing: 1px;
+          display: inline-flex; align-items: center; gap: 5px;
+          white-space: nowrap;
+        }
+        .badge-paid    { background: rgba(75,181,67,0.15);   color: #4BB543; border: 1px solid #4BB543; }
+        .badge-pending { background: rgba(250,173,20,0.15);  color: #faad14; border: 1px solid #faad14; }
+        .badge-failed  { background: rgba(255,77,79,0.15);   color: #ff4d4f; border: 1px solid #ff4d4f; }
+        .badge-cod     { background: rgba(212,175,55,0.15);  color: ${COLORS.gold}; border: 1px solid ${COLORS.gold}; }
+
+        /* ── Product row ── */
+        .product-row {
+          display: flex; gap: 16px;
+          padding: 16px 0;
+          border-top: 1px solid ${COLORS.gold}11;
+          align-items: flex-start;
+        }
+        .prod-img {
+          width: 78px; height: 78px; object-fit: cover;
+          border-radius: 8px; border: 1px solid ${COLORS.gold}33;
+          background: #111; flex-shrink: 0;
+        }
+        .prod-details { flex: 1; min-width: 0; }
+        .prod-name { color: #fff; font-weight: 600; font-size: 15px; word-break: break-word; }
+        .prod-price { margin-top: 5px; font-size: 14px; font-weight: 700; }
+        .prod-qty   { color: #777; font-size: 12px; font-weight: normal; margin-left: 8px; }
+
+        /* ── Gift tag ── */
+        .gift-tag {
+          display: inline-flex; align-items: center; gap: 4px;
+          background: rgba(212,175,55,0.12); color: ${COLORS.gold};
+          padding: 2px 8px; border-radius: 4px; font-size: 10px;
+          font-weight: 700; border: 1px solid ${COLORS.gold}44; margin-left: 10px;
+        }
+
+        /* ── Write review btn ── */
+        .btn-review {
+          margin-top: 10px; background: none;
+          border: 1px solid ${COLORS.gold}66; color: ${COLORS.gold};
+          font-size: 11px; padding: 5px 14px; border-radius: 5px;
+          display: inline-flex; align-items: center; gap: 6px;
+          cursor: pointer; transition: 0.2s;
+        }
+        .btn-review:hover { background: ${COLORS.gold}22; }
+
+        /* ── Coupon info ── */
+        .coupon-row {
+          display: flex; align-items: center; gap: 8px;
+          background: rgba(212,175,55,0.08); border: 1px dashed ${COLORS.gold}55;
+          border-radius: 6px; padding: 8px 12px; margin-top: 14px;
+          font-size: 12px; color: ${COLORS.gold};
+        }
+
+        /* ── Price summary box ── */
+        .summary-box {
+          background: rgba(0,0,0,0.4);
+          border-left: 4px solid ${COLORS.gold};
+          border-radius: 0 8px 8px 0;
+          padding: 16px 18px;
+          margin-top: 16px;
+        }
+        .summary-inner {
+          display: flex; justify-content: space-between;
+          align-items: center; flex-wrap: wrap; gap: 12px;
+        }
+        .delivery-status {
+          display: flex; align-items: center; gap: 10px;
+          font-size: 14px; color: #fff;
+        }
+        .total-block { text-align: right; }
+        .total-label { font-size: 11px; color: #aaa; margin-bottom: 2px; }
+        .total-amount { font-weight: 700; color: ${COLORS.gold}; font-size: 1.2rem; }
+
+        /* ── Empty state ── */
+        .empty-state {
+          text-align: center; padding: 80px 20px; color: ${COLORS.gold};
+        }
+        .empty-state p { color: #888; max-width: 400px; margin: 12px auto 0; font-size: 14px; }
+
+        /* ── Spinner ── */
+        .custom-spinner {
+          width: 48px; height: 48px;
+          border: 4px solid ${COLORS.gold}33;
+          border-top-color: ${COLORS.gold};
+          border-radius: 50%;
+          animation: spin 0.9s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Modal ── */
+        .modal-overlay {
+          position: fixed; inset: 0;
+          background: rgba(0,0,0,0.92);
+          z-index: 9999;
+          display: flex; justify-content: center; align-items: center;
+          padding: 20px;
+        }
+        .modal-box {
+          background: ${COLORS.richBurgundy};
+          border: 1px solid ${COLORS.gold};
+          border-radius: 14px;
+          padding: 32px 28px;
+          width: 100%; max-width: 420px;
+          position: relative;
+          box-shadow: 0 0 40px ${COLORS.gold}22;
+        }
+        .modal-close {
+          position: absolute; top: 14px; right: 14px;
+          background: none; border: none; color: #aaa;
+          font-size: 18px; cursor: pointer; line-height: 1;
+          transition: color 0.2s;
+        }
+        .modal-close:hover { color: ${COLORS.gold}; }
+        .modal-title {
+          color: ${COLORS.gold}; font-family: serif;
+          font-size: 1.3rem; text-align: center; margin-bottom: 6px;
+        }
+        .modal-sub {
+          color: #aaa; text-align: center; font-size: 13px; margin-bottom: 22px;
+        }
+        .modal-textarea {
+          width: 100%; background: rgba(0,0,0,0.3); color: #fff;
+          border: 1px solid ${COLORS.gold}44; padding: 14px;
+          border-radius: 8px; min-height: 100px; font-size: 14px;
+          font-family: inherit; resize: vertical;
+        }
+        .modal-textarea:focus { outline: none; border-color: ${COLORS.gold}; }
+        .modal-submit-btn {
+          width: 100%; margin-top: 22px; background: ${COLORS.gold};
+          border: none; padding: 14px; font-weight: 700;
+          color: ${COLORS.deepBurgundy}; border-radius: 8px;
+          cursor: pointer; font-size: 0.9rem; letter-spacing: 0.5px;
+          transition: opacity 0.2s;
+        }
+        .modal-submit-btn:hover { opacity: 0.88; }
+        .modal-cancel-btn {
+          width: 100%; margin-top: 10px; background: none;
+          border: 1px solid #555; color: #888; padding: 11px;
+          border-radius: 8px; cursor: pointer; font-size: 0.85rem;
+          transition: border-color 0.2s, color 0.2s;
+        }
+        .modal-cancel-btn:hover { border-color: #aaa; color: #ccc; }
+
+        /* ── Mobile ── */
+        @media (max-width: 520px) {
+          .orders-wrapper { padding: 14px 8px 40px; }
+          .order-card { padding: 16px; }
+          .prod-img { width: 65px; height: 65px; }
+          .prod-name { font-size: 14px; }
+          .total-amount { font-size: 1.05rem; }
+          .modal-box { padding: 26px 18px; }
+        }
       `}</style>
 
-      <div className="orders-page-wrapper">
-        <div className="nav-header">
-          <h2 style={{ color: colors.gold, fontFamily: "serif", margin: 0, fontSize: "1.8rem" }}>Divine Registry</h2>
-          <button className="btn-shop" onClick={() => navigate("/")}>
-            <FaHome /> BACK TO SHOP
-          </button>
-        </div>
+      <div className="orders-wrapper">
+        <div className="orders-inner">
 
-        <div style={{ maxWidth: "850px", margin: "0 auto" }}>
-          {/* Review Modal */}
+          {/* Header */}
+          <div className="nav-hdr">
+            <h2 className="nav-title">Divine Registry</h2>
+            <button className="btn-back" onClick={() => navigate("/")}>
+              <FaHome /> BACK TO SHOP
+            </button>
+          </div>
+
+          {/* Review modal */}
           {selectedProduct && (
-            <div className="review-modal-overlay" style={{ position: 'fixed', top:0, left:0, width:'100%', height:'100%', background: 'rgba(0,0,0,0.92)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <div className="review-modal" style={{ background: colors.richBurgundy, width: '90%', maxWidth: '420px', border: `1px solid ${colors.gold}`, borderRadius: '15px', padding: '30px', boxShadow: `0 0 30px ${colors.gold}33` }} onClick={(e) => e.stopPropagation()}>
-                <h3 style={{ color: colors.gold, textAlign: 'center', marginBottom: '10px', fontFamily: "serif" }}>Divine Feedback</h3>
-                <p style={{ color: "#aaa", textAlign: 'center', fontSize: '13px', marginBottom: '25px' }}>Bless others with your experience</p>
-                <form onSubmit={handleReviewSubmit}>
-                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '25px' }}>
-                      {[...Array(5)].map((_, i) => (
-                        <FaStar 
-                          key={i} 
-                          size={32} 
-                          onMouseEnter={() => setHover(i+1)}
-                          onMouseLeave={() => setHover(0)}
-                          onClick={() => setRating(i+1)} 
-                          color={(i+1) <= (hover || rating) ? colors.gold : colors.disabled} 
-                          style={{cursor: 'pointer', transition: '0.2s'}} 
-                        />
-                      ))}
-                    </div>
-                    <textarea 
-                      style={{ width: '100%', background: 'rgba(0,0,0,0.3)', color: 'white', border: `1px solid ${colors.gold}44`, padding: '15px', borderRadius: '8px', minHeight: '100px', fontSize: '14px' }} 
-                      placeholder="Tell us about the craftsmanship..." 
-                      onChange={(e) => setComment(e.target.value)} 
-                      required 
-                    />
-                    <button type="submit" style={{ width: '100%', marginTop: '25px', background: colors.gold, border: 'none', padding: '14px', fontWeight: 'bold', color: colors.deepBurgundy, borderRadius: '8px', cursor: "pointer" }}>SUBMIT REVIEW</button>
-                    <button type="button" onClick={() => setSelectedProduct(null)} style={{ width: '100%', marginTop: '12px', background: 'none', border: '1px solid #555', color: '#888', padding: '10px', borderRadius: '8px', cursor: "pointer" }}>DISMISS</button>
-                </form>
-              </div>
-            </div>
+            <ReviewModal
+              productId={selectedProduct}
+              onClose={() => setSelectedProduct(null)}
+              onSubmit={handleReviewSubmit}
+            />
           )}
 
+          {/* Empty state */}
           {orders.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "80px 20px", color: colors.gold }}>
-              <FaShoppingBag size={60} style={{ opacity: 0.2, marginBottom: "25px" }} />
+            <div className="empty-state">
+              <FaShoppingBag size={58} style={{ opacity: 0.2, marginBottom: 22 }} />
               <h3 style={{ fontFamily: "serif" }}>Your registry is empty</h3>
-              <p style={{ color: "#888", maxWidth: "400px", margin: "0 auto" }}>Your divine journey begins with your first selection from the Gopi Nath Collection.</p>
+              <p>Your divine journey begins with your first selection from the Gopi Nath Collection.</p>
             </div>
           ) : (
-            orders?.map((o) => (
-              <div key={o._id} className="order-card" onClick={() => navigate(`/dashboard/user/orders/${o.orderNumber}`)}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'flex-start' }}>
+            orders.map((o) => (
+              <div
+                key={o._id}
+                className="order-card"
+                onClick={() => navigate(`/dashboard/user/orders/${o.orderNumber}`)}
+              >
+                {/* Top row */}
+                <div className="card-top">
                   <div>
-                    <div style={{ color: colors.gold, fontWeight: "bold", fontSize: '15px', letterSpacing: "1px" }}>#{o.orderNumber}</div>
-                    <div style={{ color: '#888', fontSize: '12px', marginTop: "4px" }}>Ordered on {moment(o.createdAt).format("MMM DD, YYYY") || "N/A"}</div>
+                    <div className="order-num">#{o.orderNumber}</div>
+                    <div className="order-date">
+                      Ordered on {moment(o.createdAt).format("MMM DD, YYYY")}
+                    </div>
                   </div>
-                  
-                  {/* Payment Status Badge */}
-                  <div className={`status-badge ${
-                    o.paymentDetails?.status === 'PAID' ? 'badge-paid' : 
-                    o.paymentDetails?.status === 'FAILED' ? 'badge-failed' : 
-                    o.paymentDetails?.status === 'COD' ? 'badge-cod' : 'badge-pending'
-                  }`}>
-                    {o.paymentDetails?.status === 'PAID' && <FaCheckCircle size={10} />}
-                    {o.paymentDetails?.status === 'PENDING_PAYMENT' && <FaClock size={10} />}
-                    {o.paymentDetails?.status === 'FAILED' && <FaTimesCircle size={10} />}
-                    {o.paymentDetails?.status?.replace("_", " ") || "UNPAID"}
-                  </div>
+                  <PaymentBadge status={o.paymentDetails?.status} />
                 </div>
 
-                {o.products?.map((p) => (
-                  <div key={p._id} style={{ 
-                    display: 'flex', 
-                    gap: '18px', 
-                    padding: '18px 0', 
-                    borderTop: `1px solid ${colors.gold}11`,
-                    background: p.price === 0 ? 'rgba(212, 175, 55, 0.04)' : 'transparent' 
-                  }}>
-                    <img 
-                      src={`${BASE_URL.replace(/\/$/, "")}/api/v1/product/product-photo/${p.product?._id||p._id}`} 
-                      alt={p.name} 
-                      className="product-img" 
-                      onError={(e) => { e.target.src = "/logo192.png"; }}
+                {/* Products */}
+                {o.products?.map((p, idx) => (
+                  <div key={p._id || idx} className="product-row">
+                    <img
+                      src={getProductImage(p)}
+                      alt={p.name}
+                      className="prod-img"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "https://placehold.co/78x78/2D0A14/D4AF37?text=IMG";
+                      }}
                     />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ color: 'white', fontWeight: '600', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {p.name}
+                    <div className="prod-details">
+                      <div style={{ display:"flex", alignItems:"center", flexWrap:"wrap" }}>
+                        <span className="prod-name">{p.name}</span>
                         {p.price === 0 && (
-                          <span className="gift-tag">
-                            <FaGift size={10} /> BLESSED GIFT
-                          </span>
+                          <span className="gift-tag"><FaGift size={9} /> BLESSED GIFT</span>
                         )}
                       </div>
-                      <div style={{ color: p.price === 0 ? colors.success : colors.gold, fontWeight: 'bold', marginTop: '6px', fontSize: "14px" }}>
+                      <div className="prod-price" style={{ color: p.price === 0 ? COLORS.success : COLORS.gold }}>
                         {p.price === 0 ? "FREE" : `₹${p.price?.toLocaleString()}`}
-                        <span style={{ color: "#777", fontWeight: "normal", fontSize: "12px", marginLeft: "8px" }}>Qty: {p.qty || 1}</span>
+                        <span className="prod-qty">Qty: {p.qty || 1}</span>
                       </div>
-                      
                       {p.price > 0 && (
-                        <button 
-                          style={{ marginTop: '12px', background: 'none', border: `1px solid ${colors.gold}66`, color: colors.gold, fontSize: '11px', padding: '5px 15px', borderRadius: '5px', display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}
+                        <button
+                          className="btn-review"
                           onClick={(e) => { e.stopPropagation(); setSelectedProduct(p.product?._id || p._id); }}
                         >
                           <FaPen size={10} /> WRITE REVIEW
@@ -219,22 +455,38 @@ const UserOrders = () => {
                   </div>
                 ))}
 
-                <div className="price-summary-box">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontSize: '14px', alignItems: 'center' }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                      <FaTruck style={{ color: colors.gold }} />
-                      <span>Delivery Status: </span>
-                      <strong style={{ 
-                        color: o.status === "Delivered" ? colors.success : 
-                               o.status?.includes("Cancel") ? colors.error : colors.gold,
-                        marginLeft: "5px"
+                {/* Coupon info if applied */}
+                {o.couponCode && (
+                  <div className="coupon-row">
+                    <FaPercent size={11} />
+                    <span>Coupon <strong>{o.couponCode}</strong> applied</span>
+                    {o.discount > 0 && (
+                      <span style={{ marginLeft:"auto", color: COLORS.success, fontWeight:700 }}>
+                        –₹{o.discount?.toLocaleString()} saved
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* Summary */}
+                <div className="summary-box">
+                  <div className="summary-inner">
+                    <div className="delivery-status">
+                      <FaTruck style={{ color: COLORS.gold }} />
+                      <span>Status:</span>
+                      <strong style={{
+                        color: o.status === "Delivered" ? COLORS.success :
+                               o.status?.toLowerCase().includes("cancel") ? COLORS.error :
+                               o.status?.toLowerCase().includes("request") ? COLORS.warning :
+                               COLORS.gold,
+                        marginLeft: 4,
                       }}>
                         {o.status?.toUpperCase()}
                       </strong>
                     </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: "11px", color: "#aaa", marginBottom: "2px" }}>Grand Total</div>
-                      <div style={{ fontWeight: 'bold', color: colors.gold, fontSize: '18px' }}>₹{o.totalPaid?.toLocaleString()}</div>
+                    <div className="total-block">
+                      <div className="total-label">Grand Total</div>
+                      <div className="total-amount">₹{o.totalPaid?.toLocaleString()}</div>
                     </div>
                   </div>
                 </div>

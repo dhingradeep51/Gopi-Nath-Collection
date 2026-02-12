@@ -6,1177 +6,756 @@ import moment from "moment";
 import {
   FaArrowLeft, FaTruck, FaBoxOpen,
   FaInfoCircle, FaMapMarkerAlt, FaReceipt,
-  FaDownload, FaTimes, FaUndo, FaCreditCard, FaCheckCircle, FaExclamationTriangle
+  FaDownload, FaTimes, FaUndo, FaCreditCard,
+  FaCheckCircle, FaExclamationTriangle, FaPercent,
+  FaGift, FaShieldAlt, FaTimesCircle, FaClock,
 } from "react-icons/fa";
 import toast from "react-hot-toast";
-import { Modal, Radio, Button } from "antd";
+import { useAuth } from "../../context/auth";
 
-const OrderDetails = () => {
-  const params = useParams();
-  const navigate = useNavigate();
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [invoice, setInvoice] = useState(null);
-  const [loadingInvoice, setLoadingInvoice] = useState(false);
+const BASE_URL = import.meta.env.VITE_API_URL || "/";
 
-  const BASE_URL = import.meta.env.VITE_API_URL || "/";
+const C = {
+  deepBurgundy: "#2D0A14",
+  richBurgundy: "#3D0E1C",
+  gold: "#D4AF37",
+  success: "#4BB543",
+  danger: "#ff4d4f",
+  warning: "#faad14",
+  muted: "#aaaaaa",
+};
 
-  // ✅ MODAL STATES WITH RADIO OPTIONS
-  const [cancelModalVisible, setCancelModalVisible] = useState(false);
-  const [returnModalVisible, setReturnModalVisible] = useState(false);
-  const [cancelReason, setCancelReason] = useState("");
-  const [returnReason, setReturnReason] = useState("");
-  const [cancelReasonText, setCancelReasonText] = useState("");
-  const [returnReasonText, setReturnReasonText] = useState("");
-  const [processingAction, setProcessingAction] = useState(false);
+// ─── Helpers ────────────────────────────────────────────────────
+const getProductImage = (p) =>
+  p?.photos?.[0]?.url ||
+  p?.photo?.[0]?.url ||
+  p?.images?.[0]?.url ||
+  p?.image ||
+  `${BASE_URL}api/v1/product/product-photo/${p?.product?._id || p?.product || p?._id}`;
 
-  const colors = {
-    deepBurgundy: "#2D0A14",
-    richBurgundy: "#3D0E1C",
-    gold: "#D4AF37",
-    success: "#4BB543",
-    danger: "#ff4d4f",
-    textMuted: "#aaaaaa"
+// ─── Custom Modal ────────────────────────────────────────────────
+const Modal = ({ open, onClose, title, icon, children }) => {
+  useEffect(() => {
+    if (open) document.body.style.overflow = "hidden";
+    else       document.body.style.overflow = "";
+    return () => { document.body.style.overflow = ""; };
+  }, [open]);
+
+  if (!open) return null;
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <span className="modal-title-row">{icon} {title}</span>
+          <button className="modal-x" onClick={onClose}><FaTimes /></button>
+        </div>
+        <div className="modal-body">{children}</div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Radio list ──────────────────────────────────────────────────
+const ReasonRadio = ({ options, value, onChange }) => (
+  <div className="radio-list">
+    {options.map((opt) => (
+      <label key={opt} className={`radio-item ${value === opt ? "radio-active" : ""}`}>
+        <input
+          type="radio"
+          name="reason"
+          value={opt}
+          checked={value === opt}
+          onChange={() => onChange(opt)}
+          style={{ display: "none" }}
+        />
+        <span className="radio-dot" />
+        <span className="radio-label">{opt}</span>
+      </label>
+    ))}
+  </div>
+);
+
+// ─── Loader ──────────────────────────────────────────────────────
+const Loader = ({ msg = "Loading order details..." }) => (
+  <Layout>
+    <div style={{ display:"flex", flexDirection:"column", justifyContent:"center", alignItems:"center", height:"100vh", background: C.deepBurgundy }}>
+      <div className="spin-ring" />
+      <p style={{ color: C.gold, marginTop:20, fontFamily:"serif", letterSpacing:"2px", textTransform:"uppercase", fontSize:"clamp(13px,3.5vw,17px)", textAlign:"center" }}>
+        {msg}
+      </p>
+    </div>
+  </Layout>
+);
+
+// ─── Payment status badge ─────────────────────────────────────────
+const PayBadge = ({ status }) => {
+  const map = {
+    PAID:            { bg:"rgba(75,181,67,0.15)",   color: C.success, icon: <FaCheckCircle size={11}/>,        label:"PAID" },
+    FAILED:          { bg:"rgba(255,77,79,0.15)",   color: C.danger,  icon: <FaTimesCircle size={11}/>,        label:"FAILED" },
+    COD:             { bg:"rgba(212,175,55,0.15)",  color: C.gold,    icon: <FaTruck size={11}/>,              label:"COD" },
+    PENDING_PAYMENT: { bg:"rgba(250,173,20,0.15)",  color: C.warning, icon: <FaClock size={11}/>,             label:"PENDING" },
   };
+  const cfg = map[status] || { bg:"rgba(250,173,20,0.15)", color: C.warning, icon:<FaClock size={11}/>, label: status || "UNKNOWN" };
+  return (
+    <span style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"6px 14px", borderRadius:20, fontWeight:700, fontSize:11, letterSpacing:1, background:cfg.bg, color:cfg.color, border:`1px solid ${cfg.color}` }}>
+      {cfg.icon} {cfg.label}
+    </span>
+  );
+};
 
-  // ✅ PREDEFINED REASONS
-  const cancelReasons = [
-    "Changed my mind",
-    "Found a better price elsewhere",
-    "Ordered by mistake",
-    "Delivery time is too long",
-    "Other"
-  ];
+// ─── Delivery status color ─────────────────────────────────────
+const deliveryColor = (status) => {
+  if (!status) return C.gold;
+  const s = status.toLowerCase();
+  if (s === "delivered") return C.success;
+  if (s.includes("cancel")) return C.danger;
+  if (s.includes("request") || s.includes("return")) return C.warning;
+  return C.gold;
+};
 
-  const returnReasons = [
-    "Product is defective/damaged",
-    "Wrong product received",
-    "Product not as described",
-    "Quality not satisfactory",
-    "Other"
-  ];
+// ─── CANCEL / RETURN REASONS ──────────────────────────────────
+const CANCEL_REASONS = ["Changed my mind", "Found a better price elsewhere", "Ordered by mistake", "Delivery time is too long", "Other"];
+const RETURN_REASONS = ["Product is defective/damaged", "Wrong product received", "Product not as described", "Quality not satisfactory", "Other"];
 
-  const getOrderDetails = useCallback(async () => {
+// ════════════════════════════════════════════════════════════════
+const OrderDetails = () => {
+  const params   = useParams();
+  const navigate = useNavigate();
+  const [auth]   = useAuth();
+
+  const [order,          setOrder]          = useState(null);
+  const [loading,        setLoading]        = useState(true);
+  const [invoice,        setInvoice]        = useState(null);
+  const [loadingInvoice, setLoadingInvoice] = useState(false);
+  const [processing,     setProcessing]     = useState(false);
+
+  const [cancelOpen,      setCancelOpen]      = useState(false);
+  const [returnOpen,      setReturnOpen]      = useState(false);
+  const [cancelReason,    setCancelReason]    = useState("");
+  const [returnReason,    setReturnReason]    = useState("");
+  const [cancelOtherText, setCancelOtherText] = useState("");
+  const [returnOtherText, setReturnOtherText] = useState("");
+
+  // ── Fetch order ──────────────────────────────────────────────
+  const fetchOrder = useCallback(async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`${BASE_URL}api/v1/order/${params.orderID}`);
-      if (data?.success) {
-        setOrder(data.order);
-      }
-    } catch (error) {
-      console.error("Error fetching order details:", error);
+      const { data } = await axios.get(`${BASE_URL}api/v1/order/${params.orderID}`, {
+        headers: { Authorization: `Bearer ${auth?.token}` },
+      });
+      if (data?.success) setOrder(data.order);
+    } catch {
       toast.error("Order details not found");
     } finally {
       setLoading(false);
     }
-  }, [params.orderID, BASE_URL]);
+  }, [params.orderID, auth?.token]);
 
+  // ── Fetch invoice ────────────────────────────────────────────
   const fetchInvoice = useCallback(async () => {
+    if (!order?._id) return;
     try {
       setLoadingInvoice(true);
-      const { data } = await axios.get(`${BASE_URL}api/v1/invoice/order/${order._id}`);
-      if (data?.success) {
-        setInvoice(data.invoice);
-      }
-    } catch (error) {
-      console.log("No invoice found");
-    } finally {
-      setLoadingInvoice(false);
-    }
-  }, [order?._id, BASE_URL]);
+      const { data } = await axios.get(`${BASE_URL}api/v1/invoice/order/${order._id}`, {
+        headers: { Authorization: `Bearer ${auth?.token}` },
+      });
+      if (data?.success) setInvoice(data.invoice);
+    } catch { /* no invoice yet */ }
+    finally { setLoadingInvoice(false); }
+  }, [order?._id, auth?.token]);
 
+  useEffect(() => { if (params?.orderID) fetchOrder(); }, [params.orderID, fetchOrder]);
+  useEffect(() => { if (order?.status === "Delivered") fetchInvoice(); }, [order, fetchInvoice]);
+
+  // ── Download invoice ─────────────────────────────────────────
   const handleDownloadInvoice = async () => {
+    if (!invoice?._id) return;
     try {
       toast.loading("Downloading invoice...");
-      const response = await axios.get(
-        `${BASE_URL}api/v1/invoice/download/${invoice._id}`,
-        { responseType: 'blob' }
-      );
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${invoice.invoiceNumber}.pdf`);
+      const response = await axios.get(`${BASE_URL}api/v1/invoice/download/${invoice._id}`, {
+        responseType: "blob",
+        headers: { Authorization: `Bearer ${auth?.token}` },
+      });
+      const url  = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href  = url;
+      link.setAttribute("download", `${invoice.invoiceNumber || "invoice"}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
-
       toast.dismiss();
-      toast.success("Invoice downloaded successfully!");
-    } catch (error) {
+      toast.success("Invoice downloaded!");
+    } catch {
       toast.dismiss();
       toast.error("Failed to download invoice");
     }
   };
 
-  const handleCancelOrder = async () => {
-    if (!cancelReason) {
-      toast.error("Please select a reason for cancellation");
-      return;
-    }
-
-    if (cancelReason === "Other" && !cancelReasonText.trim()) {
-      toast.error("Please specify your reason for cancellation");
-      return;
-    }
-
+  // ── Cancel ───────────────────────────────────────────────────
+  const handleCancel = async () => {
+    if (!cancelReason) return toast.error("Please select a reason");
+    if (cancelReason === "Other" && !cancelOtherText.trim()) return toast.error("Please specify your reason");
     try {
-      setProcessingAction(true);
-      const finalReason = cancelReason === "Other" ? cancelReasonText.trim() : cancelReason;
-
-      const { data } = await axios.put(`${BASE_URL}api/v1/order/user-order-status/${order._id}`, {
-        status: "Cancel",
-        reason: finalReason
-      });
-
+      setProcessing(true);
+      const finalReason = cancelReason === "Other" ? cancelOtherText.trim() : cancelReason;
+      const { data } = await axios.put(
+        `${BASE_URL}api/v1/order/user-order-status/${order._id}`,
+        { status: "Cancel", reason: finalReason },
+        { headers: { Authorization: `Bearer ${auth?.token}` } }
+      );
       if (data?.success) {
         toast.success("Order cancelled successfully");
-        setCancelModalVisible(false);
-        setCancelReason("");
-        setCancelReasonText("");
-        getOrderDetails();
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to cancel order");
-    } finally {
-      setProcessingAction(false);
-    }
+        setCancelOpen(false); setCancelReason(""); setCancelOtherText("");
+        fetchOrder();
+      } else { toast.error(data?.message || "Failed to cancel"); }
+    } catch (e) { toast.error(e.response?.data?.message || "Failed to cancel order"); }
+    finally { setProcessing(false); }
   };
 
-  const handleReturnOrder = async () => {
-    if (!returnReason) {
-      toast.error("Please select a reason for return");
-      return;
-    }
-
-    if (returnReason === "Other" && !returnReasonText.trim()) {
-      toast.error("Please specify your reason for return");
-      return;
-    }
-
+  // ── Return ───────────────────────────────────────────────────
+  const handleReturn = async () => {
+    if (!returnReason) return toast.error("Please select a reason");
+    if (returnReason === "Other" && !returnOtherText.trim()) return toast.error("Please specify your reason");
     try {
-      setProcessingAction(true);
-      const finalReason = returnReason === "Other" ? returnReasonText.trim() : returnReason;
-
-      const { data } = await axios.put(`${BASE_URL}api/v1/order/user-order-status/${order._id}`, {
-        status: "Return",
-        reason: finalReason
-      });
-
+      setProcessing(true);
+      const finalReason = returnReason === "Other" ? returnOtherText.trim() : returnReason;
+      const { data } = await axios.put(
+        `${BASE_URL}api/v1/order/user-order-status/${order._id}`,
+        { status: "Return", reason: finalReason },
+        { headers: { Authorization: `Bearer ${auth?.token}` } }
+      );
       if (data?.success) {
-        toast.success("Return request submitted successfully");
-        setReturnModalVisible(false);
-        setReturnReason("");
-        setReturnReasonText("");
-        getOrderDetails();
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to submit return request");
-    } finally {
-      setProcessingAction(false);
-    }
+        toast.success("Return request submitted");
+        setReturnOpen(false); setReturnReason(""); setReturnOtherText("");
+        fetchOrder();
+      } else { toast.error(data?.message || "Failed to submit return"); }
+    } catch (e) { toast.error(e.response?.data?.message || "Failed to submit return request"); }
+    finally { setProcessing(false); }
   };
 
-  useEffect(() => {
-    if (params?.orderID) {
-      getOrderDetails();
-    }
-  }, [params.orderID, getOrderDetails]);
+  // ── Eligibility ──────────────────────────────────────────────
+  const canCancel = order && ["Not Processed","Processing"].includes(order.status);
+  const canReturn = order?.status === "Delivered" && moment().diff(moment(order.updatedAt), "days") <= 7;
 
-  useEffect(() => {
-    if (order && order.status === "Delivered") {
-      fetchInvoice();
-    }
-  }, [order, fetchInvoice]);
+  if (loading) return <Loader />;
+  if (!order)  return (
+    <Layout>
+      <div style={{ textAlign:"center", padding:"100px 20px", background: C.deepBurgundy, minHeight:"100vh" }}>
+        <h3 style={{ color: C.gold }}>Order not found</h3>
+        <button className="btn-back-plain" onClick={() => navigate("/dashboard/user/orders")}
+          style={{ marginTop:20, background:"transparent", border:`1px solid ${C.gold}`, color: C.gold, padding:"10px 24px", borderRadius:8, cursor:"pointer", fontWeight:700 }}>
+          Back to Orders
+        </button>
+      </div>
+    </Layout>
+  );
 
-  // Debug modal states
-  useEffect(() => {
-    console.log("Modal states changed - Cancel:", cancelModalVisible, "Return:", returnModalVisible);
-  }, [cancelModalVisible, returnModalVisible]);
-
-  const canCancel = () => {
-    const cancellableStatuses = ["Not Processed", "Processing"];
-    const result = cancellableStatuses.includes(order?.status);
-    console.log("Can cancel?", result, "Status:", order?.status);
-    return result;
-  };
-
-  const canReturn = () => {
-    if (order?.status !== "Delivered") {
-      console.log("Cannot return - status is not Delivered:", order?.status);
-      return false;
-    }
-    const deliveryDate = moment(order.updatedAt);
-    const daysSinceDelivery = moment().diff(deliveryDate, 'days');
-    const result = daysSinceDelivery <= 7;
-    console.log("Can return?", result, "Days since delivery:", daysSinceDelivery);
-    return result;
-  };
-
-  const showInvoice = order?.status === "Delivered" && invoice;
-
-  if (loading) {
-    return (
-      <Layout>
-        <div style={{
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-          background: "#1a050b",
-          padding: "20px"
-        }}>
-          <div className="spinner-grow" role="status" style={{ width: "3.5rem", height: "3.5rem", color: "#D4AF37" }}>
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <h4 style={{
-            color: "#D4AF37",
-            fontFamily: "serif",
-            letterSpacing: "2px",
-            marginTop: "20px",
-            fontSize: "clamp(14px, 4vw, 18px)",
-            textAlign: "center"
-          }}>
-            Loading order details...
-          </h4>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (!order) {
-    return (
-      <Layout>
-        <div style={{
-          textAlign: "center",
-          padding: "100px 20px",
-          background: "#1a050b",
-          minHeight: "100vh"
-        }}>
-          <h3 style={{ color: colors.gold, fontSize: "clamp(18px, 5vw, 24px)" }}>
-            Order not found
-          </h3>
-          <Button
-            onClick={() => navigate("/dashboard/user/orders")}
-            style={{ marginTop: "20px" }}
-          >
-            Back to Orders
-          </Button>
-        </div>
-      </Layout>
-    );
-  }
-
+  // ── Render ───────────────────────────────────────────────────
   return (
-    <Layout title={`Order Details - Gopi Nath Collection`}>
+    <Layout title="Order Details - Gopi Nath Collection">
       <style>{`
-        /* ===== BASE STYLES ===== */
-        .details-wrapper { 
-          background-color: ${colors.deepBurgundy}; 
-          min-height: 100vh; 
-          padding: 40px 15px; 
-          color: white; 
-        }
-        
-        .details-container { 
-          max-width: 800px; 
-          margin: 0 auto; 
-        }
-        
-        .back-link { 
-          color: ${colors.gold}; 
-          cursor: pointer; 
-          display: flex; 
-          align-items: center; 
-          gap: 8px; 
-          margin-bottom: 25px; 
-          font-weight: bold; 
-          transition: all 0.3s;
-          font-size: 14px;
-        }
-        
-        .back-link:hover { 
-          transform: translateX(-5px); 
-        }
-        
-        .section-card { 
-          background: ${colors.richBurgundy}; 
-          border: 1px solid ${colors.gold}33; 
-          border-radius: 12px; 
-          padding: 25px; 
-          margin-bottom: 20px; 
-        }
-        
-        .status-header { 
-          display: flex; 
-          justify-content: space-between; 
-          align-items: center; 
-          border-bottom: 1px solid rgba(212, 175, 55, 0.2); 
-          padding-bottom: 15px; 
-          margin-bottom: 15px; 
-        }
-        
-        .status-badge {
-          background: ${colors.gold}22;
-          color: ${colors.gold};
-          padding: 6px 16px;
-          border-radius: 20px;
-          fontSize: 11px;
-          fontWeight: bold;
-          border: 1px solid ${colors.gold};
-          white-space: nowrap;
-        }
-        
-        .product-item { 
-          display: flex; 
-          gap: 15px; 
-          margin-bottom: 15px; 
-          padding-bottom: 15px; 
-          border-bottom: 1px solid rgba(255,255,255,0.05); 
-        }
-        
-        .product-img { 
-          width: 85px; 
-          height: 85px; 
-          border-radius: 8px; 
-          object-fit: cover; 
-          border: 1px solid ${colors.gold}22; 
-          background: #000;
-          flex-shrink: 0;
-        }
-        
-        .product-info {
-          flex: 1;
-          min-width: 0;
-        }
-        
-        .product-name {
-          font-weight: bold;
-          font-size: 1.1rem;
+        *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+
+        /* ── Page ── */
+        .od-wrapper {
+          background: linear-gradient(160deg, ${C.deepBurgundy} 0%, #1a0510 100%);
+          min-height: 100vh;
+          padding: 36px 14px 60px;
           color: #fff;
-          word-wrap: break-word;
+          font-family: 'Segoe UI', sans-serif;
         }
-        
-        .info-row { 
-          display: flex; 
-          gap: 12px; 
-          margin-bottom: 10px; 
-          font-size: 14px; 
-          color: ${colors.textMuted}; 
-          align-items: flex-start;
-          flex-wrap: wrap;
-        }
-        
-        .info-label {
-          min-width: 90px;
-          flex-shrink: 0;
-        }
-        
-        .info-val { 
-          color: white;
-          flex: 1;
-          word-break: break-word;
-        }
-        
-        .action-buttons { 
-          display: flex; 
-          gap: 15px; 
-          margin-top: 20px; 
-          flex-wrap: wrap;
-          position: relative;
-          z-index: 1;
-        }
-        
-        .btn-action { 
-          padding: 12px 24px; 
-          border: none; 
-          border-radius: 8px; 
-          font-weight: bold; 
-          cursor: pointer; 
-          display: flex; 
-          align-items: center; 
-          justify-content: center;
-          gap: 8px;
-          transition: all 0.3s;
-          font-size: 14px;
-          flex: 1;
-          min-width: 150px;
-          position: relative;
-          z-index: 1;
-          pointer-events: auto;
-        }
-        
-        .btn-action:hover:not(:disabled) { 
-          transform: translateY(-2px); 
-          box-shadow: 0 6px 20px rgba(0,0,0,0.3); 
-        }
-        
-        .btn-action:active:not(:disabled) {
-          transform: translateY(0);
-        }
-        
-        .btn-invoice { 
-          background: ${colors.gold}; 
-          color: ${colors.deepBurgundy}; 
-        }
-        
-        .btn-cancel { 
-          background: ${colors.danger}; 
-          color: white; 
-        }
-        
-        .btn-return { 
-          background: #ff9800; 
-          color: white; 
-        }
-        
-        .btn-action:disabled { 
-          opacity: 0.5; 
-          cursor: not-allowed; 
-          pointer-events: none;
-        }
+        .od-container { max-width: 820px; margin: 0 auto; }
 
-        .section-title {
-          color: ${colors.gold};
-          margin-bottom: 15px;
-          font-size: 16px;
-          letter-spacing: 1px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
+        /* ── Back link ── */
+        .back-link {
+          color: ${C.gold}; cursor: pointer;
+          display: inline-flex; align-items: center; gap: 8px;
+          margin-bottom: 28px; font-weight: 700; font-size: 14px;
+          transition: transform 0.2s;
         }
+        .back-link:hover { transform: translateX(-5px); }
 
-        .summary-row {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 10px;
-          color: ${colors.textMuted};
-          font-size: 14px;
-        }
-
-        .summary-total {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 15px;
-          padding-top: 15px;
-          border-top: 2px solid ${colors.gold}44;
-          font-size: 1.4rem;
-          font-weight: bold;
-          color: ${colors.gold};
-        }
-
-        /* ===== MODAL STYLES ===== */
-        .ant-radio-wrapper { 
-          color: white !important; 
-          display: block; 
-          margin-bottom: 12px; 
-          padding: 12px; 
-          border-radius: 8px; 
-          transition: all 0.2s; 
-        }
-        
-        .ant-radio-wrapper:hover { 
-          background: rgba(212, 175, 55, 0.05); 
-        }
-        
-        .ant-radio-checked .ant-radio-inner { 
-          border-color: ${colors.gold} !important; 
-          background-color: ${colors.gold} !important; 
-        }
-        
-        .ant-radio:hover .ant-radio-inner { 
-          border-color: ${colors.gold} !important; 
-        }
-
-        .modal-title {
-          color: ${colors.gold};
-          font-size: 18px;
-          font-weight: bold;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .modal-text {
-          color: white;
+        /* ── Cards ── */
+        .od-card {
+          background: ${C.richBurgundy};
+          border: 1px solid ${C.gold}33;
+          border-radius: 12px;
+          padding: 24px;
           margin-bottom: 20px;
-          font-size: 14px;
         }
+        .od-card.highlight { border-color: ${C.gold}99; }
+
+        /* ── Section title ── */
+        .sec-title {
+          color: ${C.gold}; font-size: 15px; font-weight: 700;
+          letter-spacing: 1px; display: flex; align-items: center;
+          gap: 8px; margin-bottom: 18px;
+        }
+
+        /* ── Order header ── */
+        .order-hdr {
+          display: flex; justify-content: space-between; align-items: flex-start;
+          gap: 14px; flex-wrap: wrap;
+          border-bottom: 1px solid ${C.gold}22;
+          padding-bottom: 18px; margin-bottom: 18px;
+        }
+        .order-hdr-title { color: ${C.gold}; font-family: serif; font-size: clamp(1.2rem,5vw,1.5rem); margin-bottom: 5px; }
+        .order-hdr-date  { color: ${C.muted}; font-size: 12px; }
+
+        /* ── Info rows ── */
+        .info-row {
+          display: flex; align-items: flex-start;
+          gap: 10px; margin-bottom: 12px;
+          font-size: 14px; color: ${C.muted};
+        }
+        .info-icon { flex-shrink:0; margin-top:2px; }
+        .info-label { min-width: 100px; flex-shrink: 0; }
+        .info-val { color:#fff; flex:1; word-break:break-word; }
+
+        /* ── Action buttons ── */
+        .action-row {
+          display: flex; gap: 14px; margin-top: 22px; flex-wrap: wrap;
+        }
+        .btn-action {
+          flex: 1; min-width: 140px;
+          padding: 13px 20px; border:none; border-radius: 8px;
+          font-weight: 700; font-size: 14px; cursor: pointer;
+          display: flex; align-items: center; justify-content: center;
+          gap: 8px; transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+        }
+        .btn-action:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
+        .btn-action:disabled { opacity: 0.45; cursor: not-allowed; }
+        .btn-invoice { background: ${C.gold}; color: ${C.deepBurgundy}; }
+        .btn-cancel  { background: ${C.danger}; color: #fff; }
+        .btn-return  { background: #ff9800; color: #fff; }
+
+        /* ── Products ── */
+        .prod-item {
+          display: flex; gap: 16px;
+          padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+          align-items: flex-start;
+        }
+        .prod-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .prod-img {
+          width: 90px; height: 90px; object-fit: cover;
+          border-radius: 9px; border: 1px solid ${C.gold}22;
+          background: #000; flex-shrink: 0;
+        }
+        .prod-info { flex:1; min-width:0; }
+        .prod-name { font-weight: 700; font-size: 1rem; color: #fff; word-break: break-word; margin-bottom: 6px; }
+        .prod-price { color: ${C.gold}; font-weight: 700; font-size: 14px; }
+        .prod-sub   { color: ${C.muted}; font-size: 12px; margin-top: 3px; }
+
+        /* ── Coupon box ── */
+        .coupon-box {
+          display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+          background: rgba(212,175,55,0.07);
+          border: 1px dashed ${C.gold}55;
+          border-radius: 8px; padding: 12px 16px;
+          margin-top: 6px; font-size: 13px; color: ${C.gold};
+        }
+        .coupon-saved { margin-left: auto; color: ${C.success}; font-weight: 700; }
+
+        /* ── Summary rows ── */
+        .sum-row {
+          display: flex; justify-content: space-between;
+          font-size: 14px; color: ${C.muted}; margin-bottom: 10px;
+        }
+        .sum-row-val { color: #fff; }
+        .sum-total {
+          display: flex; justify-content: space-between; align-items: center;
+          margin-top: 16px; padding-top: 16px;
+          border-top: 2px solid ${C.gold}55;
+          font-size: clamp(1.1rem,4vw,1.45rem);
+          font-weight: 700; color: ${C.gold};
+          flex-wrap: wrap; gap: 8px;
+        }
+
+        /* ── Spinner ── */
+        .spin-ring {
+          width: 52px; height: 52px;
+          border: 4px solid ${C.gold}33;
+          border-top-color: ${C.gold};
+          border-radius: 50%;
+          animation: spin 0.9s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Modal ── */
+        .modal-overlay {
+          position: fixed; inset: 0;
+          background: rgba(0,0,0,0.92);
+          z-index: 9999;
+          display: flex; justify-content: center; align-items: center;
+          padding: 20px;
+        }
+        .modal-box {
+          background: ${C.richBurgundy};
+          border: 1px solid ${C.gold};
+          border-radius: 14px;
+          width: 100%; max-width: 460px;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 0 50px ${C.gold}22;
+          animation: slideUp 0.25s ease;
+        }
+        @keyframes slideUp { from { transform: translateY(30px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+
+        .modal-header {
+          display: flex; justify-content: space-between; align-items: center;
+          padding: 18px 22px;
+          border-bottom: 1px solid ${C.gold}33;
+          position: sticky; top: 0; background: ${C.richBurgundy}; z-index: 1;
+        }
+        .modal-title-row {
+          display: flex; align-items: center; gap: 8px;
+          color: ${C.gold}; font-size: 1rem; font-weight: 700;
+        }
+        .modal-x {
+          background: none; border: none; color: ${C.muted};
+          font-size: 18px; cursor: pointer; line-height: 1;
+          transition: color 0.2s; padding: 4px;
+        }
+        .modal-x:hover { color: ${C.gold}; }
+        .modal-body { padding: 22px; }
 
         .modal-note {
-          color: ${colors.textMuted};
-          font-size: 12px;
-          margin-bottom: 20px;
+          background: rgba(255,193,7,0.07);
+          border: 1px solid rgba(255,193,7,0.25);
+          border-radius: 6px; padding: 10px 14px;
+          font-size: 12px; color: #faad14; margin-bottom: 18px;
         }
 
+        /* ── Radio ── */
+        .radio-list { display: flex; flex-direction: column; gap: 10px; }
+        .radio-item {
+          display: flex; align-items: center; gap: 12px;
+          padding: 12px 14px; border-radius: 8px;
+          border: 1px solid ${C.gold}22;
+          cursor: pointer; transition: border-color 0.2s, background 0.2s;
+          background: rgba(255,255,255,0.02);
+        }
+        .radio-item:hover { border-color: ${C.gold}55; background: rgba(212,175,55,0.05); }
+        .radio-active { border-color: ${C.gold} !important; background: rgba(212,175,55,0.12) !important; }
+        .radio-dot {
+          width: 18px; height: 18px; border-radius: 50%;
+          border: 2px solid ${C.gold}; flex-shrink: 0;
+          position: relative; transition: background 0.15s;
+        }
+        .radio-active .radio-dot { background: ${C.gold}; }
+        .radio-active .radio-dot::after {
+          content:''; position:absolute; inset:3px; border-radius:50%; background: ${C.deepBurgundy};
+        }
+        .radio-label { color: #fff; font-size: 14px; }
+
+        /* ── Other textarea ── */
+        .other-textarea {
+          width: 100%; margin-top: 14px;
+          background: rgba(0,0,0,0.3); color: #fff;
+          border: 1px solid ${C.gold}44; padding: 12px;
+          border-radius: 8px; min-height: 90px;
+          font-size: 14px; font-family: inherit; resize: vertical;
+        }
+        .other-textarea:focus { outline: none; border-color: ${C.gold}; }
+
+        /* ── Modal footer ── */
         .modal-footer {
-          margin-top: 25px;
-          display: flex;
-          gap: 10px;
-          justify-content: flex-end;
+          display: flex; gap: 10px; justify-content: flex-end;
+          margin-top: 22px; flex-wrap: wrap;
+        }
+        .btn-modal-close {
+          background: transparent; border: 1px solid ${C.gold};
+          color: ${C.gold}; padding: 10px 22px; border-radius: 8px;
+          cursor: pointer; font-weight: 700; font-size: 14px; transition: background 0.2s;
+        }
+        .btn-modal-close:hover { background: rgba(212,175,55,0.1); }
+        .btn-modal-confirm {
+          padding: 10px 22px; border: none; border-radius: 8px;
+          cursor: pointer; font-weight: 700; font-size: 14px;
+          transition: opacity 0.2s;
+        }
+        .btn-modal-confirm:disabled { opacity: 0.45; cursor: not-allowed; }
+        .btn-confirm-cancel { background: ${C.danger}; color: #fff; }
+        .btn-confirm-return { background: #ff9800; color: #fff; }
+
+        /* ── Mobile ── */
+        @media (max-width: 600px) {
+          .od-wrapper { padding: 18px 10px 50px; }
+          .od-card { padding: 16px; }
+          .order-hdr { flex-direction: column; gap: 10px; }
+          .prod-img { width: 72px; height: 72px; }
+          .info-label { min-width: 80px; }
+          .action-row { flex-direction: column; }
+          .btn-action { min-width: unset; width: 100%; }
+          .sum-total  { font-size: 1rem; }
+          .modal-footer { flex-direction: column-reverse; }
+          .btn-modal-close,
+          .btn-modal-confirm { width: 100%; text-align: center; padding: 13px; }
         }
 
-        /* ===== MOBILE RESPONSIVE STYLES ===== */
-        @media (max-width: 768px) {
-          .details-wrapper { 
-            padding: 20px 10px; 
-          }
-          
-          .section-card { 
-            padding: 18px;
-            border-radius: 10px;
-          }
-          
-          .back-link {
-            font-size: 13px;
-            margin-bottom: 20px;
-          }
-          
-          .status-header { 
-            flex-direction: column; 
-            align-items: flex-start; 
-            gap: 12px; 
-          }
-
-          .status-header > div:first-child {
-            width: 100%;
-          }
-
-          .status-header > div:last-child {
-            width: 100%;
-            text-align: left;
-          }
-
-          .status-header h2 {
-            font-size: 1.3rem !important;
-          }
-
-          .status-badge {
-            display: inline-block;
-            padding: 8px 16px;
-            font-size: 10px;
-          }
-          
-          .product-item { 
-            flex-direction: column; 
-            padding-bottom: 20px;
-            margin-bottom: 20px;
-          }
-          
-          .product-img { 
-            width: 100%; 
-            height: 200px;
-            max-height: 250px;
-          }
-
-          .product-info {
-            width: 100%;
-          }
-
-          .product-name {
-            font-size: 1rem;
-          }
-          
-          .info-row {
-            font-size: 13px;
-            gap: 10px;
-          }
-
-          .info-label {
-            min-width: 80px;
-          }
-
-          .section-title {
-            font-size: 15px;
-            letter-spacing: 0.5px;
-          }
-
-          .summary-row {
-            font-size: 13px;
-          }
-
-          .summary-total {
-            font-size: 1.2rem;
-            flex-wrap: wrap;
-          }
-          
-          .action-buttons { 
-            flex-direction: column;
-            gap: 12px;
-          }
-          
-          .btn-action { 
-            width: 100%; 
-            justify-content: center;
-            min-width: unset;
-            padding: 14px 20px;
-            font-size: 13px;
-          }
-
-          /* Modal Mobile Optimizations */
-          .ant-modal { 
-            max-width: 95vw !important;
-            margin: 10px auto !important;
-          }
-          
-          .ant-modal-body { 
-            max-height: 70vh; 
-            overflow-y: auto;
-            padding: 20px !important;
-          }
-          
-          .ant-modal-content {
-            border-radius: 12px !important;
-          }
-          
-          .ant-modal-header {
-            padding: 16px 20px !important;
-            border-radius: 12px 12px 0 0 !important;
-          }
-
-          .modal-title {
-            font-size: 16px;
-          }
-
-          .modal-text {
-            font-size: 13px;
-            margin-bottom: 16px;
-          }
-
-          .modal-note {
-            font-size: 11px;
-            margin-bottom: 16px;
-          }
-          
-          .ant-radio-wrapper {
-            padding: 14px 12px !important;
-            margin-bottom: 10px !important;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(212, 175, 55, 0.2);
-          }
-          
-          .ant-radio-wrapper:hover {
-            background: rgba(212, 175, 55, 0.08) !important;
-            border-color: ${colors.gold} !important;
-          }
-
-          .ant-radio-wrapper span {
-            font-size: 13px !important;
-          }
-
-          .modal-footer {
-            flex-direction: column-reverse;
-            gap: 10px;
-            margin-top: 20px;
-          }
-
-          .modal-footer .ant-btn {
-            width: 100% !important;
-            height: 44px !important;
-            font-size: 14px;
-          }
-
-          /* Textarea mobile styles */
-          textarea {
-            font-size: 14px !important;
-            min-height: 100px !important;
-          }
-
-          textarea::placeholder {
-            font-size: 13px;
-          }
-        }
-
-        /* ===== EXTRA SMALL MOBILE (< 480px) ===== */
-        @media (max-width: 480px) {
-          .details-wrapper {
-            padding: 15px 8px;
-          }
-
-          .section-card {
-            padding: 15px;
-            margin-bottom: 15px;
-          }
-
-          .status-header h2 {
-            font-size: 1.1rem !important;
-          }
-
-          .status-header p {
-            font-size: 11px !important;
-          }
-
-          .product-name {
-            font-size: 0.95rem;
-          }
-
-          .info-row {
-            font-size: 12px;
-          }
-
-          .section-title {
-            font-size: 14px;
-          }
-
-          .summary-total {
-            font-size: 1.1rem;
-          }
-
-          .btn-action {
-            padding: 12px 16px;
-            font-size: 12px;
-          }
-        }
-
-        /* ===== LANDSCAPE MOBILE ===== */
-        @media (max-width: 768px) and (orientation: landscape) {
-          .details-wrapper {
-            padding: 20px 15px;
-          }
-
-          .product-img {
-            height: 150px;
-          }
-
-          .ant-modal-body {
-            max-height: 60vh;
-          }
-        }
-
-        /* ===== TABLET STYLES ===== */
-        @media (min-width: 769px) and (max-width: 1024px) {
-          .details-wrapper {
-            padding: 30px 20px;
-          }
-
-          .section-card {
-            padding: 22px;
-          }
-
-          .action-buttons {
-            flex-wrap: wrap;
-          }
-
-          .btn-action {
-            flex: 1 1 calc(50% - 8px);
-            min-width: 140px;
-          }
+        @media (max-width: 400px) {
+          .od-card { padding: 13px; }
+          .prod-name { font-size: 0.9rem; }
         }
       `}</style>
 
-      <div className="details-wrapper">
-        <div className="details-container">
+      <div className="od-wrapper">
+        <div className="od-container">
 
           <div className="back-link" onClick={() => navigate("/dashboard/user/orders")}>
             <FaArrowLeft /> BACK TO ORDERS
           </div>
 
-          {/* ORDER INFO SECTION */}
-          <div className="section-card">
-            <div className="status-header">
+          {/* ── ORDER INFO ── */}
+          <div className="od-card">
+            <div className="order-hdr">
               <div>
-                <h2 style={{
-                  color: colors.gold,
-                  fontSize: '1.5rem',
-                  marginBottom: '5px',
-                  fontFamily: 'serif'
-                }}>
-                  Order Receipt
-                </h2>
-                <p style={{ fontSize: '12px', color: colors.textMuted }}>
-                  Placed on {moment(order?.createdAt).format("LLLL")}
-                </p>
+                <p className="order-hdr-title">Order Receipt</p>
+                <p className="order-hdr-date">Placed on {moment(order.createdAt).format("LLLL")}</p>
               </div>
-              <div>
-                <span className="status-badge" style={{
-                  background:
-                    order?.status?.includes("Request") ? "#faad1422" : // Amber for Under Review
-                      order?.status === "Delivered" ? colors.success + '22' :
-                        order?.status === "Cancel" ? colors.danger + '22' :
-                          colors.gold + '22',
-                  color:
-                    order?.status?.includes("Request") ? "#faad14" :
-                      order?.status === "Delivered" ? colors.success :
-                        order?.status === "Cancel" ? colors.danger :
-                          colors.gold,
-                  borderColor:
-                    order?.status?.includes("Request") ? "#faad14" :
-                      colors.gold
+              <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8 }}>
+                {/* Delivery status badge */}
+                <span style={{
+                  display:"inline-flex", alignItems:"center", gap:6,
+                  padding:"6px 16px", borderRadius:20, fontWeight:700, fontSize:11, letterSpacing:1,
+                  background: deliveryColor(order.status) + "22",
+                  color: deliveryColor(order.status),
+                  border: `1px solid ${deliveryColor(order.status)}`,
                 }}>
-                  {order?.status?.includes("Request") ? "UNDER REVIEW" : order?.status?.toUpperCase()}
+                  {order.status?.includes("Request") ? "UNDER REVIEW" : order.status?.toUpperCase()}
                 </span>
+                {/* Payment status badge */}
+                <PayBadge status={order.paymentDetails?.status} />
               </div>
             </div>
 
+            {/* Info rows */}
             <div className="info-row">
-              <FaInfoCircle color={colors.gold} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <FaInfoCircle color={C.gold} className="info-icon" />
               <span className="info-label">Order No:</span>
-              <span className="info-val">{order?.orderNumber}</span>
+              <span className="info-val" style={{ fontFamily:"monospace", fontWeight:700 }}>{order.orderNumber}</span>
             </div>
+
             <div className="info-row">
-              <FaCreditCard color={colors.gold} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <FaCreditCard color={C.gold} className="info-icon" />
               <span className="info-label">Payment:</span>
-              <span className="info-val" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                {order?.paymentDetails?.status === 'PAID' ? (
-                  <>
-                    <FaCheckCircle color={colors.success} size={16} />
-                    <span style={{ color: colors.success, fontWeight: 'bold' }}>PAID</span>
-                  </>
+              <span className="info-val" style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
+                {order.paymentDetails?.status === "PAID" ? (
+                  <><FaCheckCircle color={C.success} /> <span style={{ color: C.success, fontWeight:700 }}>PAID</span></>
+                ) : order.paymentDetails?.status === "FAILED" ? (
+                  <><FaTimesCircle color={C.danger} /> <span style={{ color: C.danger, fontWeight:700 }}>FAILED</span></>
                 ) : (
-                  <>
-                    <FaExclamationTriangle color={colors.gold} size={16} />
-                    <span>{order?.paymentDetails?.status || "PENDING"}</span>
-                  </>
+                  <><FaExclamationTriangle color={C.warning} /> <span style={{ color: C.warning }}>{order.paymentDetails?.status || "PENDING"}</span></>
                 )}
               </span>
             </div>
 
             <div className="info-row">
-              <span style={{ color: colors.gold }}>💳</span>
+              <FaShieldAlt color={C.gold} className="info-icon" />
               <span className="info-label">Method:</span>
-              <span className="info-val" style={{ textTransform: 'uppercase', fontWeight: 'bold' }}>
-                {order?.paymentDetails?.method === 'cod' ? 'Cash on Delivery' : 'PhonePe'}
+              <span className="info-val" style={{ textTransform:"uppercase", fontWeight:700 }}>
+                {order.paymentDetails?.method === "cod" ? "Cash on Delivery" : "PhonePe (UPI/Card)"}
               </span>
             </div>
 
-            {order?.paymentDetails?.method === 'phonepe' && order?.paymentDetails?.merchantTransactionId && (
+            {order.paymentDetails?.merchantTransactionId && (
               <div className="info-row">
-                <span style={{ color: colors.gold }}>📱</span>
+                <span style={{ color: C.gold }} className="info-icon">📱</span>
                 <span className="info-label">Merchant ID:</span>
-                <span className="info-val" style={{ fontSize: '0.9rem', fontFamily: 'monospace', opacity: 0.8 }}>
+                <span className="info-val" style={{ fontFamily:"monospace", fontSize:"0.85rem", opacity:0.8 }}>
                   {order.paymentDetails.merchantTransactionId}
                 </span>
               </div>
             )}
 
-            {order?.paymentDetails?.transactionId && (
+            {order.paymentDetails?.transactionId && (
               <div className="info-row">
-                <span style={{ color: colors.gold }}>🔗</span>
-                <span className="info-label">Transaction ID:</span>
-                <span className="info-val" style={{ fontSize: '0.9rem', fontFamily: 'monospace', opacity: 0.8 }}>
+                <span style={{ color: C.gold }} className="info-icon">🔗</span>
+                <span className="info-label">Transaction:</span>
+                <span className="info-val" style={{ fontFamily:"monospace", fontSize:"0.85rem", opacity:0.8 }}>
                   {order.paymentDetails.transactionId}
                 </span>
               </div>
             )}
 
-            <div className="action-buttons">
-              {showInvoice && (
-                <button
-                  className="btn-action btn-invoice"
-                  onClick={handleDownloadInvoice}
-                  disabled={loadingInvoice}
-                >
-                  <FaDownload />
-                  {loadingInvoice ? "Loading..." : "Download Invoice"}
+            {/* Action buttons */}
+            <div className="action-row">
+              {order.status === "Delivered" && invoice && (
+                <button className="btn-action btn-invoice" onClick={handleDownloadInvoice} disabled={loadingInvoice}>
+                  <FaDownload /> {loadingInvoice ? "Loading..." : "Download Invoice"}
                 </button>
               )}
-
-              {canCancel() && (
-                <button
-                  className="btn-action btn-cancel"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log("Cancel button clicked");
-                    console.log("Current cancelModalVisible state:", cancelModalVisible);
-                    setCancelModalVisible(true);
-                    console.log("Setting cancelModalVisible to true");
-                  }}
-                  type="button"
-                >
+              {canCancel && (
+                <button className="btn-action btn-cancel" onClick={() => setCancelOpen(true)}>
                   <FaTimes /> Cancel Order
                 </button>
               )}
-
-              {canReturn() && (
-                <button
-                  className="btn-action btn-return"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log("Return button clicked");
-                    console.log("Current returnModalVisible state:", returnModalVisible);
-                    setReturnModalVisible(true);
-                    console.log("Setting returnModalVisible to true");
-                  }}
-                  type="button"
-                >
+              {canReturn && (
+                <button className="btn-action btn-return" onClick={() => setReturnOpen(true)}>
                   <FaUndo /> Return Order
                 </button>
               )}
             </div>
           </div>
 
-          {/* SHIPPING SECTION */}
-          <div className="section-card">
-            <h3 className="section-title">
-              <FaTruck /> SHIPPING DETAILS
-            </h3>
+          {/* ── SHIPPING ── */}
+          <div className="od-card">
+            <p className="sec-title"><FaTruck /> SHIPPING DETAILS</p>
             <div className="info-row">
-              <FaMapMarkerAlt color={colors.gold} style={{ flexShrink: 0, marginTop: '2px' }} />
+              <FaMapMarkerAlt color={C.gold} className="info-icon" />
               <span className="info-label">Destination:</span>
-              <span className="info-val">{order?.address || "No Address Provided"}</span>
+              <span className="info-val">{order.address || "No address provided"}</span>
             </div>
           </div>
 
-          {/* PRODUCTS SECTION */}
-          <div className="section-card">
-            <h3 className="section-title">
-              <FaBoxOpen /> ORDERED ITEMS
-            </h3>
-            {order?.products?.map((p, index) => (
-              <div key={index} className="product-item">
+          {/* ── PRODUCTS ── */}
+          <div className="od-card">
+            <p className="sec-title"><FaBoxOpen /> ORDERED ITEMS</p>
+            {order.products?.map((p, i) => (
+              <div key={i} className="prod-item">
                 <img
-                  src={`${BASE_URL}api/v1/product/product-photo/${p.product?._id || p.product}`}
+                  src={getProductImage(p)}
                   alt={p.name}
-                  className="product-img"
-                  onError={(e) => { e.target.src = "/logo192.png"; }}
+                  className="prod-img"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = "https://placehold.co/90x90/2D0A14/D4AF37?text=IMG";
+                  }}
                 />
-                <div className="product-info">
-                  <div className="product-name">
+                <div className="prod-info">
+                  <p className="prod-name">
                     {p.name}
-                  </div>
-                  <div style={{ color: colors.gold, marginTop: '5px' }}>
-                    ₹{p.price?.toLocaleString()} × {p.qty}
-                  </div>
-                  <div style={{ fontSize: '13px', color: colors.textMuted, marginTop: '3px' }}>
-                    Total: ₹{(p.price * p.qty)?.toLocaleString()}
-                  </div>
+                    {p.price === 0 && (
+                      <span style={{ marginLeft:10, background:"rgba(212,175,55,0.12)", color: C.gold, padding:"2px 8px", borderRadius:4, fontSize:10, fontWeight:700, border:`1px solid ${C.gold}44` }}>
+                        <FaGift size={9} style={{ marginRight:3 }} />GIFT
+                      </span>
+                    )}
+                  </p>
+                  <p className="prod-price">
+                    {p.price === 0 ? <span style={{ color: C.success }}>FREE</span> : `₹${p.price?.toLocaleString()} × ${p.qty}`}
+                  </p>
+                  {p.price > 0 && (
+                    <p className="prod-sub">
+                      Subtotal: ₹{(p.price * p.qty)?.toLocaleString()}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
           </div>
 
-          {/* SUMMARY SECTION */}
-          <div className="section-card" style={{ border: `2px solid ${colors.gold}` }}>
-            <h3 className="section-title">
-              <FaReceipt /> ORDER SUMMARY
-            </h3>
-            <div className="summary-row">
+          {/* ── SUMMARY ── */}
+          <div className="od-card highlight">
+            <p className="sec-title"><FaReceipt /> ORDER SUMMARY</p>
+
+            <div className="sum-row">
               <span>Subtotal</span>
-              <span>₹{order?.subtotal?.toLocaleString()}</span>
+              <span className="sum-row-val">₹{order.subtotal?.toLocaleString()}</span>
             </div>
-            <div className="summary-row">
+
+            <div className="sum-row">
               <span>Shipping Fee</span>
-              <span style={{ color: order?.shippingFee === 0 ? colors.success : colors.textMuted }}>
-                {order?.shippingFee === 0 ? "FREE" : `₹${order?.shippingFee}`}
+              <span className="sum-row-val" style={{ color: order.shippingFee === 0 ? C.success : "#fff" }}>
+                {order.shippingFee === 0 ? "FREE ✓" : `₹${order.shippingFee}`}
               </span>
             </div>
-            {order?.discount > 0 && (
-              <div className="summary-row" style={{ color: colors.success }}>
-                <span>Discount</span>
-                <span>- ₹{order?.discount?.toLocaleString()}</span>
+
+            {order.discount > 0 && (
+              <div className="sum-row" style={{ color: C.success }}>
+                <span>Coupon Discount</span>
+                <span>– ₹{order.discount?.toLocaleString()}</span>
               </div>
             )}
-            <div className="summary-total">
+
+            {/* Coupon code pill */}
+            {order.couponCode && (
+              <div className="coupon-box">
+                <FaPercent size={12} />
+                <span>Coupon applied: <strong>{order.couponCode}</strong></span>
+                {order.discount > 0 && (
+                  <span className="coupon-saved">You saved ₹{order.discount?.toLocaleString()} 🎉</span>
+                )}
+              </div>
+            )}
+
+            <div className="sum-total">
               <span>Total Amount</span>
-              <span>₹{order?.totalPaid?.toLocaleString()}</span>
+              <span>₹{order.totalPaid?.toLocaleString()}</span>
             </div>
           </div>
 
         </div>
       </div>
 
-      {/* ✅ CANCEL MODAL */}
+      {/* ════ CANCEL MODAL ════ */}
       <Modal
-        title={
-          <span className="modal-title">
-            <FaTimes />
-            Cancel Order
-          </span>
-        }
-        open={cancelModalVisible}
-        visible={cancelModalVisible}
-        onCancel={() => {
-          setCancelModalVisible(false);
-          setCancelReason("");
-          setCancelReasonText("");
-        }}
-        footer={null}
-        bodyStyle={{
-          backgroundColor: colors.richBurgundy,
-          padding: '24px'
-        }}
-        headerStyle={{
-          backgroundColor: colors.deepBurgundy,
-          borderBottom: `1px solid ${colors.gold}33`
-        }}
-        centered
-        destroyOnClose={true}
+        open={cancelOpen}
+        onClose={() => { setCancelOpen(false); setCancelReason(""); setCancelOtherText(""); }}
+        title="Cancel Order"
+        icon={<FaTimes />}
       >
-        <div>
-          <p className="modal-text">
-            Please select a reason for cancelling this order:
-          </p>
-          <Radio.Group
-            onChange={(e) => setCancelReason(e.target.value)}
-            value={cancelReason}
-            style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}
+        <p style={{ color:"#ccc", fontSize:14, marginBottom:18 }}>
+          Please select a reason for cancelling this order:
+        </p>
+        <ReasonRadio options={CANCEL_REASONS} value={cancelReason} onChange={setCancelReason} />
+        {cancelReason === "Other" && (
+          <textarea
+            className="other-textarea"
+            placeholder="Please specify your reason for cancellation..."
+            value={cancelOtherText}
+            onChange={(e) => setCancelOtherText(e.target.value)}
+          />
+        )}
+        <div className="modal-footer">
+          <button className="btn-modal-close" onClick={() => { setCancelOpen(false); setCancelReason(""); setCancelOtherText(""); }}>
+            Close
+          </button>
+          <button
+            className="btn-modal-confirm btn-confirm-cancel"
+            onClick={handleCancel}
+            disabled={processing || !cancelReason || (cancelReason === "Other" && !cancelOtherText.trim())}
           >
-            {cancelReasons.map((reason, idx) => (
-              <Radio
-                key={idx}
-                value={reason}
-              >
-                <span style={{ color: 'white', fontSize: '14px' }}>{reason}</span>
-              </Radio>
-            ))}
-          </Radio.Group>
-
-          {cancelReason === "Other" && (
-            <div style={{ marginTop: '15px' }}>
-              <textarea
-                placeholder="Please specify your reason for cancellation..."
-                value={cancelReason === "Other" ? cancelReasonText : ""}
-                onChange={(e) => setCancelReasonText(e.target.value)}
-                style={{
-                  width: '100%',
-                  minHeight: '80px',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: `1px solid ${colors.gold}44`,
-                  background: colors.deepBurgundy,
-                  color: 'white',
-                  fontSize: '14px',
-                  fontFamily: 'inherit',
-                  resize: 'vertical'
-                }}
-              />
-            </div>
-          )}
-          <div className="modal-footer">
-            <Button
-              onClick={() => {
-                setCancelModalVisible(false);
-                setCancelReason("");
-                setCancelReasonText("");
-              }}
-              style={{
-                background: 'transparent',
-                color: colors.gold,
-                border: `1px solid ${colors.gold}`,
-                height: '40px'
-              }}
-            >
-              Close
-            </Button>
-            <Button
-              type="primary"
-              danger
-              onClick={handleCancelOrder}
-              loading={processingAction}
-              disabled={!cancelReason || (cancelReason === "Other" && !cancelReasonText.trim())}
-              style={{ height: '40px' }}
-            >
-              Confirm Cancellation
-            </Button>
-          </div>
+            {processing ? "Processing..." : "Confirm Cancellation"}
+          </button>
         </div>
       </Modal>
 
-      {/* ✅ RETURN MODAL */}
+      {/* ════ RETURN MODAL ════ */}
       <Modal
-        title={
-          <span className="modal-title">
-            <FaUndo />
-            Return Order
-          </span>
-        }
-        open={returnModalVisible}
-        visible={returnModalVisible}
-        onCancel={() => {
-          setReturnModalVisible(false);
-          setReturnReason("");
-          setReturnReasonText("");
-        }}
-        footer={null}
-        bodyStyle={{
-          backgroundColor: colors.richBurgundy,
-          padding: '24px'
-        }}
-        headerStyle={{
-          backgroundColor: colors.deepBurgundy,
-          borderBottom: `1px solid ${colors.gold}33`
-        }}
-        centered
-        destroyOnClose={true}
+        open={returnOpen}
+        onClose={() => { setReturnOpen(false); setReturnReason(""); setReturnOtherText(""); }}
+        title="Return Order"
+        icon={<FaUndo />}
       >
-        <div>
-          <p className="modal-text">
-            Please select a reason for returning this order:
-          </p>
-          <p className="modal-note">
-            Note: Return requests can only be submitted within 7 days of delivery.
-          </p>
-          <Radio.Group
-            onChange={(e) => setReturnReason(e.target.value)}
-            value={returnReason}
-            style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}
+        <p style={{ color:"#ccc", fontSize:14, marginBottom:14 }}>
+          Please select a reason for returning this order:
+        </p>
+        <div className="modal-note">
+          ⏱ Return requests can only be submitted within 7 days of delivery.
+        </div>
+        <ReasonRadio options={RETURN_REASONS} value={returnReason} onChange={setReturnReason} />
+        {returnReason === "Other" && (
+          <textarea
+            className="other-textarea"
+            placeholder="Please specify your reason for return..."
+            value={returnOtherText}
+            onChange={(e) => setReturnOtherText(e.target.value)}
+          />
+        )}
+        <div className="modal-footer">
+          <button className="btn-modal-close" onClick={() => { setReturnOpen(false); setReturnReason(""); setReturnOtherText(""); }}>
+            Close
+          </button>
+          <button
+            className="btn-modal-confirm btn-confirm-return"
+            onClick={handleReturn}
+            disabled={processing || !returnReason || (returnReason === "Other" && !returnOtherText.trim())}
           >
-            {returnReasons.map((reason, idx) => (
-              <Radio
-                key={idx}
-                value={reason}
-              >
-                <span style={{ color: 'white', fontSize: '14px' }}>{reason}</span>
-              </Radio>
-            ))}
-          </Radio.Group>
-
-          {returnReason === "Other" && (
-            <div style={{ marginTop: '15px' }}>
-              <textarea
-                placeholder="Please specify your reason for return..."
-                value={returnReason === "Other" ? returnReasonText : ""}
-                onChange={(e) => setReturnReasonText(e.target.value)}
-                style={{
-                  width: '100%',
-                  minHeight: '80px',
-                  padding: '12px',
-                  borderRadius: '8px',
-                  border: `1px solid ${colors.gold}44`,
-                  background: colors.deepBurgundy,
-                  color: 'white',
-                  fontSize: '14px',
-                  fontFamily: 'inherit',
-                  resize: 'vertical'
-                }}
-              />
-            </div>
-          )}
-          <div className="modal-footer">
-            <Button
-              onClick={() => {
-                setReturnModalVisible(false);
-                setReturnReason("");
-                setReturnReasonText("");
-              }}
-              style={{
-                background: 'transparent',
-                color: colors.gold,
-                border: `1px solid ${colors.gold}`,
-                height: '40px'
-              }}
-            >
-              Close
-            </Button>
-            <Button
-              style={{
-                background: '#ff9800',
-                color: 'white',
-                border: 'none',
-                height: '40px'
-              }}
-              onClick={handleReturnOrder}
-              loading={processingAction}
-              disabled={!returnReason || (returnReason === "Other" && !returnReasonText.trim())}
-            >
-              Submit Return Request
-            </Button>
-          </div>
+            {processing ? "Processing..." : "Submit Return Request"}
+          </button>
         </div>
       </Modal>
+
     </Layout>
   );
 };

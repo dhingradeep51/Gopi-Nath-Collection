@@ -520,7 +520,7 @@ const CheckOutPage = () => {
       item.photo?.[0] ||
       item.image ||
       item.photo ||
-      `${BASE_URL}api/v1/product/product-photo/${item._id}`
+      `${BASE_URL}api/v1/product/product-photo/${item._id}/0`
     );
   };
 
