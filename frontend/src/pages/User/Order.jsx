@@ -148,7 +148,7 @@ const UserOrders = () => {
 const getOrders = async () => {
   try {
     setLoading(true);
-    const { data } = await axios.get(`${BASE_URL}api/v1/order/orders`, {
+    const { data } = await axios.get(`${BASE_URL}api/v1/order/orders?t=${Date.now()}`, {
       headers: { Authorization: `Bearer ${auth?.token}` },
     });
     
