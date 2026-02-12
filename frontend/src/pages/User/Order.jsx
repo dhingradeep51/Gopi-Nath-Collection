@@ -30,8 +30,29 @@ const getProductImage = (p) =>
   p?.photo?.[0]?.url ||
   p?.images?.[0]?.url ||
   p?.image ||
-  `${BASE_URL}api/v1/product/product-photo/${p?.product?._id || p?._id}/0`;
+  `${BASE_URL}api/v1/product/product-photo/${p?.product?._id || p?._id}`;
 
+// ─── Payment badge ───────────────────────────────────────────────
+const PaymentBadge = ({ status }) => {
+  // Normalize the status to uppercase for comparison
+  const normalizedStatus = status ? String(status).toUpperCase() : null;
+  
+  const map = {
+    PAID:            { cls: "badge-paid",    icon: <FaCheckCircle size={10} />, label: "PAID" },
+    FAILED:          { cls: "badge-failed",  icon: <FaTimesCircle size={10} />, label: "FAILED" },
+    COD:             { cls: "badge-cod",     icon: <FaTruck size={10} />,       label: "COD" },
+    PENDING_PAYMENT: { cls: "badge-pending", icon: <FaClock size={10} />,       label: "PENDING" },
+    PENDING:         { cls: "badge-pending", icon: <FaClock size={10} />,       label: "PENDING" },
+  };
+  
+  const cfg = map[normalizedStatus] || { cls: "badge-pending", icon: <FaClock size={10} />, label: normalizedStatus || "UNPAID" };
+  
+  return (
+    <span className={`status-badge ${cfg.cls}`}>
+      {cfg.icon} {cfg.label}
+    </span>
+  );
+};
 
 // ─── Star rating ─────────────────────────────────────────────────
 const StarRating = ({ rating, hover, setRating, setHover }) => (
@@ -123,20 +144,34 @@ const UserOrders = () => {
   const navigate                          = useNavigate();
   const [selectedProduct, setSelectedProduct] = useState(null);
 
-  const getOrders = async () => {
-    try {
-      setLoading(true);
-      const { data } = await axios.get(`${BASE_URL}api/v1/order/orders`, {
-        headers: { Authorization: `Bearer ${auth?.token}` },
+  // In UserOrders.jsx, inside the getOrders function:
+const getOrders = async () => {
+  try {
+    setLoading(true);
+    const { data } = await axios.get(`${BASE_URL}api/v1/order/orders`, {
+      headers: { Authorization: `Bearer ${auth?.token}` },
+    });
+    
+    console.log('Raw orders data:', data); // 🔍 Check structure
+    
+    const ordersArray = Array.isArray(data) ? data : data?.orders || [];
+    
+    // 🔍 Check payment details for each order
+    ordersArray.forEach(order => {
+      console.log(`Order ${order.orderNumber}:`, {
+        paymentDetails: order.paymentDetails,
+        status: order.paymentDetails?.status
       });
-      setOrders(Array.isArray(data) ? data : data?.orders || []);
-    } catch (error) {
-      console.error("Error fetching orders:", error);
-      toast.error("Failed to load your divine registry");
-    } finally {
-      setLoading(false);
-    }
-  };
+    });
+    
+    setOrders(ordersArray);
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    toast.error("Failed to load your divine registry");
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     if (auth?.token) getOrders();
@@ -297,7 +332,14 @@ const UserOrders = () => {
         .total-label { font-size: 11px; color: #aaa; margin-bottom: 2px; }
         .total-amount { font-weight: 700; color: ${COLORS.gold}; font-size: 1.2rem; }
 
-       
+        /* ── Payment warning ── */
+        .payment-warning {
+          display: flex; align-items: center; gap: 8px;
+          background: rgba(255,77,79,0.1);
+          border: 1px solid ${COLORS.error}44;
+          border-radius: 6px; padding: 10px 14px;
+          margin-top: 14px; font-size: 12px; color: ${COLORS.error};
+        }
 
         /* ── Empty state ── */
         .empty-state {
@@ -425,6 +467,7 @@ const UserOrders = () => {
                         Ordered on {moment(o.createdAt).format("MMM DD, YYYY")}
                       </div>
                     </div>
+                    <PaymentBadge status={o.paymentDetails?.status} />
                   </div>
 
                   {/* Products */}

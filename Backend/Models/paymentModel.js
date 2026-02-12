@@ -17,7 +17,7 @@ const paymentSchema = new mongoose.Schema({
   },
   status: { 
     type: String, 
-    enum: ["PENDING_PAYMENT", "PAID", "FAILED", "COD"], 
+    enum: ["PENDING_PAYMENT", "PAID", "FAILED", "COD","PENDING"], 
     default: "PENDING_PAYMENT" 
   },
   paymentResponse: { type: Object } // Store raw webhook payload
