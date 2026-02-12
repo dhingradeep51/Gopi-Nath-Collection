@@ -318,12 +318,15 @@ export const getOrdersController = async (req, res) => {
         path: "products.product",
         select: "name photo"
       })
-      // ✅ POPULATE PAYMENT STATUS with all needed fields
       .populate({
-        path: "paymentDetails",
+        path: "paymentDetails",  // ✅ This must match the field name in OrderModel schema
         select: "status method merchantTransactionId amount"
       })
+      .lean()  // ✅ Add .lean() for better performance
       .sort({ createdAt: -1 });
+
+    // ✅ Debug log to check if population worked
+    console.log("Sample order paymentDetails:", orders[0]?.paymentDetails);
 
     res.status(200).send(orders);
   } catch (error) {
