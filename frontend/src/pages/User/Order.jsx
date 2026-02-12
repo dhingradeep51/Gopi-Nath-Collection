@@ -30,29 +30,8 @@ const getProductImage = (p) =>
   p?.photo?.[0]?.url ||
   p?.images?.[0]?.url ||
   p?.image ||
-  `${BASE_URL}api/v1/product/product-photo/${p?.product?._id || p?._id}`;
+  `${BASE_URL}api/v1/product/product-photo/${p?.product?._id || p?._id}/0`;
 
-// ─── Payment badge ───────────────────────────────────────────────
-const PaymentBadge = ({ status }) => {
-  // Normalize the status to uppercase for comparison
-  const normalizedStatus = status ? String(status).toUpperCase() : null;
-  
-  const map = {
-    PAID:            { cls: "badge-paid",    icon: <FaCheckCircle size={10} />, label: "PAID" },
-    FAILED:          { cls: "badge-failed",  icon: <FaTimesCircle size={10} />, label: "FAILED" },
-    COD:             { cls: "badge-cod",     icon: <FaTruck size={10} />,       label: "COD" },
-    PENDING_PAYMENT: { cls: "badge-pending", icon: <FaClock size={10} />,       label: "PENDING" },
-    PENDING:         { cls: "badge-pending", icon: <FaClock size={10} />,       label: "PENDING" },
-  };
-  
-  const cfg = map[normalizedStatus] || { cls: "badge-pending", icon: <FaClock size={10} />, label: normalizedStatus || "UNPAID" };
-  
-  return (
-    <span className={`status-badge ${cfg.cls}`}>
-      {cfg.icon} {cfg.label}
-    </span>
-  );
-};
 
 // ─── Star rating ─────────────────────────────────────────────────
 const StarRating = ({ rating, hover, setRating, setHover }) => (
