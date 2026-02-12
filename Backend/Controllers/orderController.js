@@ -312,8 +312,11 @@ export const userOrderStatusController = async (req, res) => {
   }
 };
 export const getOrdersController = async (req, res) => {
+  // THIS SHOULD SHOW UP IN YOUR TERMINAL IMMEDIATELY
+  console.log("--- 🚀 GET ORDERS CONTROLLER HIT 🚀 ---");
+  console.log("User ID from Req:", req.user?._id);
+
   try {
-    // 1. Fetch orders from database
     const orders = await OrderModel.find({ buyer: req.user._id })
       .populate({
         path: "products.product",
@@ -321,51 +324,30 @@ export const getOrdersController = async (req, res) => {
       })
       .populate({
         path: "paymentDetails",
-        // Explicitly naming the model helps if there's a ref mismatch
-        model: "Payment", 
+        model: "Payment", // Force Mongoose to look at the Payment collection
         select: "status method merchantTransactionId transactionId amount createdAt" 
       })
       .sort({ createdAt: -1 })
       .lean();
 
-    // 🔍 LOG 1: Check raw population result
+    console.log(`--- 📦 Found ${orders.length} orders in DB ---`);
+
     if (orders.length > 0) {
-      console.log("--- DEBUG: RAW DATA FROM DB ---");
-      console.log("Order Number:", orders[0].orderNumber);
-      console.log("paymentDetails Type:", typeof orders[0].paymentDetails);
-      console.log("paymentDetails Content:", JSON.stringify(orders[0].paymentDetails, null, 2));
-    } else {
-      console.log("--- DEBUG: No orders found for this user ---");
+      console.log("First Order Payment Details:", orders[0].paymentDetails);
     }
 
-    // 2. Map and format
-    const formattedOrders = orders.map(order => {
-      // Logic to check if population actually worked
-      const isPopulated = order.paymentDetails && typeof order.paymentDetails === 'object';
-      
-      return {
-        ...order,
-        paymentDetails: isPopulated ? order.paymentDetails : {
-          status: 'PENDING',
-          method: 'UNKNOWN_OR_NOT_POPULATED',
-          amount: order.totalPaid || 0,
-          _isManualFallback: true // Helps you identify fallbacks in the frontend console
-        }
-      };
-    });
-
-    // 🔍 LOG 2: Check final response being sent to frontend
-    console.log(`--- DEBUG: Sending ${formattedOrders.length} orders to frontend ---`);
+    const formattedOrders = orders.map(order => ({
+      ...order,
+      paymentDetails: order.paymentDetails && typeof order.paymentDetails === 'object' 
+        ? order.paymentDetails 
+        : { status: 'PENDING', method: 'NOT_POPULATED', amount: order.totalPaid }
+    }));
 
     res.status(200).json(formattedOrders);
 
   } catch (error) {
-    console.error("❌ Get user orders error:", error);
-    res.status(500).send({
-      success: false,
-      message: "Error fetching your orders",
-      error: error.message
-    });
+    console.error("❌ ERROR IN CONTROLLER:", error);
+    res.status(500).send({ success: false, message: error.message });
   }
 };
 // --- MANAGE INVOICE STATUS ---
