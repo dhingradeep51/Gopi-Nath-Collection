@@ -157,7 +157,6 @@ const OrderDetails = () => {
       const { data } = await axios.get(`${BASE_URL}api/v1/order/${params.orderID}`, {
         headers: { Authorization: `Bearer ${auth?.token}` },
       });
-      console.log('Raw orders data:', data);
       if (data?.success) setOrder(data.order);
     } catch {
       toast.error("Order details not found");
