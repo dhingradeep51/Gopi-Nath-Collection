@@ -461,7 +461,7 @@ const AdminOrderDetails = () => {
 
         .logistics-input input {
           background: transparent !important;
-          color: #fff !important;
+          color: #270808 !important;
           font-size: 16px !important;
         }
 

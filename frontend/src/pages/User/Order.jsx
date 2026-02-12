@@ -30,13 +30,10 @@ const getProductImage = (p) =>
   p?.photo?.[0]?.url ||
   p?.images?.[0]?.url ||
   p?.image ||
-  `${BASE_URL}api/v1/product/product-photo/${p?.product?._id || p?._id}/0`;
+  `${BASE_URL}api/v1/product/product-photo/${p?.product?._id || p?._id}`;
 
 // ─── Payment badge ───────────────────────────────────────────────
 const PaymentBadge = ({ status }) => {
-  // Log what status we're receiving
-  console.log("PaymentBadge received status:", status, typeof status);
-  
   // Normalize the status to uppercase for comparison
   const normalizedStatus = status ? String(status).toUpperCase() : null;
   
@@ -121,41 +118,11 @@ const Loader = () => (
   </Layout>
 );
 
-// ─── Get delivery status based on payment and order status ───────
+// ─── Get delivery status based on order status only ───────
 const getDeliveryStatus = (order) => {
-  const paymentStatus = order?.paymentDetails?.status;
   const orderStatus = order?.status;
-  
-  // Normalize payment status to uppercase for comparison
-  const normalizedPaymentStatus = paymentStatus ? String(paymentStatus).toUpperCase() : null;
 
-  console.log(`Order ${order?.orderNumber}: Payment=${normalizedPaymentStatus} (raw: ${paymentStatus}), Order=${orderStatus}`);
-
-  // If payment failed, show payment failed status
-  if (normalizedPaymentStatus === "FAILED") {
-    return {
-      text: "PAYMENT FAILED",
-      color: COLORS.error
-    };
-  }
-
-  // If payment is pending, show awaiting payment
-  if (normalizedPaymentStatus === "PENDING_PAYMENT" || normalizedPaymentStatus === "PENDING") {
-    return {
-      text: "AWAITING PAYMENT",
-      color: COLORS.warning
-    };
-  }
-
-  // If COD and order is not processed, show awaiting confirmation
-  if (normalizedPaymentStatus === "COD" && (orderStatus === "Not Processed" || !orderStatus)) {
-    return {
-      text: "AWAITING CONFIRMATION",
-      color: COLORS.warning
-    };
-  }
-
-  // Otherwise show order status
+  // Show order status
   if (orderStatus === "Delivered") {
     return { text: "DELIVERED", color: COLORS.success };
   }
@@ -183,33 +150,7 @@ const UserOrders = () => {
       const { data } = await axios.get(`${BASE_URL}api/v1/order/orders`, {
         headers: { Authorization: `Bearer ${auth?.token}` },
       });
-      
-      // The backend returns the orders directly, not nested in a data.orders
-      const ordersList = Array.isArray(data) ? data : data?.orders || [];
-      
-      // Debug: Log full order structure to see what fields exist
-      if (ordersList.length > 0) {
-        console.log("=== FULL ORDER DATA STRUCTURE ===");
-        console.log("First order:", JSON.stringify(ordersList[0], null, 2));
-        console.log("Payment details:", ordersList[0]?.paymentDetails);
-        console.log("Payment status:", ordersList[0]?.paymentDetails?.status);
-        console.log("Payment method:", ordersList[0]?.paymentDetails?.method);
-        
-        // Check if paymentDetails is an object or just an ID
-        console.log("Is paymentDetails populated?", typeof ordersList[0]?.paymentDetails);
-      }
-      
-      // Debug: Log payment statuses for all orders
-      console.log("Orders with payment status:", ordersList.map(o => ({
-        orderNumber: o.orderNumber,
-        paymentDetailsType: typeof o.paymentDetails,
-        paymentStatus: o.paymentDetails?.status,
-        paymentMethod: o.paymentDetails?.method,
-        orderStatus: o.status,
-        fullPaymentDetails: o.paymentDetails
-      })));
-      
-      setOrders(ordersList);
+      setOrders(Array.isArray(data) ? data : data?.orders || []);
     } catch (error) {
       console.error("Error fetching orders:", error);
       toast.error("Failed to load your divine registry");
@@ -497,8 +438,6 @@ const UserOrders = () => {
           ) : (
             orders.map((o) => {
               const deliveryStatus = getDeliveryStatus(o);
-              const paymentStatus = o.paymentDetails?.status;
-              const normalizedPaymentStatus = paymentStatus ? String(paymentStatus).toUpperCase() : null;
               
               return (
                 <div
@@ -513,21 +452,9 @@ const UserOrders = () => {
                       <div className="order-date">
                         Ordered on {moment(o.createdAt).format("MMM DD, YYYY")}
                       </div>
-                      {/* Debug info - remove this after testing */}
-                      <div style={{ fontSize: 10, color: '#666', marginTop: 4 }}>
-                        DEBUG: Payment={normalizedPaymentStatus || 'NONE'} (raw: {paymentStatus || 'N/A'}) | Order={o.status}
-                      </div>
                     </div>
-                    <PaymentBadge status={paymentStatus} />
+                    <PaymentBadge status={o.paymentDetails?.status} />
                   </div>
-
-                  {/* Payment failed warning */}
-                  {normalizedPaymentStatus === "FAILED" && (
-                    <div className="payment-warning">
-                      <FaExclamationTriangle size={14} />
-                      <span>Payment failed. Please retry or contact support.</span>
-                    </div>
-                  )}
 
                   {/* Products */}
                   {o.products?.map((p, idx) => (
@@ -581,31 +508,11 @@ const UserOrders = () => {
                   <div className="summary-box">
                     <div className="summary-inner">
                       <div className="delivery-status">
-                        {normalizedPaymentStatus === "FAILED" ? (
-                          <>
-                            <FaTimesCircle style={{ color: deliveryStatus.color }} />
-                            <span>Status:</span>
-                            <strong style={{ color: deliveryStatus.color, marginLeft: 4 }}>
-                              {deliveryStatus.text}
-                            </strong>
-                          </>
-                        ) : normalizedPaymentStatus === "PENDING_PAYMENT" || normalizedPaymentStatus === "PENDING" ? (
-                          <>
-                            <FaClock style={{ color: deliveryStatus.color }} />
-                            <span>Status:</span>
-                            <strong style={{ color: deliveryStatus.color, marginLeft: 4 }}>
-                              {deliveryStatus.text}
-                            </strong>
-                          </>
-                        ) : (
-                          <>
-                            <FaTruck style={{ color: deliveryStatus.color }} />
-                            <span>Status:</span>
-                            <strong style={{ color: deliveryStatus.color, marginLeft: 4 }}>
-                              {deliveryStatus.text}
-                            </strong>
-                          </>
-                        )}
+                        <FaTruck style={{ color: deliveryStatus.color }} />
+                        <span>Status:</span>
+                        <strong style={{ color: deliveryStatus.color, marginLeft: 4 }}>
+                          {deliveryStatus.text}
+                        </strong>
                       </div>
                       <div className="total-block">
                         <div className="total-label">Grand Total</div>
