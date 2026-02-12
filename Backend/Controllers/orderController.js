@@ -325,7 +325,7 @@ export const getOrdersController = async (req, res) => {
       })
       .sort({ createdAt: -1 });
 
-    res.status(200).send(orders);
+    res.status(200).send(orders);  // <-- Sends orders array directly
   } catch (error) {
     console.error("Get user orders error:", error);
     res.status(500).send({

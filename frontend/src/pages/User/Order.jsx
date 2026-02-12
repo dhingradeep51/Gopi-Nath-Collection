@@ -34,13 +34,22 @@ const getProductImage = (p) =>
 
 // ─── Payment badge ───────────────────────────────────────────────
 const PaymentBadge = ({ status }) => {
+  // Log what status we're receiving
+  console.log("PaymentBadge received status:", status, typeof status);
+  
+  // Normalize the status to uppercase for comparison
+  const normalizedStatus = status ? String(status).toUpperCase() : null;
+  
   const map = {
     PAID:            { cls: "badge-paid",    icon: <FaCheckCircle size={10} />, label: "PAID" },
     FAILED:          { cls: "badge-failed",  icon: <FaTimesCircle size={10} />, label: "FAILED" },
     COD:             { cls: "badge-cod",     icon: <FaTruck size={10} />,       label: "COD" },
     PENDING_PAYMENT: { cls: "badge-pending", icon: <FaClock size={10} />,       label: "PENDING" },
+    PENDING:         { cls: "badge-pending", icon: <FaClock size={10} />,       label: "PENDING" },
   };
-  const cfg = map[status] || { cls: "badge-pending", icon: <FaClock size={10} />, label: status || "UNPAID" };
+  
+  const cfg = map[normalizedStatus] || { cls: "badge-pending", icon: <FaClock size={10} />, label: normalizedStatus || "UNPAID" };
+  
   return (
     <span className={`status-badge ${cfg.cls}`}>
       {cfg.icon} {cfg.label}
@@ -116,11 +125,14 @@ const Loader = () => (
 const getDeliveryStatus = (order) => {
   const paymentStatus = order?.paymentDetails?.status;
   const orderStatus = order?.status;
+  
+  // Normalize payment status to uppercase for comparison
+  const normalizedPaymentStatus = paymentStatus ? String(paymentStatus).toUpperCase() : null;
 
-  console.log(`Order ${order?.orderNumber}: Payment=${paymentStatus}, Order=${orderStatus}`);
+  console.log(`Order ${order?.orderNumber}: Payment=${normalizedPaymentStatus} (raw: ${paymentStatus}), Order=${orderStatus}`);
 
   // If payment failed, show payment failed status
-  if (paymentStatus === "FAILED") {
+  if (normalizedPaymentStatus === "FAILED") {
     return {
       text: "PAYMENT FAILED",
       color: COLORS.error
@@ -128,7 +140,7 @@ const getDeliveryStatus = (order) => {
   }
 
   // If payment is pending, show awaiting payment
-  if (paymentStatus === "PENDING_PAYMENT" || paymentStatus === "PENDING") {
+  if (normalizedPaymentStatus === "PENDING_PAYMENT" || normalizedPaymentStatus === "PENDING") {
     return {
       text: "AWAITING PAYMENT",
       color: COLORS.warning
@@ -136,7 +148,7 @@ const getDeliveryStatus = (order) => {
   }
 
   // If COD and order is not processed, show awaiting confirmation
-  if (paymentStatus === "COD" && (orderStatus === "Not Processed" || !orderStatus)) {
+  if (normalizedPaymentStatus === "COD" && (orderStatus === "Not Processed" || !orderStatus)) {
     return {
       text: "AWAITING CONFIRMATION",
       color: COLORS.warning
@@ -171,13 +183,30 @@ const UserOrders = () => {
       const { data } = await axios.get(`${BASE_URL}api/v1/order/orders`, {
         headers: { Authorization: `Bearer ${auth?.token}` },
       });
+      
+      // The backend returns the orders directly, not nested in a data.orders
       const ordersList = Array.isArray(data) ? data : data?.orders || [];
       
-      // Debug: Log payment statuses
+      // Debug: Log full order structure to see what fields exist
+      if (ordersList.length > 0) {
+        console.log("=== FULL ORDER DATA STRUCTURE ===");
+        console.log("First order:", JSON.stringify(ordersList[0], null, 2));
+        console.log("Payment details:", ordersList[0]?.paymentDetails);
+        console.log("Payment status:", ordersList[0]?.paymentDetails?.status);
+        console.log("Payment method:", ordersList[0]?.paymentDetails?.method);
+        
+        // Check if paymentDetails is an object or just an ID
+        console.log("Is paymentDetails populated?", typeof ordersList[0]?.paymentDetails);
+      }
+      
+      // Debug: Log payment statuses for all orders
       console.log("Orders with payment status:", ordersList.map(o => ({
         orderNumber: o.orderNumber,
+        paymentDetailsType: typeof o.paymentDetails,
         paymentStatus: o.paymentDetails?.status,
-        orderStatus: o.status
+        paymentMethod: o.paymentDetails?.method,
+        orderStatus: o.status,
+        fullPaymentDetails: o.paymentDetails
       })));
       
       setOrders(ordersList);
@@ -468,6 +497,9 @@ const UserOrders = () => {
           ) : (
             orders.map((o) => {
               const deliveryStatus = getDeliveryStatus(o);
+              const paymentStatus = o.paymentDetails?.status;
+              const normalizedPaymentStatus = paymentStatus ? String(paymentStatus).toUpperCase() : null;
+              
               return (
                 <div
                   key={o._id}
@@ -481,12 +513,16 @@ const UserOrders = () => {
                       <div className="order-date">
                         Ordered on {moment(o.createdAt).format("MMM DD, YYYY")}
                       </div>
+                      {/* Debug info - remove this after testing */}
+                      <div style={{ fontSize: 10, color: '#666', marginTop: 4 }}>
+                        DEBUG: Payment={normalizedPaymentStatus || 'NONE'} (raw: {paymentStatus || 'N/A'}) | Order={o.status}
+                      </div>
                     </div>
-                    <PaymentBadge status={o.paymentDetails?.status} />
+                    <PaymentBadge status={paymentStatus} />
                   </div>
 
                   {/* Payment failed warning */}
-                  {o.paymentDetails?.status === "FAILED" && (
+                  {normalizedPaymentStatus === "FAILED" && (
                     <div className="payment-warning">
                       <FaExclamationTriangle size={14} />
                       <span>Payment failed. Please retry or contact support.</span>
@@ -545,7 +581,7 @@ const UserOrders = () => {
                   <div className="summary-box">
                     <div className="summary-inner">
                       <div className="delivery-status">
-                        {o.paymentDetails?.status === "FAILED" ? (
+                        {normalizedPaymentStatus === "FAILED" ? (
                           <>
                             <FaTimesCircle style={{ color: deliveryStatus.color }} />
                             <span>Status:</span>
@@ -553,7 +589,7 @@ const UserOrders = () => {
                               {deliveryStatus.text}
                             </strong>
                           </>
-                        ) : o.paymentDetails?.status === "PENDING_PAYMENT" ? (
+                        ) : normalizedPaymentStatus === "PENDING_PAYMENT" || normalizedPaymentStatus === "PENDING" ? (
                           <>
                             <FaClock style={{ color: deliveryStatus.color }} />
                             <span>Status:</span>
