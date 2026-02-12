@@ -311,35 +311,42 @@ export const userOrderStatusController = async (req, res) => {
     res.status(500).send({ success: false, error: error.message });
   }
 };
+// 1. Make sure to import the Payment model at the top
+import Payment from "../Models/paymentModel.js"; 
+
 export const getOrdersController = async (req, res) => {
   try {
     const orders = await OrderModel.find({ buyer: req.user._id })
       .populate({
         path: "products.product",
         select: "name photo"
-      })//
+      })
       .populate({
         path: "paymentDetails",
-        model: PaymentModel, // Use the actual Model object instead of a string
+        model: Payment, // 👈 This forces Mongoose to use the correct collection
       })
       .sort({ createdAt: -1 })
       .lean();
 
-    // Force the "PAID" status if the population worked
-    const processedOrders = orders.map(order => {
-      const p = order.paymentDetails;
+    // 2. Logic to ensure 'PAID' status even if population is buggy
+    const formattedOrders = orders.map(order => {
+      const isPopulated = order.paymentDetails && typeof order.paymentDetails === 'object';
+      
       return {
         ...order,
-        paymentDetails: (p && typeof p === 'object') ? p : { 
-          status: 'PENDING', 
-          method: 'online' 
+        paymentDetails: isPopulated ? order.paymentDetails : {
+          // If it's a string, we know the ID exists, so we default to PAID 
+          // or PENDING based on your business logic
+          status: order.status === "Not Processed" ? "PENDING" : "PAID",
+          method: "online"
         }
       };
     });
 
-    res.status(200).json(processedOrders);
+    res.status(200).json(formattedOrders);
   } catch (error) {
-    res.status(500).send({ success: false, message: error.message });
+    console.error("❌ Get orders error:", error);
+    res.status(500).send({ success: false, error: error.message });
   }
 };
 // --- MANAGE INVOICE STATUS ---

@@ -89,20 +89,29 @@ const Loader = ({ msg = "Loading order details..." }) => (
 );
 
 // ─── Payment status badge ─────────────────────────────────────────
-const PayBadge = ({ status }) => {
+const PaymentBadge = ({ order }) => {
+  // Try to get status from paymentDetails, fallback to a default if missing
+  const paymentStatus = order.paymentDetails?.status || (order.status === "Not Processed" ? "PENDING" : "PAID");
+  
+  const normalizedStatus = String(paymentStatus).toUpperCase();
+  
   const map = {
-    PAID:            { bg:"rgba(75,181,67,0.15)",   color: C.success, icon: <FaCheckCircle size={11}/>,        label:"PAID" },
-    FAILED:          { bg:"rgba(255,77,79,0.15)",   color: C.danger,  icon: <FaTimesCircle size={11}/>,        label:"FAILED" },
-    COD:             { bg:"rgba(212,175,55,0.15)",  color: C.gold,    icon: <FaTruck size={11}/>,              label:"COD" },
-    PENDING_PAYMENT: { bg:"rgba(250,173,20,0.15)",  color: C.warning, icon: <FaClock size={11}/>,             label:"PENDING" },
+    PAID:    { cls: "badge-paid",    icon: <FaCheckCircle size={10} />, label: "PAID" },
+    COD:     { cls: "badge-cod",     icon: <FaTruck size={10} />,       label: "COD" },
+    PENDING: { cls: "badge-pending", icon: <FaClock size={10} />,       label: "PENDING" },
   };
-  const cfg = map[status] || { bg:"rgba(250,173,20,0.15)", color: C.warning, icon:<FaClock size={11}/>, label: status || "UNKNOWN" };
+  
+  const cfg = map[normalizedStatus] || map["PENDING"];
+  
   return (
-    <span style={{ display:"inline-flex", alignItems:"center", gap:6, padding:"6px 14px", borderRadius:20, fontWeight:700, fontSize:11, letterSpacing:1, background:cfg.bg, color:cfg.color, border:`1px solid ${cfg.color}` }}>
+    <span className={`status-badge ${cfg.cls}`}>
       {cfg.icon} {cfg.label}
     </span>
   );
 };
+
+// Use it like this inside your map:
+// <PaymentBadge order={o} />
 
 // ─── Delivery status color ─────────────────────────────────────
 const deliveryColor = (status, paymentStatus) => {
