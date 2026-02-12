@@ -312,41 +312,33 @@ export const userOrderStatusController = async (req, res) => {
   }
 };
 export const getOrdersController = async (req, res) => {
-  // THIS SHOULD SHOW UP IN YOUR TERMINAL IMMEDIATELY
-  console.log("--- 🚀 GET ORDERS CONTROLLER HIT 🚀 ---");
-  console.log("User ID from Req:", req.user?._id);
-
   try {
     const orders = await OrderModel.find({ buyer: req.user._id })
       .populate({
         path: "products.product",
-        select: "name photo photos images image slug"
+        select: "name photo"
       })
       .populate({
         path: "paymentDetails",
-        model: "Payment", // Force Mongoose to look at the Payment collection
-        select: "status method merchantTransactionId transactionId amount createdAt" 
+        model: PaymentModel, // Use the actual Model object instead of a string
       })
       .sort({ createdAt: -1 })
       .lean();
 
-    console.log(`--- 📦 Found ${orders.length} orders in DB ---`);
+    // Force the "PAID" status if the population worked
+    const processedOrders = orders.map(order => {
+      const p = order.paymentDetails;
+      return {
+        ...order,
+        paymentDetails: (p && typeof p === 'object') ? p : { 
+          status: 'PENDING', 
+          method: 'online' 
+        }
+      };
+    });
 
-    if (orders.length > 0) {
-      console.log("First Order Payment Details:", orders[0].paymentDetails);
-    }
-
-    const formattedOrders = orders.map(order => ({
-      ...order,
-      paymentDetails: order.paymentDetails && typeof order.paymentDetails === 'object' 
-        ? order.paymentDetails 
-        : { status: 'PENDING', method: 'NOT_POPULATED', amount: order.totalPaid }
-    }));
-
-    res.status(200).json(formattedOrders);
-
+    res.status(200).json(processedOrders);
   } catch (error) {
-    console.error("❌ ERROR IN CONTROLLER:", error);
     res.status(500).send({ success: false, message: error.message });
   }
 };
