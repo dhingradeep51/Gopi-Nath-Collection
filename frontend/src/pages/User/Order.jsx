@@ -6,7 +6,7 @@ import moment from "moment";
 import {
   FaStar, FaPen, FaShoppingBag, FaHome, FaGift,
   FaCheckCircle, FaClock, FaTimesCircle, FaTruck,
-  FaPercent, FaTimes
+  FaPercent, FaTimes, FaExclamationTriangle
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
@@ -111,6 +111,41 @@ const Loader = () => (
     </div>
   </Layout>
 );
+
+// ─── Get delivery status based on payment and order status ───────
+const getDeliveryStatus = (order) => {
+  const paymentStatus = order?.paymentDetails?.status;
+  const orderStatus = order?.status;
+
+  // If payment failed, show payment failed status
+  if (paymentStatus === "FAILED") {
+    return {
+      text: "PAYMENT FAILED",
+      color: COLORS.error
+    };
+  }
+
+  // If payment is pending, show awaiting payment
+  if (paymentStatus === "PENDING_PAYMENT") {
+    return {
+      text: "AWAITING PAYMENT",
+      color: COLORS.warning
+    };
+  }
+
+  // Otherwise show order status
+  if (orderStatus === "Delivered") {
+    return { text: "DELIVERED", color: COLORS.success };
+  }
+  if (orderStatus?.toLowerCase().includes("cancel")) {
+    return { text: orderStatus?.toUpperCase(), color: COLORS.error };
+  }
+  if (orderStatus?.toLowerCase().includes("request") || orderStatus?.toLowerCase().includes("return")) {
+    return { text: orderStatus?.toUpperCase(), color: COLORS.warning };
+  }
+  
+  return { text: orderStatus?.toUpperCase() || "PROCESSING", color: COLORS.gold };
+};
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────
 const UserOrders = () => {
@@ -294,6 +329,15 @@ const UserOrders = () => {
         .total-label { font-size: 11px; color: #aaa; margin-bottom: 2px; }
         .total-amount { font-weight: 700; color: ${COLORS.gold}; font-size: 1.2rem; }
 
+        /* ── Payment warning ── */
+        .payment-warning {
+          display: flex; align-items: center; gap: 8px;
+          background: rgba(255,77,79,0.1);
+          border: 1px solid ${COLORS.error}44;
+          border-radius: 6px; padding: 10px 14px;
+          margin-top: 14px; font-size: 12px; color: ${COLORS.error};
+        }
+
         /* ── Empty state ── */
         .empty-state {
           text-align: center; padding: 80px 20px; color: ${COLORS.gold};
@@ -403,95 +447,100 @@ const UserOrders = () => {
               <p>Your divine journey begins with your first selection from the Gopi Nath Collection.</p>
             </div>
           ) : (
-            orders.map((o) => (
-              <div
-                key={o._id}
-                className="order-card"
-                onClick={() => navigate(`/dashboard/user/orders/${o.orderNumber}`)}
-              >
-                {/* Top row */}
-                <div className="card-top">
-                  <div>
-                    <div className="order-num">#{o.orderNumber}</div>
-                    <div className="order-date">
-                      Ordered on {moment(o.createdAt).format("MMM DD, YYYY")}
+            orders.map((o) => {
+              const deliveryStatus = getDeliveryStatus(o);
+              return (
+                <div
+                  key={o._id}
+                  className="order-card"
+                  onClick={() => navigate(`/dashboard/user/orders/${o.orderNumber}`)}
+                >
+                  {/* Top row */}
+                  <div className="card-top">
+                    <div>
+                      <div className="order-num">#{o.orderNumber}</div>
+                      <div className="order-date">
+                        Ordered on {moment(o.createdAt).format("MMM DD, YYYY")}
+                      </div>
                     </div>
+                    <PaymentBadge status={o.paymentDetails?.status} />
                   </div>
-                  <PaymentBadge status={o.paymentDetails?.status} />
-                </div>
 
-                {/* Products */}
-                {o.products?.map((p, idx) => (
-                  <div key={p._id || idx} className="product-row">
-                    <img
-                      src={getProductImage(p)}
-                      alt={p.name}
-                      className="prod-img"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.src = "https://placehold.co/78x78/2D0A14/D4AF37?text=IMG";
-                      }}
-                    />
-                    <div className="prod-details">
-                      <div style={{ display:"flex", alignItems:"center", flexWrap:"wrap" }}>
-                        <span className="prod-name">{p.name}</span>
-                        {p.price === 0 && (
-                          <span className="gift-tag"><FaGift size={9} /> BLESSED GIFT</span>
+                  {/* Payment failed warning */}
+                  {o.paymentDetails?.status === "FAILED" && (
+                    <div className="payment-warning">
+                      <FaExclamationTriangle size={14} />
+                      <span>Payment failed. Please retry or contact support.</span>
+                    </div>
+                  )}
+
+                  {/* Products */}
+                  {o.products?.map((p, idx) => (
+                    <div key={p._id || idx} className="product-row">
+                      <img
+                        src={getProductImage(p)}
+                        alt={p.name}
+                        className="prod-img"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "https://placehold.co/78x78/2D0A14/D4AF37?text=IMG";
+                        }}
+                      />
+                      <div className="prod-details">
+                        <div style={{ display:"flex", alignItems:"center", flexWrap:"wrap" }}>
+                          <span className="prod-name">{p.name}</span>
+                          {p.price === 0 && (
+                            <span className="gift-tag"><FaGift size={9} /> BLESSED GIFT</span>
+                          )}
+                        </div>
+                        <div className="prod-price" style={{ color: p.price === 0 ? COLORS.success : COLORS.gold }}>
+                          {p.price === 0 ? "FREE" : `₹${p.price?.toLocaleString()}`}
+                          <span className="prod-qty">Qty: {p.qty || 1}</span>
+                        </div>
+                        {p.price > 0 && o.status === "Delivered" && (
+                          <button
+                            className="btn-review"
+                            onClick={(e) => { e.stopPropagation(); setSelectedProduct(p.product?._id || p._id); }}
+                          >
+                            <FaPen size={10} /> WRITE REVIEW
+                          </button>
                         )}
                       </div>
-                      <div className="prod-price" style={{ color: p.price === 0 ? COLORS.success : COLORS.gold }}>
-                        {p.price === 0 ? "FREE" : `₹${p.price?.toLocaleString()}`}
-                        <span className="prod-qty">Qty: {p.qty || 1}</span>
-                      </div>
-                      {p.price > 0 && (
-                        <button
-                          className="btn-review"
-                          onClick={(e) => { e.stopPropagation(); setSelectedProduct(p.product?._id || p._id); }}
-                        >
-                          <FaPen size={10} /> WRITE REVIEW
-                        </button>
+                    </div>
+                  ))}
+
+                  {/* Coupon info if applied */}
+                  {o.couponCode && (
+                    <div className="coupon-row">
+                      <FaPercent size={11} />
+                      <span>Coupon <strong>{o.couponCode}</strong> applied</span>
+                      {o.discount > 0 && (
+                        <span style={{ marginLeft:"auto", color: COLORS.success, fontWeight:700 }}>
+                          –₹{o.discount?.toLocaleString()} saved
+                        </span>
                       )}
                     </div>
-                  </div>
-                ))}
+                  )}
 
-                {/* Coupon info if applied */}
-                {o.couponCode && (
-                  <div className="coupon-row">
-                    <FaPercent size={11} />
-                    <span>Coupon <strong>{o.couponCode}</strong> applied</span>
-                    {o.discount > 0 && (
-                      <span style={{ marginLeft:"auto", color: COLORS.success, fontWeight:700 }}>
-                        –₹{o.discount?.toLocaleString()} saved
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* Summary */}
-                <div className="summary-box">
-                  <div className="summary-inner">
-                    <div className="delivery-status">
-                      <FaTruck style={{ color: COLORS.gold }} />
-                      <span>Status:</span>
-                      <strong style={{
-                        color: o.status === "Delivered" ? COLORS.success :
-                               o.status?.toLowerCase().includes("cancel") ? COLORS.error :
-                               o.status?.toLowerCase().includes("request") ? COLORS.warning :
-                               COLORS.gold,
-                        marginLeft: 4,
-                      }}>
-                        {o.status?.toUpperCase()}
-                      </strong>
-                    </div>
-                    <div className="total-block">
-                      <div className="total-label">Grand Total</div>
-                      <div className="total-amount">₹{o.totalPaid?.toLocaleString()}</div>
+                  {/* Summary */}
+                  <div className="summary-box">
+                    <div className="summary-inner">
+                      <div className="delivery-status">
+                        <FaTruck style={{ color: deliveryStatus.color }} />
+                        <span>Status:</span>
+                        <strong style={{ color: deliveryStatus.color, marginLeft: 4 }}>
+                          {deliveryStatus.text}
+                        </strong>
+                      </div>
+                      <div className="total-block">
+                        <div className="total-label">Grand Total</div>
+                        <div className="total-amount">₹{o.totalPaid?.toLocaleString()}</div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

@@ -141,7 +141,7 @@ const GlobalSearch = ({
                                         >
                                             <div style={{ display: "flex", alignItems: "center", gap: "12px", flex: 1 }}>
                                                 <img 
-                                                    src={`${BASE_URL}api/v1/product/product-photo/${p._id}`} 
+                                                    src={`${BASE_URL}api/v1/product/product-photo/${p._id}/0`} 
                                                     className="suggestion-img" 
                                                     alt={p.name} 
                                                     onError={(e) => { e.target.src = magnifying; }}

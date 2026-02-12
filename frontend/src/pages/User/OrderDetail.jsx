@@ -9,6 +9,7 @@ import {
   FaDownload, FaTimes, FaUndo, FaCreditCard,
   FaCheckCircle, FaExclamationTriangle, FaPercent,
   FaGift, FaShieldAlt, FaTimesCircle, FaClock,
+  FaExternalLinkAlt, FaBarcode
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/auth";
@@ -80,7 +81,7 @@ const Loader = ({ msg = "Loading order details..." }) => (
   <Layout>
     <div style={{ display:"flex", flexDirection:"column", justifyContent:"center", alignItems:"center", height:"100vh", background: C.deepBurgundy }}>
       <div className="spin-ring" />
-      <p style={{ color: C.gold, marginTop:20, fontFamily:"serif", letterSpacing:"2px", textTransform:"uppercase", fontSize:"clamp(13px,3.5vw,17px)", textAlign:"center" }}>
+      <p style={{ color: C.gold, marginTop:20, fontFamily:"serif", letterSpacing:"2px", textTransform:"uppercase", fontSize:"clamp(13px,3.5vw,17px)", textAlign:"center", padding:"0 20px" }}>
         {msg}
       </p>
     </div>
@@ -104,13 +105,25 @@ const PayBadge = ({ status }) => {
 };
 
 // ─── Delivery status color ─────────────────────────────────────
-const deliveryColor = (status) => {
+const deliveryColor = (status, paymentStatus) => {
+  // If payment failed, show error color
+  if (paymentStatus === "FAILED") return C.danger;
+  // If payment pending, show warning color
+  if (paymentStatus === "PENDING_PAYMENT") return C.warning;
+  
   if (!status) return C.gold;
   const s = status.toLowerCase();
   if (s === "delivered") return C.success;
   if (s.includes("cancel")) return C.danger;
   if (s.includes("request") || s.includes("return")) return C.warning;
   return C.gold;
+};
+
+// ─── Get display status ─────────────────────────────────────────
+const getDisplayStatus = (orderStatus, paymentStatus) => {
+  if (paymentStatus === "FAILED") return "PAYMENT FAILED";
+  if (paymentStatus === "PENDING_PAYMENT") return "AWAITING PAYMENT";
+  return orderStatus?.includes("Request") ? "UNDER REVIEW" : orderStatus?.toUpperCase();
 };
 
 // ─── CANCEL / RETURN REASONS ──────────────────────────────────
@@ -128,6 +141,7 @@ const OrderDetails = () => {
   const [invoice,        setInvoice]        = useState(null);
   const [loadingInvoice, setLoadingInvoice] = useState(false);
   const [processing,     setProcessing]     = useState(false);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
 
   const [cancelOpen,      setCancelOpen]      = useState(false);
   const [returnOpen,      setReturnOpen]      = useState(false);
@@ -171,6 +185,7 @@ const OrderDetails = () => {
   const handleDownloadInvoice = async () => {
     if (!invoice?._id) return;
     try {
+      setDownloadingInvoice(true);
       toast.loading("Downloading invoice...");
       const response = await axios.get(`${BASE_URL}api/v1/invoice/download/${invoice._id}`, {
         responseType: "blob",
@@ -188,6 +203,8 @@ const OrderDetails = () => {
     } catch {
       toast.dismiss();
       toast.error("Failed to download invoice");
+    } finally {
+      setDownloadingInvoice(false);
     }
   };
 
@@ -234,7 +251,7 @@ const OrderDetails = () => {
   };
 
   // ── Eligibility ──────────────────────────────────────────────
-  const canCancel = order && ["Not Processed","Processing"].includes(order.status);
+  const canCancel = order && ["Not Processed","Processing"].includes(order.status) && order.paymentDetails?.status !== "FAILED";
   const canReturn = order?.status === "Delivered" && moment().diff(moment(order.updatedAt), "days") <= 7;
 
   if (loading) return <Loader />;
@@ -312,6 +329,29 @@ const OrderDetails = () => {
         .info-label { min-width: 100px; flex-shrink: 0; }
         .info-val { color:#fff; flex:1; word-break:break-word; }
 
+        /* ── Tracking box ── */
+        .tracking-box {
+          background: rgba(212,175,55,0.08);
+          border: 1px solid ${C.gold}44;
+          border-radius: 8px;
+          padding: 14px 16px;
+          margin-top: 16px;
+        }
+        .tracking-row {
+          display: flex; align-items: center;
+          gap: 10px; margin-bottom: 10px;
+          font-size: 14px;
+        }
+        .tracking-row:last-child { margin-bottom: 0; }
+        .tracking-label { color: ${C.muted}; min-width: 100px; }
+        .tracking-val { color: #fff; flex: 1; font-family: monospace; font-weight: 600; }
+        .tracking-link {
+          color: ${C.gold}; text-decoration: none;
+          display: inline-flex; align-items: center; gap: 6px;
+          transition: opacity 0.2s;
+        }
+        .tracking-link:hover { opacity: 0.8; text-decoration: underline; }
+
         /* ── Action buttons ── */
         .action-row {
           display: flex; gap: 14px; margin-top: 22px; flex-wrap: wrap;
@@ -322,12 +362,22 @@ const OrderDetails = () => {
           font-weight: 700; font-size: 14px; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
           gap: 8px; transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+          position: relative;
         }
         .btn-action:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
         .btn-action:disabled { opacity: 0.45; cursor: not-allowed; }
         .btn-invoice { background: ${C.gold}; color: ${C.deepBurgundy}; }
         .btn-cancel  { background: ${C.danger}; color: #fff; }
         .btn-return  { background: #ff9800; color: #fff; }
+
+        /* ── Button spinner ── */
+        .btn-spinner {
+          width: 14px; height: 14px;
+          border: 2px solid currentColor;
+          border-top-color: transparent;
+          border-radius: 50%;
+          animation: spin 0.6s linear infinite;
+        }
 
         /* ── Products ── */
         .prod-item {
@@ -380,6 +430,17 @@ const OrderDetails = () => {
           animation: spin 0.9s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Small inline spinner ── */
+        .inline-spinner {
+          display: inline-block;
+          width: 12px; height: 12px;
+          border: 2px solid ${C.gold}33;
+          border-top-color: ${C.gold};
+          border-radius: 50%;
+          animation: spin 0.6s linear infinite;
+          margin-left: 8px;
+        }
 
         /* ── Modal ── */
         .modal-overlay {
@@ -473,10 +534,21 @@ const OrderDetails = () => {
           padding: 10px 22px; border: none; border-radius: 8px;
           cursor: pointer; font-weight: 700; font-size: 14px;
           transition: opacity 0.2s;
+          display: flex; align-items: center; gap: 8px;
         }
         .btn-modal-confirm:disabled { opacity: 0.45; cursor: not-allowed; }
         .btn-confirm-cancel { background: ${C.danger}; color: #fff; }
         .btn-confirm-return { background: #ff9800; color: #fff; }
+
+        /* ── Payment warning ── */
+        .payment-warning {
+          background: rgba(255,77,79,0.1);
+          border: 1px solid ${C.danger}44;
+          border-radius: 8px; padding: 12px 16px;
+          margin-bottom: 18px;
+          display: flex; align-items: flex-start; gap: 10px;
+          font-size: 13px; color: ${C.danger};
+        }
 
         /* ── Mobile ── */
         @media (max-width: 600px) {
@@ -485,12 +557,13 @@ const OrderDetails = () => {
           .order-hdr { flex-direction: column; gap: 10px; }
           .prod-img { width: 72px; height: 72px; }
           .info-label { min-width: 80px; }
+          .tracking-label { min-width: 80px; }
           .action-row { flex-direction: column; }
           .btn-action { min-width: unset; width: 100%; }
           .sum-total  { font-size: 1rem; }
           .modal-footer { flex-direction: column-reverse; }
           .btn-modal-close,
-          .btn-modal-confirm { width: 100%; text-align: center; padding: 13px; }
+          .btn-modal-confirm { width: 100%; text-align: center; padding: 13px; justify-content: center; }
         }
 
         @media (max-width: 400px) {
@@ -518,16 +591,29 @@ const OrderDetails = () => {
                 <span style={{
                   display:"inline-flex", alignItems:"center", gap:6,
                   padding:"6px 16px", borderRadius:20, fontWeight:700, fontSize:11, letterSpacing:1,
-                  background: deliveryColor(order.status) + "22",
-                  color: deliveryColor(order.status),
-                  border: `1px solid ${deliveryColor(order.status)}`,
+                  background: deliveryColor(order.status, order.paymentDetails?.status) + "22",
+                  color: deliveryColor(order.status, order.paymentDetails?.status),
+                  border: `1px solid ${deliveryColor(order.status, order.paymentDetails?.status)}`,
                 }}>
-                  {order.status?.includes("Request") ? "UNDER REVIEW" : order.status?.toUpperCase()}
+                  {getDisplayStatus(order.status, order.paymentDetails?.status)}
                 </span>
                 {/* Payment status badge */}
                 <PayBadge status={order.paymentDetails?.status} />
               </div>
             </div>
+
+            {/* Payment failed warning */}
+            {order.paymentDetails?.status === "FAILED" && (
+              <div className="payment-warning">
+                <FaExclamationTriangle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                <div>
+                  <strong>Payment Failed</strong>
+                  <p style={{ marginTop: 4, fontSize: 12, color: C.muted }}>
+                    Your payment could not be processed. Please retry or contact support for assistance.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Info rows */}
             <div className="info-row">
@@ -578,11 +664,66 @@ const OrderDetails = () => {
               </div>
             )}
 
+            {/* Tracking Information */}
+            {(order.awbNumber || order.trackingLink) && (
+              <div className="tracking-box">
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:12, color: C.gold, fontWeight:700, fontSize:13 }}>
+                  <FaTruck /> TRACKING INFORMATION
+                </div>
+                
+                {order.awbNumber && (
+                  <div className="tracking-row">
+                    <FaBarcode color={C.gold} />
+                    <span className="tracking-label">AWB Number:</span>
+                    <span className="tracking-val">{order.awbNumber}</span>
+                  </div>
+                )}
+
+                {order.trackingLink && (
+                  <div className="tracking-row">
+                    <FaExternalLinkAlt color={C.gold} />
+                    <span className="tracking-label">Track Shipment:</span>
+                    <a 
+                      href={order.trackingLink} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="tracking-link"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      View Tracking <FaExternalLinkAlt size={10} />
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Action buttons */}
             <div className="action-row">
-              {order.status === "Delivered" && invoice && (
-                <button className="btn-action btn-invoice" onClick={handleDownloadInvoice} disabled={loadingInvoice}>
-                  <FaDownload /> {loadingInvoice ? "Loading..." : "Download Invoice"}
+              {order.status === "Delivered" && (
+                <button 
+                  className="btn-action btn-invoice" 
+                  onClick={handleDownloadInvoice} 
+                  disabled={loadingInvoice || downloadingInvoice || !invoice}
+                >
+                  {downloadingInvoice ? (
+                    <>
+                      <div className="btn-spinner" />
+                      Downloading...
+                    </>
+                  ) : loadingInvoice ? (
+                    <>
+                      <div className="btn-spinner" />
+                      Loading...
+                    </>
+                  ) : invoice ? (
+                    <>
+                      <FaDownload /> Download Invoice
+                    </>
+                  ) : (
+                    <>
+                      <FaDownload /> Invoice Not Available
+                    </>
+                  )}
                 </button>
               )}
               {canCancel && (
@@ -715,7 +856,14 @@ const OrderDetails = () => {
             onClick={handleCancel}
             disabled={processing || !cancelReason || (cancelReason === "Other" && !cancelOtherText.trim())}
           >
-            {processing ? "Processing..." : "Confirm Cancellation"}
+            {processing ? (
+              <>
+                <div className="btn-spinner" />
+                Processing...
+              </>
+            ) : (
+              "Confirm Cancellation"
+            )}
           </button>
         </div>
       </Modal>
@@ -751,7 +899,14 @@ const OrderDetails = () => {
             onClick={handleReturn}
             disabled={processing || !returnReason || (returnReason === "Other" && !returnOtherText.trim())}
           >
-            {processing ? "Processing..." : "Submit Return Request"}
+            {processing ? (
+              <>
+                <div className="btn-spinner" />
+                Processing...
+              </>
+            ) : (
+              "Submit Return Request"
+            )}
           </button>
         </div>
       </Modal>
