@@ -1,22 +1,32 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/auth";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Spinner from "../Spinner";
+import { isTokenExpired, handleTokenExpiration } from "../../context/auth";
 
 export default function AdminRoute() {
   const [ok, setOk] = useState(false);
   const [loading, setLoading] = useState(true); 
-  const [auth] = useAuth();
+  const [auth, setAuth] = useAuth();
+  const navigate = useNavigate();
   const BASE_URL = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const authCheck = async () => {
+      // Check if token is expired before making API call
+      if (auth?.token && isTokenExpired(auth.token)) {
+        handleTokenExpiration(setAuth, navigate);
+        setLoading(false);
+        setOk(false);
+        return;
+      }
+
       try {
         // Updated to include "Bearer " prefix in headers
         const res = await axios.get(`${BASE_URL}api/v1/auth/admin-auth`, {
           headers: {
-            Authorization: `Bearer ${auth?.token}`, //
+            Authorization: `Bearer ${auth?.token}`,
           },
         });
         
@@ -27,6 +37,12 @@ export default function AdminRoute() {
         }
       } catch (error) {
         console.log("Admin Check Failed:", error);
+        
+        // Handle token expiration (401)
+        if (error.response?.status === 401) {
+          handleTokenExpiration(setAuth, navigate);
+        }
+        
         setOk(false);
       } finally {
         setLoading(false); 
@@ -39,7 +55,7 @@ export default function AdminRoute() {
       setLoading(false);
       setOk(false);
     }
-  }, [auth?.token]);
+  }, [auth?.token, navigate]);
 
   if (loading) return <Spinner />;
 
