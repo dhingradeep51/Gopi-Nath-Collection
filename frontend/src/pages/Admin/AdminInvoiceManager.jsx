@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import AdminMenu from "../../components/Menus/AdminMenu";
 import { Table, Button, Input, Tag, Tooltip, Row, Col, Statistic } from "antd";
+import LoadingSpinner from "../../components/LoadingSpinner";
 import {
   FaFileDownload, FaSearch, FaFileInvoice, FaCheckCircle,
   FaRegClock, FaSync, FaEye, FaHashtag, FaPlus, FaArrowRight
@@ -210,13 +211,16 @@ const handleGenerateInvoice = async (order) => {
           </Col>
         </Row>
 
-        <Table
-          columns={columns}
-          dataSource={filteredData}
-          rowKey="_id"
-          loading={loading}
-          className="gnc-invoice-table"
-        />
+        {loading ? (
+          <LoadingSpinner message="Loading invoices..." size="large" />
+        ) : (
+          <Table
+            columns={columns}
+            dataSource={filteredData}
+            rowKey="_id"
+            className="gnc-invoice-table"
+          />
+        )}
       </div>
 
       <style>{`

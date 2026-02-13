@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Layout from "../../components/Layout";
-import { Spin, message } from "antd";
+import { message } from "antd";
+import LoadingSpinner from "../../components/LoadingSpinner";
 import { ShoppingOutlined, HomeOutlined, RightOutlined } from "@ant-design/icons";
 import { FaInfoCircle } from "react-icons/fa";
 import { useCart } from "../../context/cart";
@@ -118,10 +119,7 @@ const CategoryProduct = () => {
         {/* Products Container */}
         <div className="products-container">
           {loading ? (
-            <div className="loading-state">
-              <Spin size="large" />
-              <p className="loading-text">Loading divine pieces...</p>
-            </div>
+            <LoadingSpinner message="Loading divine pieces..." size="large" />
           ) : products?.length > 0 ? (
             <div className="products-grid">
               {products.map((p) => (
@@ -292,18 +290,6 @@ const CategoryProduct = () => {
           padding: ${isMobile ? "40px 15px" : "60px 40px"};
         }
 
-        /* Loading State */
-        .loading-state {
-          text-align: center;
-          padding: 100px 20px;
-        }
-
-        .loading-text {
-          margin-top: 20px;
-          color: ${gold};
-          font-size: 14px;
-          opacity: 0.7;
-        }
 
         /* Products Grid */
         .products-grid {

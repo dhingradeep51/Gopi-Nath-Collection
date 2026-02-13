@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../../components/Layout";
 import axios from "axios";
 import moment from "moment";
+import LoadingSpinner from "../../components/LoadingSpinner";
 import {
   FaArrowLeft, FaTruck, FaBoxOpen,
   FaInfoCircle, FaMapMarkerAlt, FaReceipt,
@@ -79,12 +80,7 @@ const ReasonRadio = ({ options, value, onChange }) => (
 // ─── Loader ──────────────────────────────────────────────────────
 const Loader = ({ msg = "Loading order details..." }) => (
   <Layout>
-    <div style={{ display:"flex", flexDirection:"column", justifyContent:"center", alignItems:"center", height:"100vh", background: C.deepBurgundy }}>
-      <div className="spin-ring" />
-      <p style={{ color: C.gold, marginTop:20, fontFamily:"serif", letterSpacing:"2px", textTransform:"uppercase", fontSize:"clamp(13px,3.5vw,17px)", textAlign:"center", padding:"0 20px" }}>
-        {msg}
-      </p>
-    </div>
+    <LoadingSpinner message={msg} size="large" fullScreen={true} />
   </Layout>
 );
 
@@ -430,14 +426,6 @@ const OrderDetails = () => {
           flex-wrap: wrap; gap: 8px;
         }
 
-        /* ── Spinner ── */
-        .spin-ring {
-          width: 52px; height: 52px;
-          border: 4px solid ${C.gold}33;
-          border-top-color: ${C.gold};
-          border-radius: 50%;
-          animation: spin 0.9s linear infinite;
-        }
         @keyframes spin { to { transform: rotate(360deg); } }
 
         /* ── Small inline spinner ── */

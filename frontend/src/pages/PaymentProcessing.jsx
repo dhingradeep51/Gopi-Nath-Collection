@@ -7,12 +7,12 @@ import toast from "react-hot-toast";
 import {
   FaCheckCircle,
   FaTimesCircle,
-  FaSpinner,
   FaCopy,
   FaCheck,
   FaBoxOpen,
   FaShieldAlt,
 } from "react-icons/fa";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const BASE_URL = import.meta.env.VITE_API_URL || "/";
 
@@ -207,11 +207,9 @@ const PaymentProcessing = () => {
           {/* PROCESSING STATE */}
           {status === "processing" && (
             <div className="processing-card">
-              <div className="spinner-wrapper">
-                <FaSpinner className="spinner-icon" />
-              </div>
+              <LoadingSpinner message="Verifying Payment..." size="large" />
 
-              <h1 className="processing-title">Verifying Payment</h1>
+              <h1 className="processing-title" style={{ marginTop: "20px" }}>Verifying Payment</h1>
               <p className="processing-subtitle">Please wait while we confirm your transaction</p>
 
               <div className="order-info-box">
@@ -312,20 +310,6 @@ const PaymentProcessing = () => {
           animation: fadeIn 0.5s ease;
         }
 
-        /* SPINNER */
-        .spinner-wrapper {
-          margin-bottom: 30px;
-        }
-
-        .spinner-icon {
-          font-size: 60px;
-          color: ${COLORS.gold};
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
 
         /* TITLES */
         .processing-title,

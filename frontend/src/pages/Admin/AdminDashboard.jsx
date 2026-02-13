@@ -6,6 +6,7 @@ import AdminMenu from "../../components/Menus/AdminMenu";
 import { useAuth } from "../../context/auth";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import LoadingSpinner from "../../components/LoadingSpinner";
 import {
   TrendingUp, Users, Package, FileText, ArrowRight,
   ShoppingBag, Layers, PlusCircle, Ticket, UserCheck,
@@ -541,34 +542,6 @@ const AdminDashboard = () => {
           font-weight: 300;
         }
 
-        .loading-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 60vh;
-          gap: 20px;
-        }
-
-        .spinner {
-          width: 60px;
-          height: 60px;
-          border: 4px solid rgba(212, 175, 55, 0.2);
-          border-top-color: #D4AF37;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-          color: #D4AF37;
-          font-size: 1.1rem;
-          font-weight: 300;
-          letter-spacing: 2px;
-        }
 
         /* ══════════════════════════════════════════════
            MOBILE OPTIMIZATIONS
@@ -885,20 +858,6 @@ const AdminDashboard = () => {
             font-size: 0.85rem;
           }
 
-          .loading-state {
-            min-height: 50vh;
-          }
-
-          .spinner {
-            width: 50px;
-            height: 50px;
-            border-width: 3px;
-          }
-
-          .loading-text {
-            font-size: 1rem;
-            letter-spacing: 1.5px;
-          }
         }
 
         @media (max-width: 360px) {
@@ -1672,10 +1631,7 @@ const AdminDashboard = () => {
 
           {/* Live Stats */}
           {loading ? (
-            <div className="loading-state">
-              <div className="spinner" />
-              <p className="loading-text">Loading Dashboard...</p>
-            </div>
+            <LoadingSpinner message="Loading Dashboard..." size="large" />
           ) : (
             <div className="stats-grid">
               <div className="stat-card">

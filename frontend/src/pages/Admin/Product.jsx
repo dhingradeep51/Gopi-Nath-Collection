@@ -4,9 +4,11 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { FaTrash, FaEdit, FaPlus } from "react-icons/fa";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const Products = () => {
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -19,10 +21,13 @@ const Products = () => {
 
   const getAllProducts = async () => {
     try {
+      setLoading(true);
       const { data } = await axios.get(`${BASE_URL}api/v1/product/get-product`);
       if (data?.success) setProducts(data.products);
     } catch (error) {
       toast.error("Error fetching inventory");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -281,8 +286,11 @@ const Products = () => {
             </Link>
           </div>
 
-          <div className="prod-grid">
-            {products?.map((p) => {
+          {loading ? (
+            <LoadingSpinner message="Loading inventory..." size="large" />
+          ) : (
+            <div className="prod-grid">
+              {products?.map((p) => {
               const stockClass = p.quantity > 5 ? "instock" : p.quantity > 0 ? "low" : "outstock";
               
               // ✅ Updated to fetch the first photo (index 0) from the photos array
@@ -339,7 +347,8 @@ const Products = () => {
                 </div>
               );
             })}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </>

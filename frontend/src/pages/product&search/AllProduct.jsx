@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Layout from "../../components/Layout";
 import axios from "axios";
-import { Checkbox, Radio, Spin, message, Drawer, Button, Badge } from "antd";
+import { Checkbox, Radio, message, Drawer, Button, Badge } from "antd";
+import LoadingSpinner from "../../components/LoadingSpinner";
 import { Prices } from "../../components/Prices";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../../context/cart";
@@ -237,10 +238,7 @@ const AllProducts = () => {
 
             {/* Loading State */}
             {loading ? (
-              <div className="loading-container">
-                <Spin size="large" />
-                <p className="loading-text">Loading divine pieces...</p>
-              </div>
+              <LoadingSpinner message="Loading divine pieces..." size="large" />
             ) : (
               <>
                 {products.length > 0 ? (
@@ -889,18 +887,6 @@ const AllProducts = () => {
           background-color: rgba(220, 38, 38, 0.1) !important;
         }
 
-        /* Loading State */
-        .loading-container {
-          text-align: center;
-          padding: 100px 20px;
-        }
-
-        .loading-text {
-          margin-top: 20px;
-          color: ${gold};
-          font-size: 14px;
-          opacity: 0.7;
-        }
 
         /* Empty State */
         .empty-state {

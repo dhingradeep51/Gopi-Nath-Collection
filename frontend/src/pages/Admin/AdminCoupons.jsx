@@ -6,6 +6,7 @@ import AdminMenu from "../../components/Menus/AdminMenu";
 import axios from "axios";
 import { message, Modal, Select, InputNumber, DatePicker, Table, Tag, Popconfirm } from "antd";
 import moment from "moment";
+import LoadingSpinner from "../../components/LoadingSpinner";
 import {
   FaTrash,
   FaTicketAlt,
@@ -916,14 +917,17 @@ const AdminCoupons = () => {
 
           <div className="table-card">
             <h3 className="section-title">All Coupons ({coupons.length})</h3>
-            <Table
-              columns={columns}
-              dataSource={coupons}
-              rowKey="_id"
-              loading={loading}
-              pagination={{ pageSize: 10 }}
-              scroll={{ x: 900 }}
-            />
+            {loading ? (
+              <LoadingSpinner message="Loading coupons..." size="large" />
+            ) : (
+              <Table
+                columns={columns}
+                dataSource={coupons}
+                rowKey="_id"
+                pagination={{ pageSize: 10 }}
+                scroll={{ x: 900 }}
+              />
+            )}
           </div>
         </div>
 

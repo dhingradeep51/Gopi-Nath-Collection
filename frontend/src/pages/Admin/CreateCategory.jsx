@@ -3,7 +3,8 @@ import AdminMenu from "../../components/Menus/AdminMenu";
 import toast from "react-hot-toast";
 import axios from "axios";
 import CategoryForm from "../../components/Form/CreateForm"; 
-import { Modal, Spin } from "antd"; // Added Spin for a nice loader
+import { Modal } from "antd";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const CreateCategory = () => {
   const [categories, setCategories] = useState([]);
@@ -248,34 +249,6 @@ const CreateCategory = () => {
           background: #d4380d;
         }
 
-        .loading-state {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          min-height: 60vh;
-          gap: 20px;
-        }
-
-        .spinner {
-          width: 60px;
-          height: 60px;
-          border: 4px solid rgba(212, 175, 55, 0.2);
-          border-top-color: #D4AF37;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
-        .loading-text {
-          color: #D4AF37;
-          font-size: 1.1rem;
-          font-weight: 300;
-          letter-spacing: 2px;
-        }
 
         /* Mobile Optimizations */
         @media (max-width: 1024px) {
@@ -389,10 +362,7 @@ const CreateCategory = () => {
           </div>
 
           {loading ? (
-            <div className="loading-state">
-              <div className="spinner" />
-              <p className="loading-text">Loading Categories...</p>
-            </div>
+            <LoadingSpinner message="Loading Categories..." size="large" />
           ) : (
             <div className="content-section">
               <h2 style={{ color: '#D4AF37', marginBottom: '20px', fontSize: '1.5rem' }}>

@@ -5,6 +5,7 @@ import { useAuth } from "../../context/auth";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
+import LoadingSpinner from "../../components/LoadingSpinner";
 import {
   FaTag,
   FaTruck,
@@ -155,9 +156,8 @@ const AvailableCouponsModal = ({
         
         <div className="modal-body">
           {loading ? (
-            <div className="loading-coupons">
-              <div className="spinner"></div>
-              <p>Loading coupons...</p>
+            <div style={{ padding: "40px 20px", display: "flex", justifyContent: "center" }}>
+              <LoadingSpinner message="Loading coupons..." size="medium" />
             </div>
           ) : coupons.length === 0 ? (
             <div className="no-coupons">
@@ -1717,21 +1717,6 @@ const CheckOutPage = () => {
           flex: 1;
         }
 
-        .loading-coupons {
-          text-align: center;
-          color: #ccc;
-          padding: 40px;
-        }
-
-        .spinner {
-          width: 35px;
-          height: 35px;
-          border: 3px solid ${COLORS.gold}33;
-          border-top-color: ${COLORS.gold};
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-          margin: 0 auto 15px;
-        }
 
         .no-coupons {
           text-align: center;

@@ -106,15 +106,12 @@ const ReviewModal = ({ productId, onClose, onSubmit }) => {
   );
 };
 
+import LoadingSpinner from "../../components/LoadingSpinner";
+
 // ─── Loading Spinner ─────────────────────────────────────────────
 const Loader = () => (
   <Layout>
-    <div style={{ display:"flex", flexDirection:"column", justifyContent:"center", alignItems:"center", height:"80vh", background: COLORS.deepBurgundy }}>
-      <div className="custom-spinner" />
-      <h4 style={{ color: COLORS.gold, fontFamily:"serif", letterSpacing:"2px", textTransform:"uppercase", marginTop:20, fontSize:"1.1rem" }}>
-        Fetching your divine history...
-      </h4>
-    </div>
+    <LoadingSpinner message="Fetching your divine history..." size="large" fullScreen={true} />
   </Layout>
 );
 
@@ -347,15 +344,6 @@ const getOrders = async () => {
         }
         .empty-state p { color: #888; max-width: 400px; margin: 12px auto 0; font-size: 14px; }
 
-        /* ── Spinner ── */
-        .custom-spinner {
-          width: 48px; height: 48px;
-          border: 4px solid ${COLORS.gold}33;
-          border-top-color: ${COLORS.gold};
-          border-radius: 50%;
-          animation: spin 0.9s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
 
         /* ── Modal ── */
         .modal-overlay {

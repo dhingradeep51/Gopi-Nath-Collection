@@ -1,5 +1,6 @@
 // AdminOrderDetails.jsx - Mobile Optimized Version with Loading State
 // Key fixes: Button sizes, loading state, input heights, touch targets
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
@@ -7,6 +8,7 @@ import Layout from "../../components/Layout";
 import axios from "axios";
 import moment from "moment";
 import { Input, Button, Dropdown, Tag, Divider } from "antd";
+import LoadingSpinner from "../../components/LoadingSpinner";
 import { 
   FaChevronDown, FaArrowLeft, FaTruck, FaEdit, FaUser, 
   FaMapMarkerAlt, FaCopy, FaFileInvoice, FaShoppingBag, 
@@ -128,59 +130,10 @@ const AdminOrderDetails = () => {
             padding-bottom: max(60px, env(safe-area-inset-bottom));
           }
 
-          .loading-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 60vh;
-            gap: 20px;
-          }
-
-          .spinner {
-            width: 60px;
-            height: 60px;
-            border: 4px solid rgba(212, 175, 55, 0.2);
-            border-top-color: #D4AF37;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-          }
-
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-
-          .loading-text {
-            color: #D4AF37;
-            font-size: 1.1rem;
-            font-weight: 300;
-            letter-spacing: 2px;
-          }
-
-          @media (max-width: 480px) {
-            .loading-state {
-              min-height: 50vh;
-              gap: 15px;
-            }
-
-            .spinner {
-              width: 50px;
-              height: 50px;
-              border-width: 3px;
-            }
-
-            .loading-text {
-              font-size: 1rem;
-              letter-spacing: 1px;
-            }
-          }
         `}</style>
         <div className="orders-page">
           <div className="orders-container">
-            <div className="loading-state">
-              <div className="spinner" />
-              <p className="loading-text">Loading order details...</p>
-            </div>
+            <LoadingSpinner message="Loading order details..." size="large" />
           </div>
         </div>
       </>

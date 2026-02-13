@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Layout from "../../components/Layout";
-import { Spin, message, Rate, Badge } from "antd";
+import { message, Rate, Badge } from "antd";
+import LoadingSpinner from "../../components/LoadingSpinner";
 import { useCart } from "../../context/cart";
 import {
   ShoppingOutlined,
@@ -707,9 +708,7 @@ const ProductDetails = () => {
   if (loading) {
     return (
       <Layout title="Revealing Elegance...">
-        <div style={styles.loadingContainer}>
-          <Spin size="large" />
-        </div>
+        <LoadingSpinner message="Loading product details..." size="large" fullScreen={true} />
       </Layout>
     );
   }

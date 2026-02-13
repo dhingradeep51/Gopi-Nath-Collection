@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import Layout from "../components/Layout.jsx";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Checkbox, Radio, Drawer, Button, Badge, Spin, message } from "antd";
+import { Checkbox, Radio, Drawer, Button, Badge, message } from "antd";
+import LoadingSpinner from "../components/LoadingSpinner.jsx";
 import {
   FilterOutlined,
   ShoppingOutlined,
@@ -157,10 +158,7 @@ const HomePage = () => {
 
           {/* Products Grid */}
           {loading ? (
-            <div className="loading-container">
-              <Spin size="large" />
-              <p className="loading-text">Loading divine pieces...</p>
-            </div>
+            <LoadingSpinner message="Loading divine pieces..." size="large" />
           ) : (
             <>
               {displayedProducts.length > 0 ? (
@@ -396,18 +394,6 @@ const HomePage = () => {
           letter-spacing: 2px;
         }
 
-        /* Loading State */
-        .loading-container {
-          text-align: center;
-          padding: 100px 20px;
-        }
-
-        .loading-text {
-          margin-top: 20px;
-          color: ${gold};
-          font-size: 14px;
-          opacity: 0.7;
-        }
 
         /* Products Grid */
         .products-grid {

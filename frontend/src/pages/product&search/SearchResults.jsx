@@ -3,7 +3,8 @@ import Layout from "../../components/Layout";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useCart } from "../../context/cart";
-import { Spin, message, Empty } from "antd";
+import { message, Empty } from "antd";
+import LoadingSpinner from "../../components/LoadingSpinner";
 import {
   FaCartPlus,
   FaInfoCircle,
@@ -109,10 +110,7 @@ const SearchResults = () => {
         {/* Results Container */}
         <div className="results-container">
           {loading ? (
-            <div className="loading-state">
-              <Spin size="large" />
-              <p className="loading-text">Searching divine collections...</p>
-            </div>
+            <LoadingSpinner message="Searching divine collections..." size="large" />
           ) : products.length === 0 ? (
             <div className="empty-state">
               <Empty
@@ -311,18 +309,6 @@ const SearchResults = () => {
           padding: ${isMobile ? "40px 15px" : "60px 40px"};
         }
 
-        /* Loading State */
-        .loading-state {
-          text-align: center;
-          padding: 100px 20px;
-        }
-
-        .loading-text {
-          margin-top: 20px;
-          color: ${gold};
-          font-size: 14px;
-          opacity: 0.7;
-        }
 
         /* Empty State */
         .empty-state {

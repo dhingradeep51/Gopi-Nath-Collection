@@ -8,6 +8,7 @@ import {
   FaUserCircle, FaPaperclip, FaTrash, FaSearch, FaUpload 
 } from "react-icons/fa";
 import { Table, Tag, Button, Modal, Input, Row, Col, Statistic, Card, Popconfirm, Upload } from "antd";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const { TextArea } = Input;
 
@@ -176,14 +177,17 @@ const HelpCenter = () => {
               </div>
 
               {/* Tickets Table */}
-              <Table 
-                dataSource={filteredTickets} 
-                columns={columns} 
-                loading={loading} 
-                rowKey="_id" 
-                pagination={{ pageSize: 8 }} 
-                className="custom-table"
-              />
+              {loading ? (
+                <LoadingSpinner message="Loading tickets..." size="large" />
+              ) : (
+                <Table 
+                  dataSource={filteredTickets} 
+                  columns={columns} 
+                  rowKey="_id" 
+                  pagination={{ pageSize: 8 }} 
+                  className="custom-table"
+                />
+              )}
 
               {/* Reply Modal */}
               <Modal 
