@@ -3,6 +3,7 @@ import Layout from "../../components/Layout";
 import axios from "axios";
 import { useAuth } from "../../context/auth";
 import moment from "moment";
+import LoadingSpinner from "../../components/LoadingSpinner";
 import {
   FaStar, FaPen, FaShoppingBag, FaHome, FaGift,
   FaCheckCircle, FaClock, FaTimesCircle, FaTruck,
@@ -105,8 +106,6 @@ const ReviewModal = ({ productId, onClose, onSubmit }) => {
     </div>
   );
 };
-
-import LoadingSpinner from "../../components/LoadingSpinner";
 
 // ─── Loading Spinner ─────────────────────────────────────────────
 const Loader = () => (

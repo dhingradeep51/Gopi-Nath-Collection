@@ -1,6 +1,5 @@
 // AdminOrderDetails.jsx - Mobile Optimized Version with Loading State
 // Key fixes: Button sizes, loading state, input heights, touch targets
-import LoadingSpinner from "../../components/LoadingSpinner";
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";

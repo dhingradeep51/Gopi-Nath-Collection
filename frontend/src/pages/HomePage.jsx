@@ -3,7 +3,7 @@ import Layout from "../components/Layout.jsx";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Checkbox, Radio, Drawer, Button, Badge, message } from "antd";
-import LoadingSpinner from "../components/LoadingSpinner.jsx";
+import LoadingSpinner from "../components/LoadingSpinner";
 import {
   FilterOutlined,
   ShoppingOutlined,
