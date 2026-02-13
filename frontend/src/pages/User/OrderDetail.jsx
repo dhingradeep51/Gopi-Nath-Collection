@@ -92,9 +92,11 @@ const PaymentBadge = ({ order }) => {
   const normalizedStatus = String(paymentStatus).toUpperCase();
   
   const map = {
-    PAID:    { cls: "badge-paid",    icon: <FaCheckCircle size={10} />, label: "PAID" },
-    COD:     { cls: "badge-cod",     icon: <FaTruck size={10} />,       label: "COD" },
-    PENDING: { cls: "badge-pending", icon: <FaClock size={10} />,       label: "PENDING" },
+    PAID:            { cls: "badge-paid",    icon: <FaCheckCircle size={10} />, label: "PAID" },
+    FAILED:          { cls: "badge-failed",  icon: <FaTimesCircle size={10} />, label: "FAILED" },
+    COD:             { cls: "badge-cod",     icon: <FaTruck size={10} />,       label: "COD" },
+    PENDING_PAYMENT: { cls: "badge-pending", icon: <FaClock size={10} />,       label: "PENDING" },
+    PENDING:         { cls: "badge-pending", icon: <FaClock size={10} />,       label: "PENDING" },
   };
   
   const cfg = map[normalizedStatus] || map["PENDING"];
@@ -106,8 +108,26 @@ const PaymentBadge = ({ order }) => {
   );
 };
 
-// Use it like this inside your map:
-// <PaymentBadge order={o} />
+// ─── PayBadge component (for status prop) ────────────────────────
+const PayBadge = ({ status }) => {
+  const normalizedStatus = status ? String(status).toUpperCase().trim() : "PENDING";
+  
+  const map = {
+    PAID:            { cls: "badge-paid",    icon: <FaCheckCircle size={10} />, label: "PAID" },
+    FAILED:          { cls: "badge-failed",  icon: <FaTimesCircle size={10} />, label: "FAILED" },
+    COD:             { cls: "badge-cod",     icon: <FaTruck size={10} />,       label: "COD" },
+    PENDING_PAYMENT: { cls: "badge-pending", icon: <FaClock size={10} />,       label: "PENDING" },
+    PENDING:         { cls: "badge-pending", icon: <FaClock size={10} />,       label: "PENDING" },
+  };
+  
+  const cfg = map[normalizedStatus] || map["PENDING"];
+  
+  return (
+    <span className={`status-badge ${cfg.cls}`}>
+      {cfg.icon} {cfg.label}
+    </span>
+  );
+};
 
 // ─── Delivery status color ─────────────────────────────────────
 const deliveryColor = (status, paymentStatus) => {
@@ -157,18 +177,38 @@ const OrderDetails = () => {
 
   // ── Fetch order ──────────────────────────────────────────────
   const fetchOrder = useCallback(async () => {
+    if (!params?.orderID || !auth?.token) {
+      setLoading(false);
+      return;
+    }
+    
     try {
       setLoading(true);
       const { data } = await axios.get(`${BASE_URL}api/v1/order/${params.orderID}`, {
         headers: { Authorization: `Bearer ${auth?.token}` },
       });
-      if (data?.success) setOrder(data.order);
-    } catch {
-      toast.error("Order details not found");
+      
+      if (data?.success && data?.order) {
+        setOrder(data.order);
+      } else {
+        setOrder(null);
+        toast.error("Order details not found");
+      }
+    } catch (error) {
+      console.error("Order fetch error:", error);
+      setOrder(null);
+      
+      // Don't show error toast if it's a 401 (handled by interceptor) or 403
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        // Token expired or unauthorized - interceptor will handle redirect
+        return;
+      }
+      
+      toast.error(error.response?.data?.message || "Failed to load order details");
     } finally {
       setLoading(false);
     }
-  }, [params.orderID, auth?.token]);
+  }, [params.orderID, auth?.token, BASE_URL]);
 
   // ── Fetch invoice ────────────────────────────────────────────
   const fetchInvoice = useCallback(async () => {
@@ -437,6 +477,44 @@ const OrderDetails = () => {
           border-radius: 50%;
           animation: spin 0.6s linear infinite;
           margin-left: 8px;
+        }
+
+        /* ── Payment status badges ── */
+        .status-badge {
+          font-size: 10px; 
+          padding: 6px 14px; 
+          border-radius: 20px;
+          font-weight: 700; 
+          letter-spacing: 1px;
+          display: inline-flex; 
+          align-items: center; 
+          gap: 6px;
+          white-space: nowrap;
+          transition: all 0.2s ease;
+        }
+        .badge-paid { 
+          background: rgba(75,181,67,0.2);   
+          color: #4BB543; 
+          border: 1.5px solid #4BB543;
+          box-shadow: 0 0 8px rgba(75,181,67,0.3);
+        }
+        .badge-pending { 
+          background: rgba(250,173,20,0.2);  
+          color: #faad14; 
+          border: 1.5px solid #faad14;
+          box-shadow: 0 0 8px rgba(250,173,20,0.3);
+        }
+        .badge-failed { 
+          background: rgba(255,77,79,0.2);   
+          color: #ff4d4f; 
+          border: 1.5px solid #ff4d4f;
+          box-shadow: 0 0 8px rgba(255,77,79,0.3);
+        }
+        .badge-cod { 
+          background: rgba(212,175,55,0.2);  
+          color: ${C.gold}; 
+          border: 1.5px solid ${C.gold};
+          box-shadow: 0 0 8px rgba(212,175,55,0.3);
         }
 
         /* ── Modal ── */
