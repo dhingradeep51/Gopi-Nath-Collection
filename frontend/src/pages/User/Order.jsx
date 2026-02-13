@@ -34,9 +34,36 @@ const getProductImage = (p) =>
   `${BASE_URL}api/v1/product/product-photo/${p?.product?._id || p?._id}/0`;
 
 // ─── Payment badge ───────────────────────────────────────────────
-const PaymentBadge = ({ status }) => {
+const PaymentBadge = ({ order }) => {
+  // Extract payment status from order object
+  // Handle both populated paymentDetails object and direct status access
+  let paymentStatus = null;
+  
+  if (order?.paymentDetails) {
+    // If paymentDetails is an object (populated), get status from it
+    if (typeof order.paymentDetails === 'object' && order.paymentDetails.status) {
+      paymentStatus = order.paymentDetails.status;
+    } 
+    // If paymentDetails is just an ID (not populated), check order status as fallback
+    else if (typeof order.paymentDetails === 'string') {
+      // If order status is "Not Processed", likely pending payment
+      paymentStatus = order.status === "Not Processed" ? "PENDING_PAYMENT" : "PAID";
+    }
+  }
+  
+  // Fallback: if no paymentDetails, infer from order status
+  if (!paymentStatus) {
+    if (order?.status === "Not Processed") {
+      paymentStatus = "PENDING_PAYMENT";
+    } else if (order?.status === "Delivered" || order?.status === "Processing" || order?.status === "Shipped") {
+      paymentStatus = "PAID"; // Likely paid if order is progressing
+    } else {
+      paymentStatus = "PENDING";
+    }
+  }
+  
   // Normalize the status to uppercase for comparison
-  const normalizedStatus = status ? String(status).toUpperCase() : null;
+  const normalizedStatus = String(paymentStatus).toUpperCase().trim();
   
   const map = {
     PAID:            { cls: "badge-paid",    icon: <FaCheckCircle size={10} />, label: "PAID" },
@@ -46,7 +73,11 @@ const PaymentBadge = ({ status }) => {
     PENDING:         { cls: "badge-pending", icon: <FaClock size={10} />,       label: "PENDING" },
   };
   
-  const cfg = map[normalizedStatus] || { cls: "badge-pending", icon: <FaClock size={10} />, label: normalizedStatus || "UNPAID" };
+  const cfg = map[normalizedStatus] || { 
+    cls: "badge-pending", 
+    icon: <FaClock size={10} />, 
+    label: normalizedStatus || "PENDING" 
+  };
   
   return (
     <span className={`status-badge ${cfg.cls}`}>
@@ -255,15 +286,41 @@ const getOrders = async () => {
 
         /* ── Payment status badges ── */
         .status-badge {
-          font-size: 10px; padding: 5px 12px; border-radius: 20px;
-          font-weight: 700; letter-spacing: 1px;
-          display: inline-flex; align-items: center; gap: 5px;
+          font-size: 10px; 
+          padding: 6px 14px; 
+          border-radius: 20px;
+          font-weight: 700; 
+          letter-spacing: 1px;
+          display: inline-flex; 
+          align-items: center; 
+          gap: 6px;
           white-space: nowrap;
+          transition: all 0.2s ease;
         }
-        .badge-paid    { background: rgba(75,181,67,0.15);   color: #4BB543; border: 1px solid #4BB543; }
-        .badge-pending { background: rgba(250,173,20,0.15);  color: #faad14; border: 1px solid #faad14; }
-        .badge-failed  { background: rgba(255,77,79,0.15);   color: #ff4d4f; border: 1px solid #ff4d4f; }
-        .badge-cod     { background: rgba(212,175,55,0.15);  color: ${COLORS.gold}; border: 1px solid ${COLORS.gold}; }
+        .badge-paid { 
+          background: rgba(75,181,67,0.2);   
+          color: #4BB543; 
+          border: 1.5px solid #4BB543;
+          box-shadow: 0 0 8px rgba(75,181,67,0.3);
+        }
+        .badge-pending { 
+          background: rgba(250,173,20,0.2);  
+          color: #faad14; 
+          border: 1.5px solid #faad14;
+          box-shadow: 0 0 8px rgba(250,173,20,0.3);
+        }
+        .badge-failed { 
+          background: rgba(255,77,79,0.2);   
+          color: #ff4d4f; 
+          border: 1.5px solid #ff4d4f;
+          box-shadow: 0 0 8px rgba(255,77,79,0.3);
+        }
+        .badge-cod { 
+          background: rgba(212,175,55,0.2);  
+          color: ${COLORS.gold}; 
+          border: 1.5px solid ${COLORS.gold};
+          box-shadow: 0 0 8px rgba(212,175,55,0.3);
+        }
 
         /* ── Product row ── */
         .product-row {
@@ -454,7 +511,7 @@ const getOrders = async () => {
                         Ordered on {moment(o.createdAt).format("MMM DD, YYYY")}
                       </div>
                     </div>
-                    <PaymentBadge status={o.paymentDetails?.status} />
+                    <PaymentBadge order={o} />
                   </div>
 
                   {/* Products */}
